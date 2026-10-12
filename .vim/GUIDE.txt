@@ -1,0 +1,93 @@
+*GUIDE.txt*          MODERN VIM QUICK REFERENCE & CHEATSHEET
+
+==============================================================================
+                    WELCOME TO YOUR MODERNIZED VIM SETUP
+==============================================================================
+
+  LEADER KEY: <Space>
+  TIP: Press <Space> and pause for 0.5s to see the interactive Which-Key menu!
+  Press 'q' or <Esc> in this window to close this guide.
+
+==============================================================================
+1. AI AGENTS & HARNESSES LAUNCHPAD (NEW!)
+==============================================================================
+  All major AI coding agents are installed and accessible right inside Vim:
+  <Space> a g              Launch Antigravity AI Agent (:Agy)
+  <Space> a c              Launch Anthropic Claude Code (:Claude)
+  <Space> a d              Launch Aider AI Pair Programmer (:Aider)
+  <Space> a p              Launch Pi Coding Agent (:PiAgent)
+  <Space> a o              Launch Ollama / DeepSeek (:Ollama)
+  GITHUB COPILOT (copilot.vim):
+    <Tab>                  Accept ghost-text AI suggestion while typing
+    <M-]>  /  <M-[>        Cycle to next / previous AI suggestion
+    <Space> a s            Check Copilot status (:Copilot status)
+    <Space> a m            Open Copilot suggestion panel (:Copilot panel)
+    :Copilot setup         One-time GitHub account authentication
+
+==============================================================================
+2. OPENING FOLDERS & PROJECT WORKSPACES
+==============================================================================
+  v .                      Open current directory (NERDTree opens automatically!)
+  v path/to/project        Open any project folder directly
+  <Space> e   or <C-n>     Toggle NERDTree file explorer
+  <Space> e f              Reveal and highlight current file in NERDTree
+  <Space> f   or <C-p>     Fuzzy search files across the entire project (fzf)
+  <Space> g                Live text search with ripgrep across the project
+  <Space> b                Switch between open buffers
+
+==============================================================================
+3. VS CODE INTEGRATION & EXTENSIONS
+==============================================================================
+  INSTALLED VS CODE EXTENSIONS:
+    - vscodevim.vim        Full modal Vim editing inside VS Code
+    - saoudrizwan.claude-dev  Cline autonomous coding agent in VS Code
+    - rooveterinaryinc.roo-cline  Roo Code autonomous agent in VS Code
+    - continue.continue    Continue open-source AI assistant (DeepSeek/Claude)
+    - github.copilot-chat  Copilot Chat in VS Code
+  BRIDGE COMMANDS:
+    <Space> o c            Open current project folder in Visual Studio Code
+    <Space> o f            Open current file at exact cursor line in VS Code
+    code .                 Open folder in VS Code from terminal
+
+==============================================================================
+4. PRODUCTIVITY HELPERS & UTILITIES
+==============================================================================
+  <Space> t                Toggle integrated bottom terminal drawer (:terminal)
+  <Space> c f              Format code via active LSP (:Format)
+  <Space> r w              Smart search & replace word under cursor (:ReplaceWord)
+  <Space> y p              Copy absolute file path to macOS clipboard
+  <Space> y r              Copy relative file path to macOS clipboard
+  <Space> y n              Copy current file name to macOS clipboard
+  <Space> x q              Toggle Quickfix window list (:ToggleQuickfix)
+  <Space> s s              Save workspace layout & buffers (:SaveSession)
+  <Space> s r              Restore last saved workspace (:RestoreSession)
+  <Space> s o              Toggle automatic continuous session tracking (:Obsession)
+  <Space> s w              Strip trailing whitespace (:TrimWhitespace)
+  <Space> s h              Run Vim health & environment check (:VimHealth)
+  <Space> s v              Reload ~/.vimrc configuration (:ReloadConfig)
+
+==============================================================================
+5. MOTIONS & EDITING POWER TOOLS
+==============================================================================
+  s{char}{char}            Jump directly to any 2 characters on screen (Sneak)
+  S{char}{char}            Jump backwards to any 2 characters on screen
+  <C-d> / <C-u>            Smooth animated scrolling (Smoothie)
+  gcc / gc (visual)        Toggle line / block comments (Commentary)
+  ysiw" / cs"' / ds"       Surround motions (Surround)
+  <C-n>                    Multi-cursor word selection (Visual Multi)
+  <Space> u                Visual undo branch tree (Undotree)
+  <Space> w / q            Save file / Quit
+
+==============================================================================
+6. WINDOWS & SPLITS
+==============================================================================
+  <Ctrl-h/j/k/l>           Move to left / down / up / right window
+  <Space> v s / v v        Split horizontally / vertically
+  <Space> v c              Close current window
+  Shift-L or ]b            Next buffer
+  Shift-H or [b            Previous buffer
+  <Space> b d              Close current buffer
+
+==============================================================================
+  To re-open this guide anytime in Vim:  <Space>?  or  :Guide  or  :HelpMe
+==============================================================================

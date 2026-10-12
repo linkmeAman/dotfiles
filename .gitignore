@@ -2,3 +2,11 @@
 .DS_Store
 *.swp
 *~
+
+# Vim temporary directories & cache
+.vim/backup/
+.vim/swap/
+.vim/undodir/
+.vim/viminfo
+.vim/plugged/
+*.un~

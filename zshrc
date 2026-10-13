@@ -2065,6 +2065,7 @@ fh() {
 # Interactive Developer Action Launcher (Press Ctrl+Space or run `do` / `menu`)
 developer_launcher() {
   local actions=(
+    "🏠 dash       --> Terminal Base Dashboard (system vitals, ports, AI tasks)"
     "📝 fmod       --> Fuzzy git modified files (open in Neovim / stage)"
     "🌿 fgb        --> Interactive Git branch manager (checkout / delete / log)"
     "⚡ frun       --> Universal project task runner (npm / cargo / make / docker)"
@@ -2114,6 +2115,17 @@ bindkey '^g' developer_launcher 2>/dev/null || true   # Ctrl+G fallback
 alias do='developer_launcher'
 alias menu='developer_launcher'
 alias run='developer_launcher'
+
+# Terminal Base of Operations Dashboard
+dash() {
+  if [[ -f "$HOME/dotfiles/bin/term-dash" ]]; then
+    zsh "$HOME/dotfiles/bin/term-dash" "$@"
+  elif [[ -f "$HOME/.local/bin/term-dash" ]]; then
+    zsh "$HOME/.local/bin/term-dash" "$@"
+  fi
+}
+alias home='dash'
+alias base='dash'
 
 # ==============================================================================
 # Home-Row Autosuggestions & Container/Vitals Productivity Pack

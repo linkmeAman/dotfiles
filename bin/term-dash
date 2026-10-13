@@ -1,0 +1,189 @@
+#!/usr/bin/env zsh
+# ==============================================================================
+#                 TERMINAL BASE OF OPERATIONS DASHBOARD
+# ==============================================================================
+# Fast, zero-mouse interactive developer dashboard.
+# Shows system vitals, active dev ports, git repos, and background AI agents.
+# ==============================================================================
+
+# Ensure standard utilities are found
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.local/bin:$HOME/dotfiles/bin:$PATH"
+
+# Colors & Formatting
+BOLD="\033[1m"
+DIM="\033[2m"
+ITALIC="\033[3m"
+RESET="\033[0m"
+
+BLUE="\033[38;2;122;162;247m"
+CYAN="\033[38;2;125;207;255m"
+GREEN="\033[38;2;158;206;106m"
+YELLOW="\033[38;2;224;175;104m"
+ORANGE="\033[38;2;255;158;100m"
+RED="\033[38;2;247;118;142m"
+PURPLE="\033[38;2;187;154;247m"
+GRAY="\033[38;2;86;95;137m"
+WHITE="\033[38;2;192;202;245m"
+
+clear
+
+# 1. Header & System Info
+HOST_NAME=$(scutil --get ComputerName 2>/dev/null || hostname -s 2>/dev/null || echo "Mac")
+UPTIME_STR=$(uptime | sed -E 's/.*up +([^,]+), .*/\1/' 2>/dev/null || echo "unknown")
+DATE_STR=$(date +"%A, %b %d • %I:%M %p")
+BATT_RAW=$(pmset -g batt 2>/dev/null | grep -E -o '[0-9]+%' | head -n 1 || echo "")
+[[ -n "$BATT_RAW" ]] && BATT_STR="Battery: ${BATT_RAW}" || BATT_STR="AC Power"
+
+echo "${CYAN}${BOLD}╭─────────────────────────────────────────────────────────────────────────────╮${RESET}"
+echo "${CYAN}${BOLD}│${RESET}  ${PURPLE}${BOLD}⚡ TERMINAL BASE OF OPERATIONS${RESET}                 ${DIM}macOS Darwin • Apple Silicon${RESET}  ${CYAN}${BOLD}│${RESET}"
+echo "${CYAN}${BOLD}│${RESET}  ${WHITE}${DATE_STR}${RESET}           ${GRAY}Uptime: ${UPTIME_STR} • ${BATT_STR}${RESET}  ${CYAN}${BOLD}│${RESET}"
+echo "${CYAN}${BOLD}├─────────────────────────────────────────────────────────────────────────────┤${RESET}"
+
+# 2. System Vitals (RAM, Disk)
+DISK_USE=$(df -h / 2>/dev/null | awk 'NR==2 {print $5}')
+TOTAL_MEM_GB=$(sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.0f", $1/1024/1024/1024}')
+MEM_PAGES_FREE=$(vm_stat 2>/dev/null | awk '/Pages free/ {gsub("\\.","",$3); print $3}')
+MEM_PAGES_INACT=$(vm_stat 2>/dev/null | awk '/Pages inactive/ {gsub("\\.","",$3); print $3}')
+MEM_PAGES_SPEC=$(vm_stat 2>/dev/null | awk '/Pages speculative/ {gsub("\\.","",$3); print $3}')
+
+if [[ -n "$MEM_PAGES_FREE" && -n "$TOTAL_MEM_GB" ]]; then
+  FREE_MB=$(( (MEM_PAGES_FREE + MEM_PAGES_INACT + MEM_PAGES_SPEC) * 4096 / 1024 / 1024 ))
+  TOTAL_MB=$(( TOTAL_MEM_GB * 1024 ))
+  USED_MB=$(( TOTAL_MB - FREE_MB ))
+  if (( TOTAL_MB > 0 )); then
+    MEM_PCT=$(( USED_MB * 100 / TOTAL_MB ))
+  else
+    MEM_PCT="--"
+  fi
+else
+  MEM_PCT="--"
+fi
+
+echo "${CYAN}${BOLD}│${RESET}  ${BLUE}${BOLD}📊 SYSTEM VITALS${RESET}"
+echo "${CYAN}${BOLD}│${RESET}  ${GRAY}Memory Usage:${RESET} ${GREEN}${MEM_PCT}% of ${TOTAL_MEM_GB}GB${RESET}    ${GRAY}Root Disk:${RESET} ${YELLOW}${DISK_USE} used${RESET}"
+echo "${CYAN}${BOLD}├─────────────────────────────────────────────────────────────────────────────┤${RESET}"
+
+# 3. Active Dev Services & Listening Ports
+echo "${CYAN}${BOLD}│${RESET}  ${ORANGE}${BOLD}🌐 ACTIVE LISTENING PORTS & DEV SERVERS${RESET}"
+PORTS_FOUND=0
+PORT_LINES=$(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR>1 {print $1, $9}' | sort -u)
+
+while read -r proc addr; do
+  [[ -z "$proc" ]] && continue
+  port="${addr##*:}"
+  [[ "$port" =~ ^[0-9]+$ ]] || continue
+  if [[ "$proc" =~ ^(rapportd|ControlCe|identityservicesd|AirPlayXPCHelper|AnyDesk)$ ]]; then
+    continue
+  fi
+  PORTS_FOUND=$((PORTS_FOUND + 1))
+  if (( PORTS_FOUND <= 5 )); then
+    echo "${CYAN}${BOLD}│${RESET}  ${GREEN}●${RESET} ${WHITE}:${port}${RESET}  ${CYAN}${proc}${RESET}"
+  fi
+done <<< "$PORT_LINES"
+
+if (( PORTS_FOUND == 0 )); then
+  echo "${CYAN}${BOLD}│${RESET}  ${DIM}No local developer servers listening right now${RESET}"
+elif (( PORTS_FOUND > 5 )); then
+  echo "${CYAN}${BOLD}│${RESET}  ${DIM}... and $((PORTS_FOUND - 5)) more active ports${RESET}"
+fi
+
+echo "${CYAN}${BOLD}├─────────────────────────────────────────────────────────────────────────────┤${RESET}"
+
+# 4. Active Git Repositories
+echo "${CYAN}${BOLD}│${RESET}  ${GREEN}${BOLD}📁 GIT REPOSITORIES & WORKSPACES${RESET}"
+
+PROJECT_DIRS=("$HOME/dotfiles")
+while read -r gitdir; do
+  repo=$(dirname "$gitdir")
+  [[ "$repo" == "$HOME/dotfiles" ]] && continue
+  PROJECT_DIRS+=("$repo")
+done < <(fd -H -td '^\\.git$' "$HOME/Documents" "$HOME" --max-depth 3 --prune 2>/dev/null | head -n 3)
+
+for p in "${PROJECT_DIRS[@]}"; do
+  [[ -d "$p/.git" ]] || continue
+  p_name=$(basename "$p")
+  branch=$(git -C "$p" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "detached")
+  dirty_count=$(git -C "$p" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+  ahead_count=$(git -C "$p" rev-list --count @{u}..HEAD 2>/dev/null || echo 0)
+
+  if (( dirty_count > 0 )); then
+    status_icon="${YELLOW}* dirty (${dirty_count})${RESET}"
+  else
+    status_icon="${GREEN}✔ clean${RESET}"
+  fi
+
+  if (( ahead_count > 0 )); then
+    ahead_str=" ${BLUE}⇡${ahead_count}${RESET}"
+  else
+    ahead_str=""
+  fi
+
+  echo "${CYAN}${BOLD}│${RESET}  ${WHITE}${p_name}${RESET} ${DIM}on${RESET} ${PURPLE}${branch}${RESET}${ahead_str} [${status_icon}] ${DIM}(${p})${RESET}"
+done
+
+echo "${CYAN}${BOLD}├─────────────────────────────────────────────────────────────────────────────┤${RESET}"
+
+# 5. Quick Launch Action Menu
+echo "${CYAN}${BOLD}│${RESET}  ${YELLOW}${BOLD}⚡ QUICK LAUNCH ACTION MENU (Press single key):${RESET}"
+echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[1]${RESET} Project Sessionizer (Neovim)   ${BOLD}[2]${RESET} Lazygit (Git UI)"
+echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[3]${RESET} Lazydocker (Containers)        ${BOLD}[4]${RESET} Btop (System Monitor)"
+echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[5]${RESET} Yazi (File Explorer)           ${BOLD}[6]${RESET} AI Agent CLI (AGY)"
+echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[k]${RESET} Kill Listening Port            ${BOLD}[p]${RESET} Fuzzy Git Project Switcher"
+echo "${CYAN}${BOLD}│${RESET}  ${DIM}[q / Enter / Esc] Exit dashboard back to shell${RESET}"
+echo "${CYAN}${BOLD}╰─────────────────────────────────────────────────────────────────────────────╯${RESET}"
+
+echo -n "${CYAN}${BOLD}❯ Choice: ${RESET}"
+if [[ -t 0 ]]; then
+  read -k 1 choice
+else
+  read -r choice || choice="q"
+fi
+echo ""
+
+case "$choice" in
+  1)
+    if [[ -x "$HOME/dotfiles/bin/tmux-sessionizer" ]]; then
+      "$HOME/dotfiles/bin/tmux-sessionizer"
+    elif [[ -x "$HOME/.local/bin/tmux-sessionizer" ]]; then
+      "$HOME/.local/bin/tmux-sessionizer"
+    else
+      nvim
+    fi
+    ;;
+  2)
+    lazygit
+    ;;
+  3)
+    lazydocker
+    ;;
+  4)
+    btop
+    ;;
+  5)
+    yazi
+    ;;
+  6)
+    agy
+    ;;
+  k)
+    selected=$(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR>1 {print $1, $2, $9}' | sort -u | fzf --prompt="Select port to kill ❯ " --height=40% --layout=reverse --header="PID PROCESS PORT")
+    if [[ -n "$selected" ]]; then
+      pid=$(echo "$selected" | awk '{print $2}')
+      if [[ -n "$pid" ]]; then
+        kill -9 "$pid" 2>/dev/null && echo "Killed PID $pid" || echo "Failed to kill PID $pid"
+      fi
+    fi
+    ;;
+  p)
+    if [[ -x "$HOME/dotfiles/bin/tmux-sessionizer" ]]; then
+      "$HOME/dotfiles/bin/tmux-sessionizer"
+    elif [[ -x "$HOME/.local/bin/tmux-sessionizer" ]]; then
+      "$HOME/.local/bin/tmux-sessionizer"
+    fi
+    ;;
+  q|$'\n'|$'\e')
+    ;;
+  *)
+    echo "Exiting dashboard."
+    ;;
+esac

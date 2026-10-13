@@ -467,6 +467,8 @@ let g:which_key_map.g = {
       \ 'a': [':GitGutterStageHunk',   'Stage git hunk at cursor'],
       \ 'x': [':NextConflict',         'Jump to next merge conflict (]x)'],
       \ 'w': [':RgWord',               'Search word under cursor in project (Rg)'],
+      \ 'i': [':GitCI',                'GitHub CI / Actions status & logs (:GitCI)'],
+      \ 'P': [':GitCreatePR',          'Create GitHub Pull Request (:GitCreatePR)'],
       \ }
 
 " Buffers
@@ -530,6 +532,7 @@ let g:which_key_map.r = {
       \ 'f': [':RunFile',     'Run current file in terminal drawer'],
       \ 'l': [':RunLast',     'Re-run last command in terminal drawer'],
       \ 't': [':RunTask',     'Interactive project task runner (frun)'],
+      \ 'd': [':DevServer',   'Run project dev server (dev)'],
       \ 'w': [':ReplaceWord', 'Search & replace word under cursor'],
       \ }
 
@@ -541,6 +544,7 @@ let g:which_key_map.s = {
       \ 'r': [':RestoreSession',        'Restore workspace session'],
       \ 'o': [':Obsession',             'Toggle continuous session tracker'],
       \ 'n': [':Snippets',              'Insert code snippet from ~/.snippets'],
+      \ 'R': [':Regex',                 'Interactive terminal regex sandbox (:Regex)'],
       \ 'w': [':TrimWhitespace',        'Strip trailing whitespace'],
       \ 'h': [':VimHealth',             'Check Vim status & health'],
       \ }
@@ -1055,11 +1059,31 @@ command! -nargs=1 JumpPin call <SID>JumpToPin(<args>)
 command! -bar ListPins call <SID>ListPins()
 command! -bar ClearPins call <SID>ClearPins()
 
-" 17. Universal Project Task Runner (:RunTask)
+" 17. Universal Project Task Runner (:RunTask) & Dev Server (:DevServer)
 function! s:RunProjectTask() abort
   call s:ExecuteInTerminalDrawer('frun')
 endfunction
 command! -bar RunTask call <SID>RunProjectTask()
+
+function! s:RunDevServer() abort
+  call s:ExecuteInTerminalDrawer('dev')
+endfunction
+command! -bar DevServer call <SID>RunDevServer()
+
+function! s:RunGitCI() abort
+  call s:ExecuteInTerminalDrawer('fci')
+endfunction
+command! -bar GitCI call <SID>RunGitCI()
+
+function! s:RunGitCreatePR() abort
+  call s:ExecuteInTerminalDrawer('fcreatepr')
+endfunction
+command! -bar GitCreatePR call <SID>RunGitCreatePR()
+
+function! s:RunRegexSandbox() abort
+  call s:ExecuteInTerminalDrawer('fregex')
+endfunction
+command! -bar Regex call <SID>RunRegexSandbox()
 
 " 18. Project Bookmarks Jumping (:Bookmarks / :Bm)
 function! s:FzfBookmarks() abort
@@ -1152,6 +1176,8 @@ function! s:OpenHints() abort
         \ '    <Space> r l      Re-run last command in terminal drawer (:RunLast)',
         \ '',
         \ '  ⚔️ GIT, DIFFS & MERGE CONFLICTS:',
+        \ '    <Space> g i      Interactive GitHub CI runs & logs (:GitCI)',
+        \ '    <Space> g P      Create GitHub Pull Request wizard (:GitCreatePR)',
         \ '    fcommit / gc     Conventional commit wizard with type/scope picker',
         \ '    gsync / gprune   Sync with remote & prune deleted [gone] branches',
         \ '    ]x / [x          Jump directly to next / previous merge conflict marker',
@@ -1161,8 +1187,13 @@ function! s:OpenHints() abort
         \ '    <Space> g p      Preview Git diff hunk at cursor',
         \ '',
         \ '  ⚡ SHELL & TERMINAL (OUTSIDE VIM):',
-        \ '    hud / <F1>       Terminal Cockpit HUD (search and paste all 35+ commands)',
+        \ '    hud / <F1>       Terminal Cockpit HUD (search and paste all 40+ commands)',
         \ '    hint / <F2>      Interactive Shell Hints & cheat sheet explorer',
+        \ '    dev / up         Universal project dev server & stack runner (:DevServer)',
+        \ '    fci / factions   Interactive GitHub CI/Actions watcher & logs',
+        \ '    fcreatepr / gpr  Zero-mouse GitHub pull request creation wizard',
+        \ '    fregex [pat]     Interactive terminal regex sandbox (:Regex)',
+        \ '    fcurl <url>      Zero-browser HTTP timing card, latency & headers',
         \ '    fjson [file]     Interactive JSON/YAML key path query & inspector',
         \ '    wip / unwip      1-second safety checkpoint commit / rollback',
         \ '    reader [url]     Distraction-free terminal article & docs reader (reads clipboard!)',
@@ -1204,6 +1235,10 @@ nnoremap <silent> <leader>z  :ToggleZoom<CR>
 nnoremap <silent> <leader>rf :RunFile<CR>
 nnoremap <silent> <leader>rl :RunLast<CR>
 nnoremap <silent> <leader>rt :RunTask<CR>
+nnoremap <silent> <leader>rd :DevServer<CR>
+nnoremap <silent> <leader>gi :GitCI<CR>
+nnoremap <silent> <leader>gP :GitCreatePR<CR>
+nnoremap <silent> <leader>sR :Regex<CR>
 nnoremap <silent> <leader>cd :CdProject<CR>
 nnoremap <silent> <leader>cb :Bookmarks<CR>
 nnoremap <silent> <leader>cp :Snippets<CR>

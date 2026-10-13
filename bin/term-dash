@@ -128,6 +128,7 @@ echo "${CYAN}${BOLD}│${RESET}  ${YELLOW}${BOLD}⚡ QUICK LAUNCH ACTION MENU (P
 echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[1]${RESET} Project Sessionizer (Neovim)   ${BOLD}[2]${RESET} Lazygit (Git UI)"
 echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[3]${RESET} Lazydocker (Containers)        ${BOLD}[4]${RESET} Btop (System Monitor)"
 echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[5]${RESET} Yazi (File Explorer)           ${BOLD}[6]${RESET} AI Agent CLI (AGY)"
+echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[a]${RESET} Launch / Switch App (fapp)     ${BOLD}[d]${RESET} Edit Dotfiles (dot)"
 echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[k]${RESET} Kill Listening Port            ${BOLD}[p]${RESET} Fuzzy Git Project Switcher"
 echo "${CYAN}${BOLD}│${RESET}  ${DIM}[q / Enter / Esc] Exit dashboard back to shell${RESET}"
 echo "${CYAN}${BOLD}╰─────────────────────────────────────────────────────────────────────────────╯${RESET}"
@@ -141,6 +142,20 @@ fi
 echo ""
 
 case "$choice" in
+  a)
+    app=$(find /Applications /System/Applications "$HOME/Applications" -maxdepth 2 -name "*.app" 2>/dev/null | \
+          sed 's|.*/||; s|\.app$||' | sort -u | \
+          fzf --prompt="🚀 Switch / Launch App ❯ " --height=40% --layout=reverse --header="[Enter: Open App | Esc: Cancel]")
+    [[ -n "$app" ]] && open -a "$app"
+    ;;
+  d)
+    if command -v fzf >/dev/null 2>&1; then
+      choice_file=$(git -C "$HOME/dotfiles" ls-files 2>/dev/null | fzf --prompt="📝 Edit Dotfile ❯ " --height=40% --layout=reverse)
+      [[ -n "$choice_file" ]] && ${EDITOR:-nvim} "$HOME/dotfiles/$choice_file"
+    else
+      ${EDITOR:-nvim} "$HOME/dotfiles/zshrc"
+    fi
+    ;;
   1)
     if [[ -x "$HOME/dotfiles/bin/tmux-sessionizer" ]]; then
       "$HOME/dotfiles/bin/tmux-sessionizer"

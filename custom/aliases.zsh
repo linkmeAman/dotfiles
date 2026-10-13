@@ -34,6 +34,13 @@ alias nah="git reset --hard && git clean -df"
 # Shell & Configuration management
 alias reload="omz reload"
 alias zshconfig="${EDITOR:-nvim} ~/.zshrc"
+alias dot="dot"
+alias dotsync="dotsync"
+alias dash="dash"
+alias home="dash"
+alias base="dash"
+alias apps="fapp"
+alias wez="wezterm"
 
 # Network & System
 alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"

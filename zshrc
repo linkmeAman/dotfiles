@@ -997,9 +997,6 @@ gwt() {
 # ==============================================================================
 # Dotfiles Version Control & One-Stroke Cloud Sync (dotsync, dot)
 # ==============================================================================
-# ==============================================================================
-# Dotfiles Version Control & One-Stroke Cloud Sync (dotsync, dot, dotlink)
-# ==============================================================================
 dot() {
   local dotdir="$HOME/dotfiles"
   if [ -z "$1" ]; then
@@ -1061,32 +1058,21 @@ dotsync() {
     git -C "$dotdir" status
     return 0
   fi
-
-  echo "📦 Syncing active configurations with $dotdir..."
-  # If files are symlinks, git already tracks them. If regular files, copy them over:
-  [[ ! -L "$HOME/.zshrc" ]] && cp "$HOME/.zshrc" "$dotdir/zshrc" 2>/dev/null || true
-  [[ ! -L "$HOME/.tmux.conf" ]] && cp "$HOME/.tmux.conf" "$dotdir/tmux.conf" 2>/dev/null || true
-  [[ ! -L "$HOME/.wezterm.lua" ]] && cp "$HOME/.wezterm.lua" "$dotdir/wezterm.lua" 2>/dev/null || true
-  [[ ! -L "$HOME/.vimrc" ]] && cp "$HOME/.vimrc" "$dotdir/vimrc" 2>/dev/null || true
-  [[ ! -L "$HOME/.aerospace.toml" ]] && cp "$HOME/.aerospace.toml" "$dotdir/aerospace.toml" 2>/dev/null || true
-  if [[ -f "$HOME/.hammerspoon/init.lua" && ! -L "$HOME/.hammerspoon/init.lua" ]]; then
-    mkdir -p "$dotdir/hammerspoon"
-    cp "$HOME/.hammerspoon/init.lua" "$dotdir/hammerspoon/init.lua" 2>/dev/null || true
-  fi
-  if [[ -f "$HOME/.local/bin/term-dash" && ! -L "$HOME/.local/bin/term-dash" ]]; then
-    mkdir -p "$dotdir/bin"
-    cp "$HOME/.local/bin/term-dash" "$dotdir/bin/term-dash" 2>/dev/null || true
-  fi
+  echo "📦 Copying active configurations to $dotdir..."
+  cp ~/.zshrc "$dotdir/" 2>/dev/null || true
+  cp ~/.tmux.conf "$dotdir/" 2>/dev/null || true
+  cp ~/.wezterm.lua "$dotdir/" 2>/dev/null || true
+  cp ~/.vimrc "$dotdir/" 2>/dev/null || true
+  cp ~/.aerospace.toml "$dotdir/" 2>/dev/null || true
+  mkdir -p "$dotdir/bin"
+  cp ~/.local/bin/term-dash "$dotdir/bin/" 2>/dev/null || true
   mkdir -p "$dotdir/.gemini/config"
-  cp "$HOME/.gemini/config/AGENTS.md" "$dotdir/.gemini/config/" 2>/dev/null || true
-  cp "$HOME/.gemini/config/hooks.json" "$dotdir/.gemini/config/" 2>/dev/null || true
+  cp ~/.gemini/config/AGENTS.md "$dotdir/.gemini/config/" 2>/dev/null || true
+  cp ~/.gemini/config/hooks.json "$dotdir/.gemini/config/" 2>/dev/null || true
 
   if [ -d "$dotdir/.git" ]; then
     git -C "$dotdir" add -A
-    local msg="${*:-chore(dotfiles): sync terminal configuration updates $(date '+%Y-%m-%d %H:%M')}"
-    if ! git -C "$dotdir" diff --cached --quiet 2>/dev/null; then
-      git -C "$dotdir" commit -m "$msg" 2>/dev/null || true
-    fi
+    git -C "$dotdir" commit -m "chore(dotfiles): sync terminal configuration updates $(date '+%Y-%m-%d %H:%M')" 2>/dev/null || true
     echo "🚀 Pushing dotfiles to origin..."
     git -C "$dotdir" push origin main 2>/dev/null || git -C "$dotdir" push 2>/dev/null || true
     echo "✓ Dotfiles synced to GitHub!"

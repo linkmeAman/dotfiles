@@ -200,6 +200,11 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 | :--- | :--- | :--- |
 | `hud` / `<F1>` | `hud` | Interactive search menu of all terminal tools; pastes command onto prompt. |
 | `hint` / `<F2>`| `hint`, `hint git`, `hint vim` | Interactive developer hints & recommendations explorer with live cheat sheet. |
+| `dev` / `up` | `dev`, `up` | Universal project dev server & stack runner (auto-detects npm, cargo, go, python). |
+| `fci` / `factions` | `fci`, `factions` | Interactive GitHub CI / Actions run watcher, status icons & logs in terminal pager. |
+| `fcreatepr` / `gpr` | `fcreatepr`, `gpr` | Zero-mouse GitHub PR creation wizard with title, body prompt & auto-pushed branch. |
+| `fregex` | `fregex`, `fregex '\d+'` | Interactive terminal regex sandbox (Regex101 in terminal) with live match highlights. |
+| `fcurl <url>` | `fcurl https://...` | Zero-browser HTTP latency card, DNS/TLS waterfall timings & response headers. |
 | `fcommit` / `gc` | `fcommit`, `gc` | Conventional commit wizard with interactive type, scope picker & auto-staging. |
 | `gsync` / `gprune` | `gsync`, `gprune` | Pulls upstream with rebase and automatically prunes deleted/gone local branches. |
 | `fjson` / `fyaml` | `fjson data.json`, `fyaml config.yml` | Interactive JSON/YAML key path explorer, jq preview & clipboard value copier. |

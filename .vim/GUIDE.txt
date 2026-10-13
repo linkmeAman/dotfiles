@@ -210,6 +210,11 @@
   hud  /  <F1>             Interactive shell command HUD & shortcuts menu
   hint [topic] / <F2>      Interactive developer hints & cheatsheet explorer
   dash / base              Terminal Base of Operations Dashboard (Vitals, Ports, Repos)
+  dev  /  up               Universal project dev server & stack runner (:DevServer)
+  fci  /  factions         Interactive GitHub CI / Actions run watcher & logs (:GitCI)
+  fcreatepr / gpr          Zero-mouse GitHub pull request creation wizard (:GitCreatePR)
+  fregex [pattern] [text]  Interactive terminal regex sandbox (:Regex)
+  fcurl <url>              Zero-browser HTTP timing card, latency waterfall & headers
   fix                      Pipe last failed command error into Antigravity AI
   ai / ask <prompt>        Prompt Antigravity AI directly from shell
   task / frun              Universal project task runner (npm/make/just/cargo)

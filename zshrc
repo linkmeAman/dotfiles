@@ -1089,6 +1089,71 @@ toggle-theme() {
 alias dark='toggle-theme'
 
 # ==============================================================================
+# Codebase TODO / FIXME Explorer (ftodo)
+# ==============================================================================
+ftodo() {
+  local match
+  match=$(rg -n --color=always "(TODO|FIXME|BUG|HACK|NOTE):" 2>/dev/null | \
+    fzf --ansi -d ':' \
+        --prompt="📌 Todos & Fixmes > " \
+        --header="[Enter: Jump to line in Neovim | Esc: Cancel]" \
+        --preview='bat --style=numbers --color=always --highlight-line {2} {1} 2>/dev/null' \
+        --preview-window=right:65%:wrap)
+  if [ -n "$match" ]; then
+    local file=$(echo "$match" | cut -d: -f1)
+    local line=$(echo "$match" | cut -d: -f2)
+    ${EDITOR:-nvim} "+$line" "$file"
+  fi
+}
+
+# ==============================================================================
+# Terminal Math & Precision Calculator (calc)
+# ==============================================================================
+calc() {
+  if [ -z "$*" ]; then
+    echo "Usage: calc <math_expression>  (e.g. calc 1920 / 1080, calc 2^16)"
+    return 1
+  fi
+  echo "scale=4; $*" | bc -l
+}
+
+# ==============================================================================
+# Advanced Git Workflow: Rebase & Branch Comparison (grebase, gcompare)
+# ==============================================================================
+grebase() {
+  local count="${1:-3}"
+  echo "Starting interactive rebase for last $count commits..."
+  git rebase -i HEAD~"$count"
+}
+
+gcompare() {
+  local base_branch="${1:-main}"
+  if ! git rev-parse --verify "$base_branch" >/dev/null 2>&1; then
+    base_branch="master"
+  fi
+  local current_branch=$(git branch --show-current)
+  echo "Comparing $current_branch against $base_branch..."
+  git log "$base_branch..$current_branch" --color=always --oneline | fzf --ansi \
+    --prompt="Commits in $current_branch > " \
+    --preview="git show --color=always \$(echo {} | awk '{print \$1}') | delta --side-by-side" \
+    --preview-window=right:65%:wrap
+}
+
+# ==============================================================================
+# macOS Native Asset Optimization (img-resize)
+# ==============================================================================
+img-resize() {
+  if [ "$#" -lt 2 ]; then
+    echo "Usage: img-resize <max_width_px> <image_file>"
+    return 1
+  fi
+  local width="$1"
+  local img="$2"
+  sips --resampleWidth "$width" "$img" >/dev/null
+  echo "✓ Resized $img to max-width ${width}px."
+}
+
+# ==============================================================================
 # Daily Developer Journal & Markdown Notes (note, fnotes)
 # ==============================================================================
 note() {
@@ -1875,3 +1940,110 @@ serve() {
   echo "🌐 Starting local web server on http://localhost:$port (serving $PWD)"
   python3 -m http.server "$port"
 }
+
+# ==============================================================================
+# Effortless Developer Action Launcher & Ergonomic Navigation
+# ==============================================================================
+
+# Ergonomic Parent Directory Navigation
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias .....='cd ../../../..'
+alias -- -='cd -'
+
+# Interactive Jump Up Parent Directories (bd)
+bd() {
+  local parents=()
+  local current="$PWD"
+  while [ "$current" != "/" ]; do
+    current="$(dirname "$current")"
+    [ -n "$current" ] && parents+=("$current")
+  done
+  local dest
+  dest=$(printf "%s\n" "${parents[@]}" | fzf --prompt="📂 Jump to Parent Directory > " \
+    --header="[Enter: cd into directory | Esc: Cancel]" \
+    --preview="eza --tree --icons -L 2 {} 2>/dev/null || ls -la {}" \
+    --preview-window=right:50%)
+  [ -n "$dest" ] && builtin cd "$dest"
+}
+
+# Quick Git Commit & Push (gcp "message")
+gcp() {
+  if [ -z "$*" ]; then
+    echo "Usage: gcp <commit message>"
+    return 1
+  fi
+  git add -A
+  git commit -m "$*"
+  local branch
+  branch=$(git branch --show-current)
+  if [ -n "$branch" ]; then
+    git push origin "$branch"
+  fi
+}
+
+# Interactive History Search (fh [query])
+fh() {
+  local cmd
+  cmd=$(fc -l -n 1 | awk '!seen[$0]++' | fzf --tac --prompt="📜 History > " \
+    --query="$*" \
+    --header="[Enter: Execute Command | Ctrl-C / Esc: Cancel]" \
+    --preview="echo {}" --preview-window=down:3:wrap)
+  if [ -n "$cmd" ]; then
+    eval "$cmd"
+  fi
+}
+
+# Interactive Developer Action Launcher (Press Ctrl+Space or run `do` / `menu`)
+developer_launcher() {
+  local actions=(
+    "📝 fmod       --> Fuzzy git modified files (open in Neovim / stage)"
+    "🌿 fgb        --> Interactive Git branch manager (checkout / delete / log)"
+    "⚡ frun       --> Universal project task runner (npm / cargo / make / docker)"
+    "📋 cl         --> Copy last command output to macOS clipboard"
+    "🤖 clask      --> Pipe last command output to Antigravity AI"
+    "🔌 fport      --> Kill process listening on a port (interactive)"
+    "📁 fo         --> Fuzzy find file and open in Neovim (bat preview)"
+    "🔍 fif        --> Search text inside files (ripgrep live preview)"
+    "📂 y / f      --> Yazi terminal file manager (cd on quit)"
+    "🐙 lg         --> Lazygit keyboard Git client"
+    "🐳 ld         --> Lazydocker keyboard Docker client"
+    "📊 top        --> Btop system and process monitor"
+    "🖼 fpic       --> Fuzzy find photos with high-res terminal preview"
+    "🎬 fvid       --> Fuzzy find videos with Retina playback"
+    "🌐 browse     --> W3M terminal web browser"
+    "🔎 search     --> CLI web search without browser redirect"
+    "🧪 sb         --> Disposable code sandbox (Python, TS, Rust, Go)"
+    "⚔️ conflicts  --> Interactive git merge conflict resolver"
+    "📌 warp       --> Jump to project bookmark"
+    "✅ todo       --> Terminal action checklist"
+    "📖 tldr       --> Interactive cheatsheet & manual browser"
+    "📜 fh         --> Fuzzy command history search"
+    "📂 bd         --> Jump up to any parent directory"
+    "📱 qr         --> Generate terminal QR code for URLs"
+    "🌐 serve      --> Instant local HTTP server (port 8080)"
+  )
+
+  local selected
+  selected=$(printf "%s\n" "${actions[@]}" | fzf --prompt="⚡ Action > " \
+    --header="[Enter: Execute Action | Esc: Cancel]" \
+    --height=45% --layout=reverse --border)
+
+  if [ -n "$selected" ]; then
+    local cmd=$(echo "$selected" | awk '{print $2}')
+    if [ -n "$WIDGET" ]; then
+      BUFFER="$cmd"
+      zle accept-line 2>/dev/null || eval "$cmd"
+    else
+      eval "$cmd"
+    fi
+  fi
+}
+
+zle -N developer_launcher 2>/dev/null || true
+bindkey '^@' developer_launcher 2>/dev/null || true   # Ctrl+Space in most terminals
+bindkey '^g' developer_launcher 2>/dev/null || true   # Ctrl+G fallback
+alias do='developer_launcher'
+alias menu='developer_launcher'
+alias run='developer_launcher'

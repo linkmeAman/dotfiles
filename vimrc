@@ -614,10 +614,10 @@ nnoremap <silent> <leader>t :ToggleTerminal<CR>
 
 if has('terminal')
   tnoremap <Esc> <C-\><C-n>
-  tnoremap <C-h> <C-\><C-n><C-w>h
-  tnoremap <C-j> <C-\><C-n><C-w>j
-  tnoremap <C-k> <C-\><C-n><C-w>k
-  tnoremap <C-l> <C-\><C-n><C-w>l
+  tnoremap <silent> <C-h> <C-\><C-n>:call SmartSplitSwitch('h', 'Left', 'L')<CR>
+  tnoremap <silent> <C-j> <C-\><C-n>:call SmartSplitSwitch('j', 'Down', 'D')<CR>
+  tnoremap <silent> <C-k> <C-\><C-n>:call SmartSplitSwitch('k', 'Up', 'U')<CR>
+  tnoremap <silent> <C-l> <C-\><C-n>:call SmartSplitSwitch('l', 'Right', 'R')<CR>
 endif
 
 " 2. Copy Path Helpers to Clipboard

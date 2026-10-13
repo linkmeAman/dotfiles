@@ -141,16 +141,16 @@ config.mouse_bindings = {
     action = act.PasteFrom 'Clipboard',
   },
 
-  -- Releasing Left Mouse button auto-copies to clipboard
+  -- Releasing Left Mouse button auto-copies to clipboard ONLY when text was selected
   {
     event = { Up = { streak = 1, button = 'Left' } },
     mods = 'NONE',
-    action = act.CompleteSelectionOrOpenLinkAtMouseCursor 'ClipboardAndPrimarySelection',
+    action = act.CompleteSelection 'ClipboardAndPrimarySelection',
   },
   {
     event = { Up = { streak = 1, button = 'Left' } },
     mods = 'SHIFT',
-    action = act.CompleteSelectionOrOpenLinkAtMouseCursor 'ClipboardAndPrimarySelection',
+    action = act.CompleteSelection 'ClipboardAndPrimarySelection',
   },
 }
 

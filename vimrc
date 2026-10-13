@@ -176,13 +176,22 @@ set ttimeoutlen=50
 
 " System clipboard integration (macOS pbcopy/pbpaste seamless)
 if has('clipboard')
-  set clipboard^=unnamed,unnamedplus
+  set clipboard=unnamed,unnamedplus
 endif
 
 " Mouse support for scrolling, selecting, and clicking
 if has('mouse')
   set mouse=a
+  " Auto-copy mouse visual selection to macOS clipboard on release
+  vnoremap <silent> <LeftRelease> "*y
 endif
+
+" Seamless Clipboard shortcuts: Ctrl+v to paste, Ctrl+c to copy
+nnoremap <C-v> "+p
+vnoremap <C-v> "+p
+inoremap <C-v> <C-r>+
+cnoremap <C-v> <C-r>+
+vnoremap <C-c> "+y
 
 " Persistent Undo (saves undo history across file closes!)
 if has('persistent_undo')

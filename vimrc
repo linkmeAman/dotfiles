@@ -198,11 +198,7 @@ endif
 set nobackup
 set nowritebackup
 set noswapfile
-if exists('+viminfofile')
-  let &viminfofile = expand('~/.vim/viminfo')
-else
-  set viminfo+=n~/.vim/viminfo
-endif
+set viminfo='100,<50,s10,h
 
 " Restore cursor to last recorded position upon opening a file
 augroup RestoreCursor
@@ -295,6 +291,15 @@ let g:gitgutter_sign_modified_removed = '▎'
 let g:fzf_layout = { 'window': { 'width': 0.9, 'height': 0.7 } }
 let $FZF_DEFAULT_OPTS = '--reverse --border --inline-info'
 
+" Prevent Esc from dropping into non-modifiable Terminal-Normal mode inside FZF
+augroup FZFKeybindings
+  autocmd!
+  autocmd FileType fzf tnoremap <buffer> <nowait> <silent> <Esc> <c-c>
+  autocmd FileType fzf tnoremap <buffer> <nowait> <silent> <C-c> <c-c>
+  autocmd FileType fzf nnoremap <buffer> <silent> <Esc> :close<CR>
+  autocmd FileType fzf nnoremap <buffer> <silent> q :close<CR>
+augroup END
+
 " Visual Multi (Multiple cursors)
 let g:VM_default_mappings = 1
 let g:VM_maps = {}
@@ -337,6 +342,7 @@ augroup END
 " ------------------------------------------------------------------------------
 let g:which_key_use_floating_win = 1
 let g:which_key_max_size = 0
+let g:which_key_exit = ["\<Esc>", "\<C-c>", "q"]
 
 " Define leader mappings dictionary for vim-which-key
 let g:which_key_map = {}

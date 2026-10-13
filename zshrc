@@ -2047,3 +2047,72 @@ bindkey '^g' developer_launcher 2>/dev/null || true   # Ctrl+G fallback
 alias do='developer_launcher'
 alias menu='developer_launcher'
 alias run='developer_launcher'
+
+# ==============================================================================
+# Home-Row Autosuggestions & Container/Vitals Productivity Pack
+# ==============================================================================
+
+# Home-row autosuggestion accept (Ctrl+F accepts ghost suggestion instantly)
+bindkey '^f' autosuggest-accept 2>/dev/null || true
+bindkey '^e' end-of-line 2>/dev/null || true
+
+# Interactive Docker Container Shell (dsh)
+dsh() {
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "❌ Docker is not installed or not in PATH."
+    return 1
+  fi
+  local container
+  container=$(docker ps --format '{{.Names}} ({{.Image}}) - {{.Status}}' 2>/dev/null | \
+    fzf --prompt="🐳 Exec into Container > " --header="[Enter: Drop into Shell | Esc: Cancel]" | awk '{print $1}')
+  if [ -n "$container" ]; then
+    echo "Connecting to $container..."
+    docker exec -it "$container" /bin/bash 2>/dev/null || docker exec -it "$container" /bin/sh 2>/dev/null || docker exec -it "$container" sh
+  fi
+}
+
+# Stream live container logs (dlogs)
+dlogs() {
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "❌ Docker is not installed."
+    return 1
+  fi
+  local container
+  container=$(docker ps --format '{{.Names}} ({{.Image}})' 2>/dev/null | \
+    fzf --prompt="📋 Stream Logs > " | awk '{print $1}')
+  [ -n "$container" ] && docker logs -f --tail 100 "$container"
+}
+
+# Instant System Vitals
+cpu() {
+  echo "🔥 Top 5 CPU Processes:"
+  ps aux 2>/dev/null | awk 'NR>1 {printf "%-6s %-6s %-5s %s\n", $2, $3, $4, $11}' | sort -k2 -nr | head -n 5 | column -t
+}
+
+mem() {
+  echo "🧠 Top 5 RAM Processes:"
+  ps aux 2>/dev/null | awk 'NR>1 {printf "%-6s %-6s %-5s %s\n", $2, $4, $3, $11}' | sort -k2 -nr | head -n 5 | column -t
+}
+
+myip() {
+  local local_ip
+  local_ip=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "Not connected")
+  echo "📡 Local Wi-Fi IP : $local_ip"
+  local public_ip
+  public_ip=$(curl -s --connect-timeout 2 https://icanhazip.com 2>/dev/null || echo "Offline")
+  echo "🌍 Public WAN IP  : $public_ip"
+}
+
+# Interactive SQLite Database Inspector
+fsqlite() {
+  local db
+  db=$(fd -u --type f -e sqlite -e sqlite3 -e db -E ".git" -E "node_modules" 2>/dev/null | \
+    fzf --prompt="🗄 SQLite Database > " --preview="sqlite3 {} '.tables' 2>/dev/null" --preview-window=right:50%)
+  if [ -n "$db" ]; then
+    if command -v lazysql >/dev/null 2>&1; then
+      lazysql "$db"
+    else
+      sqlite3 "$db"
+    fi
+  fi
+}

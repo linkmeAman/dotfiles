@@ -114,7 +114,38 @@
   <Space> b d              Close current buffer
 
 ==============================================================================
-8. TROUBLESHOOTING & GETTING UNSTUCK
+8. BACKPROPAGATION: REVERTING STATE, UNDO & EXITING
+==============================================================================
+  <Space> u                Open Undo, Revert & Backprop Which-Key menu:
+    - u                    Undo last edit (:Undo or press 'u')
+    - r                    Redo last edit (:Redo or press '<Ctrl-r>')
+    - t                    Open visual time-travel Undo Tree (:UndotreeToggle)
+    - e                    Revert file to saved disk state (:RevertFile / :edit!)
+    - o                    Jump back to older cursor position/file (<Ctrl-o>)
+    - i                    Jump forward to newer cursor position/file (<Ctrl-i>)
+
+  <Space> q                Open Quit, Close & Exit Which-Key menu:
+    - q                    Quit current window (:q)
+    - w                    Close current split / floating window (:QuitWindow / :close)
+    - f                    Force quit window - discard unsaved edits (:q!)
+    - a                    Quit all windows (:qa)
+    - A                    Force quit all - discard all unsaved edits (:ForceQuit / :qa!)
+    - b                    Force delete / close current buffer (:bd!)
+    - o                    Close all other splits, keeping only active (:only)
+
+  DIRECT ONE-KEY SHORTCUTS:
+    u                      Undo last edit
+    <Ctrl-r>               Redo last edit
+    <Ctrl-o>               Jump back to previous cursor position or file
+    <Ctrl-i>               Jump forward to next cursor position or file
+    :RevertFile            Discard changes and reload file from disk (:edit!)
+    :QuitWindow            Close active split/window (:close)
+    :ForceQuit             Exit immediately discarding changes (:qa!)
+    <Ctrl-w> c             Close active split/window
+    <Esc> / <Ctrl-c>       Cancel out of any prompt, search, or insert mode
+
+==============================================================================
+9. TROUBLESHOOTING & GETTING UNSTUCK
 ==============================================================================
   Stuck in FZF / Rg search :  Press <Esc> or type :close<Enter> to dismiss
   Stuck in Terminal / AI   :  Press <Esc> to exit insert, then :close or <Space>vc

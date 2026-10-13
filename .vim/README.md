@@ -84,6 +84,27 @@ All major AI coding agents are installed and directly launchable via the `<Space
 
 ---
 
+## ⏪ 5. Backpropagation: Reverting State, Undo & Exiting
+
+Never worry about making mistakes or getting lost:
+
+| Goal | Primary Key | Which-Key Menu | Command (Popup auto-suggest) | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Undo last change** | `u` | `<Space> u u` | `:Undo` | Reverts the last edit step-by-step. |
+| **Redo last change** | `<Ctrl-r>` | `<Space> u r` | `:Redo` | Re-applies the undone edit. |
+| **Visual Time-Travel Tree** | - | `<Space> u t` | `:UndotreeToggle` | Opens visual branching tree to jump back to any historical point. |
+| **Revert file to disk** | - | `<Space> u e` | `:RevertFile` / `:edit!` | Discards all unsaved edits and reloads clean file from disk. |
+| **Jump back in cursor history** | `<Ctrl-o>` | `<Space> u o` | `:JumpBack` | "Jump Older": jumps backward to previous line or file. |
+| **Jump forward in history** | `<Ctrl-i>` | `<Space> u i` | `:JumpForward` | "Jump Newer": jumps forward along your jump path. |
+| **Quit current window** | `:q` | `<Space> q q` | `:q` | Closes active window if saved. |
+| **Close split / floating window** | `<Ctrl-w>c` | `<Space> q w` | `:QuitWindow` / `:close` | Closes active split or popup safely without killing Vim. |
+| **Force quit window** | `:q!` | `<Space> q f` | `:q!` | Quits active window, discarding unsaved edits. |
+| **Force quit everything** | `<Space> Q` | `<Space> q A` | `:ForceQuit` / `:qa!` | Exits Vim/Neovim completely without saving. |
+| **Close all other splits** | - | `<Space> q o` | `:CloseAllOthers` / `:only` | Keeps only the active window open, hiding all other splits. |
+| **Cancel any prompt / search** | `<Esc>` / `<C-c>` | - | - | Immediately cancels any menu or prompt back to Normal mode. |
+
+---
+
 ## 🛠️ Complete Keybindings Cheat Sheet
 
 | Category | Shortcut | Command / Action |

@@ -1745,6 +1745,12 @@ hud() {
     "dev / up                 --> Universal project dev server & stack runner"
     "fci / factions           --> Interactive GitHub CI / Actions run watcher & logs"
     "fcreatepr / gpr          --> Zero-mouse GitHub pull request creation wizard"
+    "gist [file|diff]         --> Instant secret GitHub Gist & code sharing (auto-copied)"
+    "fgist                    --> Interactive GitHub Gist browser & URL copier"
+    "envcheck / envdiff       --> Zero-leak .env vs .env.example variable auditor"
+    "fgitsearch [query]       --> Git code archeology: search commits by symbol diff"
+    "bench <cmd> [runs]       --> High-precision command benchmarking & latency summary"
+    "frecent / g-             --> Switch to recently active Git branches (g- = prev)"
     "fregex [pat] [txt]       --> Interactive terminal regex sandbox (Regex101)"
     "fcurl <url>              --> Zero-browser HTTP timing, latency card & headers"
     "fapp / app               --> Zero-touchpad macOS application launcher & switcher"
@@ -3186,6 +3192,9 @@ hint() {
         echo "  fcommit / gc --> Conventional commit wizard (type, scope, auto-staging)"
         echo "  fcreatepr/gpr--> Zero-mouse GitHub pull request creation wizard"
         echo "  fci /factions--> Interactive GitHub CI / Actions workflow watcher"
+        echo "  gist / fgist --> Share code / diff as secret GitHub Gist (auto-copied)"
+        echo "  fgitsearch   --> Git code archeology: find commits modifying symbol"
+        echo "  frecent / g- --> Switch to recently active local branches (g- = prev)"
         echo "  gsync        --> Pull rebase origin & prune stale [gone] local branches"
         echo "  gcp 'msg'    --> Stage all, commit, and push upstream in 1 keystroke"
         echo "  fmod         --> Fuzzy browse dirty/modified files with Delta preview"
@@ -3213,6 +3222,9 @@ hint() {
         echo "⚡ Terminal Superpower Hints:"
         echo "  dash / base   --> Terminal Base of Operations Dashboard"
         echo "  dev / up      --> Universal project dev server & stack runner"
+        echo "  envcheck      --> Zero-leak audit comparing .env with .env.example"
+        echo "  bench <cmd>   --> Benchmark command execution time & statistics"
+        echo "  gist [file]   --> Instant secret pastebin / Gist with auto-copied URL"
         echo "  fregex [pat]  --> Interactive terminal regex sandbox & match inspector"
         echo "  fcurl <url>   --> HTTP timing waterfall, latency breakdown & headers"
         echo "  fapp / app    --> Zero-touchpad macOS application launcher & switcher"
@@ -4176,3 +4188,281 @@ fapp() {
   fi
 }
 alias app='fapp'
+
+# ==============================================================================
+# Ultimate Base Suite: Gist Sharing, Env Checker, Git Archeology & Benchmark
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Zero-Touchpad Gist & Code Pastebin (gist [file|diff|stdin] / fgist)
+# ------------------------------------------------------------------------------
+gist() {
+  local target="$1"
+  local content=""
+  local filename="snippet.txt"
+
+  if [ -p /dev/stdin ]; then
+    content=$(cat)
+  elif [ -n "$target" ] && [ -f "$target" ]; then
+    content=$(cat "$target")
+    filename=$(basename "$target")
+  elif [ -n "$target" ]; then
+    content="$target"
+  else
+    local clip_content
+    clip_content=$(pbpaste 2>/dev/null)
+    if [ -n "$clip_content" ]; then
+      content="$clip_content"
+      echo "📋 Using code from clipboard..."
+    else
+      echo "Usage: gist <file> OR git diff | gist OR gist 'text'"
+      return 1
+    fi
+  fi
+
+  echo "📤 Creating secret paste / gist..."
+  local url=""
+
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    url=$(echo "$content" | gh gist create -s -f "$filename" 2>&1 | grep "https://gist.github.com")
+  fi
+
+  if [ -z "$url" ]; then
+    url=$(curl -s -F "content=$content" -F "syntax=text" https://dpaste.org/api/ 2>/dev/null | tr -d '"\r\n')
+  fi
+
+  if [[ "$url" =~ ^https?:// ]]; then
+    echo "$url" | pbcopy
+    _clip_record "$url"
+    echo "✅ Published successfully!"
+    echo "🔗 URL (Copied to clipboard): $url"
+  else
+    echo "❌ Failed to create gist/paste: $url"
+    return 1
+  fi
+}
+
+fgist() {
+  if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
+    echo "❌ GitHub CLI ('gh') is not authenticated. Run: gh auth login"
+    return 1
+  fi
+
+  local gists
+  gists=$(gh gist list --limit 30 2>&1)
+  [ -z "$gists" ] && { echo "ℹ️ No gists found."; return 0; }
+
+  local selected
+  selected=$(echo "$gists" | fzf \
+    --header="[Enter: Copy Gist URL | Ctrl-O: View Gist in Pager | Ctrl-D: Delete Gist]" \
+    --preview="gh gist view {1} 2>/dev/null | head -n 40" \
+    --preview-window="right:60%:wrap" \
+    --prompt="📋 Your Gists > " \
+    --bind="ctrl-o:execute(gh gist view {1} | ${PAGER:-less -R})+abort" \
+    --bind="ctrl-d:execute(gh gist delete {1} && echo 'Deleted')+refresh-preview")
+
+  if [ -n "$selected" ]; then
+    local gid
+    gid=$(echo "$selected" | awk '{print $1}')
+    local gurl="https://gist.github.com/$gid"
+    echo -n "$gurl" | pbcopy
+    _clip_record "$gurl"
+    echo "📋 Copied Gist URL to clipboard: $gurl"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# 2. Zero-Leak Environment Variables Comparator (envcheck / envdiff)
+# ------------------------------------------------------------------------------
+envcheck() {
+  python3 -c '
+import os, sys
+
+RED = "\033[31m"
+GREEN = "\033[1;32m"
+YELLOW = "\033[1;33m"
+CYAN = "\033[1;36m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+RESET = "\033[0m"
+
+env_cand = [".env", ".env.local", ".env.development"]
+ex_cand = [".env.example", ".env.sample", ".env.template", ".env.dist", ".env.default"]
+
+env_file = next((f for f in env_cand if os.path.isfile(f)), None)
+ex_file = next((f for f in ex_cand if os.path.isfile(f)), None)
+
+if not env_file and not ex_file:
+    print(f"{YELLOW}⚠️ No .env or .env.example files found in current directory.{RESET}")
+    sys.exit(0)
+
+def extract_keys(filename):
+    keys = set()
+    if not filename or not os.path.isfile(filename):
+        return keys
+    with open(filename, "r", errors="ignore") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k = line.split("=", 1)[0].strip()
+                if k:
+                    keys.add(k)
+    return keys
+
+env_keys = extract_keys(env_file)
+ex_keys = extract_keys(ex_file)
+
+missing = sorted(list(ex_keys - env_keys))
+extra = sorted(list(env_keys - ex_keys))
+common = sorted(list(env_keys & ex_keys))
+
+print(f"{BOLD}╭──────────────── ENVIRONMENT AUDIT & DRIFT CARD ────────────────╮{RESET}")
+print(f"│ Local File   : {CYAN}{env_file or "None"}{RESET}")
+print(f"│ Example File : {CYAN}{ex_file or "None"}{RESET}")
+print(f"{BOLD}├────────────────────────────────────────────────────────────────┤{RESET}")
+print(f"│ Total Configured : {GREEN}{len(env_keys)}{RESET} keys (in {env_file})")
+print(f"│ Total Expected   : {CYAN}{len(ex_keys)}{RESET} keys (in {ex_file})")
+print(f"│ In Sync / Common : {GREEN}{len(common)}{RESET} keys")
+print(f"{BOLD}╰────────────────────────────────────────────────────────────────╯{RESET}\n")
+
+if missing:
+    print(f"{RED}{BOLD}🚨 MISSING IN {env_file} (defined in {ex_file}):{RESET}")
+    for k in missing:
+        print(f"  ❌ {k}")
+    print()
+
+if extra:
+    print(f"{YELLOW}{BOLD}⚠️  EXTRA IN {env_file} (not in {ex_file}):{RESET}")
+    for k in extra:
+        print(f"  • {k}")
+    print()
+
+if not missing and not extra:
+    print(f"{GREEN}🎉 All environment keys are 100% in sync! Zero variable drift.{RESET}\n")
+'
+}
+alias envdiff='envcheck'
+
+# ------------------------------------------------------------------------------
+# 3. Git Code Archeology & Commit Search (fgitsearch [symbol|query])
+# ------------------------------------------------------------------------------
+fgitsearch() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+
+  local query="$1"
+  if [ -z "$query" ]; then
+    printf "Search symbol or commit message: "
+    read -r query
+  fi
+  [ -z "$query" ] && return 1
+
+  echo "🔍 Searching commit history for: '\''$query'\''..."
+
+  local commits
+  commits=$(git log -S "$query" --oneline -n 50 2>/dev/null)
+  if [ -z "$commits" ]; then
+    commits=$(git log --grep="$query" --oneline -n 50 2>/dev/null)
+  fi
+
+  if [ -z "$commits" ]; then
+    echo "ℹ️ No commits found modifying '\''$query'\''."
+    return 0
+  fi
+
+  local selected
+  selected=$(echo "$commits" | fzf \
+    --header="[Enter: Copy Commit Hash | Ctrl-O: Checkout | Ctrl-D: View Diff in Pager]" \
+    --preview="git show --stat -p {1} 2>/dev/null | delta --side-by-side 2>/dev/null || git show --stat -p {1}" \
+    --preview-window="right:65%:wrap" \
+    --prompt="🌿 Git Archeology > " \
+    --bind="ctrl-d:execute(git show {1} | delta 2>/dev/null | \${PAGER:-less -R})+abort" \
+    --bind="ctrl-o:execute(git checkout {1})+abort")
+
+  if [ -n "$selected" ]; then
+    local commit_hash
+    commit_hash=$(echo "$selected" | awk '{print $1}')
+    echo -n "$commit_hash" | pbcopy
+    _clip_record "$commit_hash"
+    echo "📋 Copied commit hash to clipboard: $commit_hash"
+  fi
+}
+alias fcommit-find='fgitsearch'
+
+# ------------------------------------------------------------------------------
+# 4. Instant Command Benchmarking & Latency Profiler (bench <cmd> [runs])
+# ------------------------------------------------------------------------------
+bench() {
+  local cmd="$1"
+  local runs="${2:-5}"
+
+  if [ -z "$cmd" ]; then
+    echo "Usage: bench <command> [runs=5]"
+    echo "Example: bench '\''curl -s https://google.com'\'' 5"
+    return 1
+  fi
+
+  python3 -c '
+import subprocess, sys, time, statistics
+
+cmd = sys.argv[1]
+runs = int(sys.argv[2]) if len(sys.argv) > 2 else 5
+
+BOLD = "\033[1m"
+CYAN = "\033[1;36m"
+GREEN = "\033[1;32m"
+YELLOW = "\033[1;33m"
+RESET = "\033[0m"
+
+print(f"{BOLD}⏱️  Benchmarking ({runs} iterations):{RESET} {CYAN}{cmd}{RESET} ...")
+
+durations = []
+for i in range(1, runs + 1):
+    t0 = time.perf_counter()
+    ret = subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    dur = (time.perf_counter() - t0) * 1000.0
+    durations.append(dur)
+    print(f"  • Run {i}: {dur:7.2f} ms")
+
+mean = statistics.mean(durations)
+min_t = min(durations)
+max_t = max(durations)
+stdev = statistics.stdev(durations) if len(durations) > 1 else 0.0
+
+print(f"\n{BOLD}╭──────────────── BENCHMARK SUMMARY ────────────────╮{RESET}")
+print(f"│  Mean / Avg : {GREEN}{mean:7.2f} ms{RESET}                           │")
+print(f"│  Fastest    : {GREEN}{min_t:7.2f} ms{RESET}                           │")
+print(f"│  Slowest    : {YELLOW}{max_t:7.2f} ms{RESET}                           │")
+print(f"│  Std Dev    : {stdev:7.2f} ms                           │")
+print(f"{BOLD}╰───────────────────────────────────────────────────╯{RESET}")
+' "$cmd" "$runs"
+}
+
+# ------------------------------------------------------------------------------
+# 5. Recent Git Branches Quick Switcher (frecent / g-)
+# ------------------------------------------------------------------------------
+frecent() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+
+  local branches
+  branches=$(git for-each-ref --sort=-committerdate refs/heads/ \
+    --format='%(committerdate:relative)|%(refname:short)|%(subject)' 2>/dev/null | \
+    column -t -s'|')
+
+  local selected
+  selected=$(echo "$branches" | fzf \
+    --header="[Enter: Checkout Branch | Ctrl-Y: Copy Branch Name]" \
+    --prompt="🌿 Recent Branches > ")
+
+  if [ -n "$selected" ]; then
+    local branch
+    branch=$(echo "$selected" | awk '{print $2}')
+    [ -n "$branch" ] && git checkout "$branch"
+  fi
+}
+alias 'g-'='git checkout -'

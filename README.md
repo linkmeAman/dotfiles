@@ -210,6 +210,12 @@ Connected rounded-tree prompt that displays path, git status, live timestamp, an
 * **`clipimg [dest]`** — Zero-Finder clipboard image saver: grabs screenshots from macOS clipboard (`Cmd+Ctrl+Shift+4`) and saves directly to `./assets/` with an instant in-terminal preview.
 * **`envswitch`** — Interactive environment file switcher: fuzzy-selects between `.env.local`, `.env.development`, etc., and activates as `.env` with a masked preview.
 * **`greview [base]`** — Side-by-side branch review: inspects differences between your current branch and `main` using Delta side-by-side diff.
+* **`aireview [base]` / `agy-branch`** — Senior Staff Engineer AI code review: conducts a thorough, critical architectural & bug review of your branch vs `main` using Antigravity AI (`agy`).
+* **`pomo [minutes]` / `timer`** — Terminal Pomodoro focus timer: displays an in-place progress bar countdown, plays a glass chime, and displays a desktop notification when finished.
+* **`tunnel [port]`** — Zero-configuration public webhook tunnel: instantly exposes your local server (`localhost:3000`) to the public internet using SSH reverse tunneling (no signup or CLI installation needed).
+* **`outdated`** — Polyglot dependency checker: checks for outdated packages across npm, Cargo, pip, poetry, and Go.
+* **`vol [0-100]` / `mute` / `np`** — Terminal audio & media controls: adjust macOS volume, toggle mute, see now playing track from Spotify/Apple Music, and control playback without touching the trackpad.
+* **`color <hex>`** — Truecolor terminal previewer: displays color swatch, RGB/HSL values, and checks WCAG contrast compliance.
 * **`furl` / `links`** — Fuzzy URL grabber: extracts links from current screen, history, and clipboard. Press <kbd>Enter</kbd> to open in browser, <kbd>Ctrl-R</kbd> to read in terminal, or <kbd>Ctrl-Y</kbd> to copy.
 * **`reader <url>`** — Zero-browser web reader: strips ads/scripts and formats articles or documentation cleanly as markdown directly inside your terminal pager.
 * **`fps` / `fkill`** — Interactive CPU% and RAM process assassin: search running processes, press <kbd>Enter</kbd> to gracefully terminate (`SIGTERM`), <kbd>Ctrl-9</kbd> to force kill (`SIGKILL`), or <kbd>Ctrl-Y</kbd> to copy PID.

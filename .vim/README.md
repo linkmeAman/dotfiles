@@ -205,6 +205,11 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 | `fcreatepr` / `gpr` | `fcreatepr`, `gpr` | Zero-mouse GitHub PR creation wizard with title, body prompt & auto-pushed branch. |
 | `fregex` | `fregex`, `fregex '\d+'` | Interactive terminal regex sandbox (Regex101 in terminal) with live match highlights. |
 | `fcurl <url>` | `fcurl https://...` | Zero-browser HTTP latency card, DNS/TLS waterfall timings & response headers. |
+| `gist [file]` | `gist main.py`, `git diff \| gist` | Instant secret GitHub Gist & code sharing; auto-copies URL to clipboard. |
+| `envcheck` | `envcheck`, `envdiff` | Zero-leak audit comparing .env with .env.example; flags drift without leaking secrets. |
+| `fgitsearch` | `fgitsearch myFunc` | Git code archeology: fuzzy find commits modifying a symbol with Delta preview. |
+| `bench <cmd>` | `bench 'curl -s ...' 5` | High-precision micro-benchmark measuring min, max, mean, stddev in ms. |
+| `frecent` / `g-` | `frecent`, `g-` | Switch to recently active Git branches; `g-` jumps to previous branch immediately. |
 | `fcommit` / `gc` | `fcommit`, `gc` | Conventional commit wizard with interactive type, scope picker & auto-staging. |
 | `gsync` / `gprune` | `gsync`, `gprune` | Pulls upstream with rebase and automatically prunes deleted/gone local branches. |
 | `fjson` / `fyaml` | `fjson data.json`, `fyaml config.yml` | Interactive JSON/YAML key path explorer, jq preview & clipboard value copier. |

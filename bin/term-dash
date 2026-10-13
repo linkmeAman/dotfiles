@@ -124,11 +124,11 @@ done
 echo "${CYAN}${BOLD}├─────────────────────────────────────────────────────────────────────────────┤${RESET}"
 
 # 5. Quick Launch Action Menu
-echo "${CYAN}${BOLD}│${RESET}  ${YELLOW}${BOLD}⚡ QUICK LAUNCH ACTION MENU (Press single key):${RESET}"
 echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[1]${RESET} Project Sessionizer (Neovim)   ${BOLD}[2]${RESET} Lazygit (Git UI)"
 echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[3]${RESET} Lazydocker (Containers)        ${BOLD}[4]${RESET} Btop (System Monitor)"
 echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[5]${RESET} Yazi (File Explorer)           ${BOLD}[6]${RESET} AI Agent CLI (AGY)"
 echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[a]${RESET} Launch / Switch App (fapp)     ${BOLD}[d]${RESET} Edit Dotfiles (dot)"
+echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[t]${RESET} Localhost Tunnel (tunnel)      ${BOLD}[m]${RESET} Pomodoro Focus (pomo)"
 echo "${CYAN}${BOLD}│${RESET}  ${BOLD}[k]${RESET} Kill Listening Port            ${BOLD}[p]${RESET} Fuzzy Git Project Switcher"
 echo "${CYAN}${BOLD}│${RESET}  ${DIM}[q / Enter / Esc] Exit dashboard back to shell${RESET}"
 echo "${CYAN}${BOLD}╰─────────────────────────────────────────────────────────────────────────────╯${RESET}"
@@ -142,6 +142,20 @@ fi
 echo ""
 
 case "$choice" in
+  t)
+    echo -n "Port to tunnel (default 3000): "
+    read -r tport
+    tport="${tport:-3000}"
+    echo "Starting tunnel for localhost:$tport..."
+    ssh -R 80:localhost:"$tport" nokey@localhost.run
+    ;;
+  m)
+    if typeset -f pomo >/dev/null 2>&1; then
+      pomo 25 "Focus Session"
+    else
+      zsh -ic 'pomo 25 "Focus Session"'
+    fi
+    ;;
   a)
     app=$(find /Applications /System/Applications "$HOME/Applications" -maxdepth 2 -name "*.app" 2>/dev/null | \
           sed 's|.*/||; s|\.app$||' | sort -u | \

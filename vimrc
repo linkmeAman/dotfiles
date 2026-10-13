@@ -469,6 +469,9 @@ let g:which_key_map.g = {
       \ 'w': [':RgWord',               'Search word under cursor in project (Rg)'],
       \ 'i': [':GitCI',                'GitHub CI / Actions status & logs (:GitCI)'],
       \ 'P': [':GitCreatePR',          'Create GitHub Pull Request (:GitCreatePR)'],
+      \ 'S': [':GitSearch',            'Search git history by code symbol (:GitSearch)'],
+      \ 'g': [':Gist',                 'Share buffer/selection as Gist (:Gist)'],
+      \ 'e': [':EnvCheck',             'Audit .env vs .env.example (:EnvCheck)'],
       \ }
 
 " Buffers
@@ -1085,6 +1088,27 @@ function! s:RunRegexSandbox() abort
 endfunction
 command! -bar Regex call <SID>RunRegexSandbox()
 
+function! s:RunGitSearch(query) abort
+  let l:cmd = empty(a:query) ? 'fgitsearch' : 'fgitsearch ' . shellescape(a:query)
+  call s:ExecuteInTerminalDrawer(l:cmd)
+endfunction
+command! -nargs=? GitSearch call <SID>RunGitSearch(<q-args>)
+
+function! s:CreateGist(line1, line2) abort
+  let l:lines = getline(a:line1, a:line2)
+  let l:tmp = tempname()
+  call writefile(l:lines, l:tmp)
+  let l:out = system('gist ' . shellescape(l:tmp))
+  call delete(l:tmp)
+  echo l:out
+endfunction
+command! -range=% Gist call <SID>CreateGist(<line1>, <line2>)
+
+function! s:RunEnvCheck() abort
+  call s:ExecuteInTerminalDrawer('envcheck')
+endfunction
+command! -bar EnvCheck call <SID>RunEnvCheck()
+
 " 18. Project Bookmarks Jumping (:Bookmarks / :Bm)
 function! s:FzfBookmarks() abort
   let l:bm_file = expand('~/.bookmarks')
@@ -1176,6 +1200,9 @@ function! s:OpenHints() abort
         \ '    <Space> r l      Re-run last command in terminal drawer (:RunLast)',
         \ '',
         \ '  ⚔️ GIT, DIFFS & MERGE CONFLICTS:',
+        \ '    <Space> g S      Git code archeology: find commits modifying symbol (:GitSearch)',
+        \ '    <Space> g g      Share buffer or selection as secret GitHub Gist (:Gist)',
+        \ '    <Space> g e      Audit .env against .env.example for drift (:EnvCheck)',
         \ '    <Space> g i      Interactive GitHub CI runs & logs (:GitCI)',
         \ '    <Space> g P      Create GitHub Pull Request wizard (:GitCreatePR)',
         \ '    fcommit / gc     Conventional commit wizard with type/scope picker',
@@ -1187,8 +1214,12 @@ function! s:OpenHints() abort
         \ '    <Space> g p      Preview Git diff hunk at cursor',
         \ '',
         \ '  ⚡ SHELL & TERMINAL (OUTSIDE VIM):',
-        \ '    hud / <F1>       Terminal Cockpit HUD (search and paste all 40+ commands)',
+        \ '    hud / <F1>       Terminal Cockpit HUD (search and paste all 45+ commands)',
         \ '    hint / <F2>      Interactive Shell Hints & cheat sheet explorer',
+        \ '    gist [file|diff] Instant pastebin / GitHub Gist with auto-copied URL',
+        \ '    envcheck         Zero-leak .env vs .env.example auditor',
+        \ '    bench <cmd>      High-precision command latency benchmark',
+        \ '    frecent / g-     Switch to recent local branches (g- = previous)',
         \ '    dev / up         Universal project dev server & stack runner (:DevServer)',
         \ '    fci / factions   Interactive GitHub CI/Actions watcher & logs',
         \ '    fcreatepr / gpr  Zero-mouse GitHub pull request creation wizard',
@@ -1238,6 +1269,10 @@ nnoremap <silent> <leader>rt :RunTask<CR>
 nnoremap <silent> <leader>rd :DevServer<CR>
 nnoremap <silent> <leader>gi :GitCI<CR>
 nnoremap <silent> <leader>gP :GitCreatePR<CR>
+nnoremap <silent> <leader>gS :GitSearch<CR>
+nnoremap <silent> <leader>gg :Gist<CR>
+vnoremap <silent> <leader>gg :Gist<CR>
+nnoremap <silent> <leader>ge :EnvCheck<CR>
 nnoremap <silent> <leader>sR :Regex<CR>
 nnoremap <silent> <leader>cd :CdProject<CR>
 nnoremap <silent> <leader>cb :Bookmarks<CR>

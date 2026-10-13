@@ -1742,6 +1742,12 @@ cl() {
 hud() {
   local entries=(
     "hint [topic] / <F2>      --> Interactive developer hints & cheatsheet explorer"
+    "dev / up                 --> Universal project dev server & stack runner"
+    "fci / factions           --> Interactive GitHub CI / Actions run watcher & logs"
+    "fcreatepr / gpr          --> Zero-mouse GitHub pull request creation wizard"
+    "fregex [pat] [txt]       --> Interactive terminal regex sandbox (Regex101)"
+    "fcurl <url>              --> Zero-browser HTTP timing, latency card & headers"
+    "fapp / app               --> Zero-touchpad macOS application launcher & switcher"
     "fman <cmd>               --> Fuzzy search man page command flags & descriptions"
     "reader [url]             --> Terminal web reader & markdown article viewer"
     "fps / fkill              --> Process & RAM assassin with CPU% live inspector"
@@ -2184,6 +2190,7 @@ alias menu='developer_launcher'
 alias run='developer_launcher'
 
 # Terminal Base of Operations Dashboard
+unalias dash home base 2>/dev/null || true
 dash() {
   if [[ -f "$HOME/dotfiles/bin/term-dash" ]]; then
     zsh "$HOME/dotfiles/bin/term-dash" "$@"
@@ -3177,6 +3184,8 @@ hint() {
         echo "  wip          --> 1-second instant safety checkpoint commit"
         echo "  unwip        --> Safe rollback of last WIP commit to working tree"
         echo "  fcommit / gc --> Conventional commit wizard (type, scope, auto-staging)"
+        echo "  fcreatepr/gpr--> Zero-mouse GitHub pull request creation wizard"
+        echo "  fci /factions--> Interactive GitHub CI / Actions workflow watcher"
         echo "  gsync        --> Pull rebase origin & prune stale [gone] local branches"
         echo "  gcp 'msg'    --> Stage all, commit, and push upstream in 1 keystroke"
         echo "  fmod         --> Fuzzy browse dirty/modified files with Delta preview"
@@ -3203,6 +3212,10 @@ hint() {
       shell|sh|term)
         echo "⚡ Terminal Superpower Hints:"
         echo "  dash / base   --> Terminal Base of Operations Dashboard"
+        echo "  dev / up      --> Universal project dev server & stack runner"
+        echo "  fregex [pat]  --> Interactive terminal regex sandbox & match inspector"
+        echo "  fcurl <url>   --> HTTP timing waterfall, latency breakdown & headers"
+        echo "  fapp / app    --> Zero-touchpad macOS application launcher & switcher"
         echo "  fix           --> Pipe last failed command error into Antigravity AI"
         echo "  ai <prompt>   --> Ask Antigravity CLI directly from shell"
         echo "  task / frun   --> Universal project task runner (npm/make/just/cargo)"
@@ -3714,3 +3727,452 @@ greview() {
   echo "🔍 Reviewing changes between $base and HEAD..."
   git diff "$base...HEAD" | delta --side-by-side
 }
+
+# ==============================================================================
+# Terminal Superpower Suite: CI Watcher, PR Wizard, Regex, HTTP, Dev & App
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Interactive GitHub CI / Actions Watcher & Log Viewer (fci / factions)
+# ------------------------------------------------------------------------------
+fci() {
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "❌ GitHub CLI ('gh') is not installed. Run: brew install gh"
+    return 1
+  fi
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+
+  local runs
+  runs=$(gh run list --limit 30 2>&1)
+  if [[ "$runs" == *"no runs found"* ]] || [ -z "$runs" ]; then
+    echo "ℹ️ No GitHub Actions workflow runs found for this repository."
+    return 0
+  fi
+  if [[ "$runs" == *"To authenticate"* ]] || [[ "$runs" == *"auth login"* ]]; then
+    echo "❌ GitHub CLI not authenticated. Run: gh auth login"
+    return 1
+  fi
+
+  local selected
+  selected=$(echo "$runs" | fzf \
+    --header="[Enter: View Log | Ctrl-W: Watch | Ctrl-R: Rerun Failed | Ctrl-Y: Copy ID | Ctrl-O: Open Browser]" \
+    --preview="local id=\$(echo {} | awk '{for(i=1;i<=NF;i++) if(\$i ~ /^[0-9]{7,}/) print \$i}'); [ -n \"\$id\" ] && gh run view \"\$id\" 2>/dev/null || echo {}" \
+    --preview-window="right:60%:wrap" \
+    --prompt="🚀 GitHub CI Runs > " \
+    --bind="ctrl-r:execute(local id=\$(echo {} | awk '{for(i=1;i<=NF;i++) if(\$i ~ /^[0-9]{7,}/) print \$i}'); [ -n \"\$id\" ] && gh run rerun \"\$id\" --failed)+refresh-preview" \
+    --bind="ctrl-w:execute(local id=\$(echo {} | awk '{for(i=1;i<=NF;i++) if(\$i ~ /^[0-9]{7,}/) print \$i}'); [ -n \"\$id\" ] && gh run watch \"\$id\")+abort" \
+    --bind="ctrl-y:execute-silent(local id=\$(echo {} | awk '{for(i=1;i<=NF;i++) if(\$i ~ /^[0-9]{7,}/) print \$i}'); echo -n \"\$id\" | pbcopy)+abort" \
+    --bind="ctrl-o:execute(local id=\$(echo {} | awk '{for(i=1;i<=NF;i++) if(\$i ~ /^[0-9]{7,}/) print \$i}'); [ -n \"\$id\" ] && gh run view --web \"\$id\")+abort")
+
+  if [ -n "$selected" ]; then
+    local run_id
+    run_id=$(echo "$selected" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]{7,}/) print $i}')
+    if [ -n "$run_id" ]; then
+      echo "📋 Fetching logs for run #$run_id..."
+      gh run view --log "$run_id" 2>/dev/null | ${PAGER:-less -R}
+    fi
+  fi
+}
+alias factions='fci'
+
+# ------------------------------------------------------------------------------
+# 2. Zero-Mouse GitHub PR Creation Wizard (fcreatepr / gpr)
+# ------------------------------------------------------------------------------
+fcreatepr() {
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "❌ GitHub CLI ('gh') is not installed."
+    return 1
+  fi
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+
+  local current_branch
+  current_branch=$(git branch --show-current)
+  if [ "$current_branch" = "main" ] || [ "$current_branch" = "master" ]; then
+    echo "⚠️ You are currently on '$current_branch'. Switch to a feature branch first!"
+    return 1
+  fi
+
+  local upstream
+  upstream=$(git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>/dev/null)
+  if [ -z "$upstream" ]; then
+    echo "📤 Branch '$current_branch' has no remote tracking branch."
+    printf "Push branch to origin now? (y/n): "
+    local push_choice
+    read -r -k 1 push_choice
+    echo ""
+    if [[ "$push_choice" =~ ^[Yy]$ ]]; then
+      git push -u origin "$current_branch" || return 1
+    else
+      echo "❌ Cannot create PR without pushing branch."
+      return 1
+    fi
+  else
+    local unpushed
+    unpushed=$(git log @{u}..HEAD --oneline 2>/dev/null)
+    if [ -n "$unpushed" ]; then
+      echo "⚠️ Unpushed commits detected:"
+      echo "$unpushed" | sed 's/^/  • /'
+      printf "Push unpushed commits now? (y/n): "
+      local push_choice
+      read -r -k 1 push_choice
+      echo ""
+      if [[ "$push_choice" =~ ^[Yy]$ ]]; then
+        git push || return 1
+      fi
+    fi
+  fi
+
+  local default_title
+  default_title=$(git log -1 --pretty=%s)
+
+  echo ""
+  echo "🚀 GitHub PR Creation Wizard"
+  echo "─────────────────────────────────────────"
+  echo "Branch: $current_branch"
+  printf "PR Title [%s]: " "$default_title"
+  local pr_title
+  read -r pr_title
+  [ -z "$pr_title" ] && pr_title="$default_title"
+
+  printf "PR Summary (leave empty for commit history): "
+  local pr_body
+  read -r pr_body
+
+  if [ -z "$pr_body" ]; then
+    pr_body=$(git log -n 5 --pretty=format:"* %s" @{u}..HEAD 2>/dev/null)
+    [ -z "$pr_body" ] && pr_body="$pr_title"
+  fi
+
+  printf "Create as draft PR? (y/N): "
+  local draft_choice
+  read -r -k 1 draft_choice
+  echo ""
+  local draft_flag=""
+  [[ "$draft_choice" =~ ^[Yy]$ ]] && draft_flag="--draft"
+
+  echo "⏳ Submitting Pull Request..."
+  local pr_url
+  pr_url=$(gh pr create --title "$pr_title" --body "$pr_body" $draft_flag 2>&1)
+  local status=$?
+
+  if [ $status -eq 0 ]; then
+    echo "$pr_url" | pbcopy
+    _clip_record "$pr_url"
+    echo "✅ Pull Request Created Successfully!"
+    echo "🔗 URL (Copied to clipboard): $pr_url"
+  else
+    echo "❌ PR creation failed:"
+    echo "$pr_url"
+  fi
+}
+alias gpr='fcreatepr'
+
+# ------------------------------------------------------------------------------
+# 3. Interactive Terminal Regex Sandbox (fregex [pattern] [text])
+# ------------------------------------------------------------------------------
+fregex() {
+  local pattern="$1"
+  local text="$2"
+
+  python3 -c '
+import sys, re, os
+
+RED = "\033[31m"
+GREEN = "\033[1;32m"
+YELLOW = "\033[1;33m"
+CYAN = "\033[1;36m"
+MAGENTA = "\033[1;35m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+RESET = "\033[0m"
+BG_MATCH = "\033[42;30m"
+
+pattern = sys.argv[1] if len(sys.argv) > 1 else ""
+text = sys.argv[2] if len(sys.argv) > 2 else ""
+
+if not pattern:
+    print(f"{BOLD}🔬 Terminal Regex Sandbox (Zero-Browser Regex101){RESET}")
+    print(f"{DIM}Test regex patterns, capture groups, and matches with color highlights.{RESET}\n")
+    try:
+        pattern = input(f"{CYAN}Regex Pattern: {RESET}").strip()
+    except (EOFError, KeyboardInterrupt):
+        sys.exit(0)
+
+if not pattern:
+    print(f"{RED}No pattern provided.{RESET}")
+    sys.exit(1)
+
+if not text:
+    try:
+        text = input(f"{CYAN}Test String / Path to file: {RESET}").strip()
+    except (EOFError, KeyboardInterrupt):
+        sys.exit(0)
+
+if os.path.isfile(text):
+    with open(text, "r", errors="ignore") as f:
+        text = f.read()
+
+try:
+    regex = re.compile(pattern)
+except re.error as e:
+    print(f"\n{RED}❌ Regex Compilation Error:{RESET} {e}")
+    sys.exit(1)
+
+matches = list(regex.finditer(text))
+print(f"\n{BOLD}══════════════════════════════════════════════════════════{RESET}")
+print(f"Pattern : {YELLOW}{pattern}{RESET}")
+print(f"Matches : {GREEN}{len(matches)} match(es) found{RESET}")
+print(f"{BOLD}══════════════════════════════════════════════════════════{RESET}\n")
+
+if not matches:
+    print(f"{YELLOW}No matches found in target text.{RESET}")
+    sys.exit(0)
+
+for idx, m in enumerate(matches, 1):
+    span = m.span()
+    val = m.group(0)
+    print(f"{CYAN}Match {idx}:{RESET} span={DIM}{span}{RESET} -> {BG_MATCH} {val} {RESET}")
+    group_dict = m.groupdict()
+    groups = m.groups()
+    if group_dict:
+        for k, v in group_dict.items():
+            print(f"  └─ Group (?P<{MAGENTA}{k}{RESET}>): {YELLOW}{v}{RESET}")
+    elif groups:
+        for g_idx, g_val in enumerate(groups, 1):
+            print(f"  └─ Group {MAGENTA}#{g_idx}{RESET}: {YELLOW}{g_val}{RESET}")
+
+print(f"\n{BOLD}Highlighted Text:{RESET}")
+last_idx = 0
+highlighted = ""
+for m in matches:
+    start, end = m.span()
+    highlighted += text[last_idx:start] + f"{BG_MATCH}{text[start:end]}{RESET}"
+    last_idx = end
+highlighted += text[last_idx:]
+
+lines = highlighted.splitlines()
+for l in lines[:25]:
+    print("  " + l)
+if len(lines) > 25:
+    print(f"  {DIM}... ({len(lines) - 25} more lines truncated) ...{RESET}")
+' "$pattern" "$text"
+}
+
+# ------------------------------------------------------------------------------
+# 4. Zero-Browser HTTP Latency & Header Inspector (fcurl <url>)
+# ------------------------------------------------------------------------------
+fcurl() {
+  local target="$1"
+  if [ -z "$target" ]; then
+    local clip_content
+    clip_content=$(pbpaste 2>/dev/null)
+    if [[ "$clip_content" =~ ^https?:// ]]; then
+      target="$clip_content"
+      echo "📋 Using URL from clipboard: $target"
+    else
+      echo "Usage: fcurl <url>"
+      echo "Example: fcurl https://api.github.com"
+      return 1
+    fi
+  fi
+
+  [[ "$target" != http* ]] && target="https://$target"
+
+  echo "🌐 Inspecting HTTP latency & headers for: $target ..."
+  echo ""
+
+  local tmp_header
+  tmp_header=$(mktemp)
+
+  local timing
+  timing=$(curl -s -S -D "$tmp_header" -o /dev/null -w "\
+dns:%{time_namelookup}\n\
+tcp:%{time_connect}\n\
+tls:%{time_appconnect}\n\
+ttfb:%{time_starttransfer}\n\
+total:%{time_total}\n\
+status:%{http_code}\n\
+remote_ip:%{remote_ip}\n\
+size:%{size_download}" "$target" 2>&1)
+
+  local curl_exit=$?
+  if [ $curl_exit -ne 0 ]; then
+    echo "❌ Request failed: $timing"
+    rm -f "$tmp_header"
+    return 1
+  fi
+
+  python3 -c '
+import sys
+
+data = {}
+for line in sys.stdin:
+    if ":" in line:
+        k, v = line.strip().split(":", 1)
+        data[k] = v
+
+def to_ms(sec_str):
+    try:
+        return float(sec_str) * 1000.0
+    except:
+        return 0.0
+
+dns = to_ms(data.get("dns", 0))
+tcp = max(0.0, to_ms(data.get("tcp", 0)) - dns)
+tls_raw = to_ms(data.get("tls", 0))
+tcp_raw = to_ms(data.get("tcp", 0))
+tls = max(0.0, tls_raw - tcp_raw) if tls_raw > 0 else 0.0
+ttfb_raw = to_ms(data.get("ttfb", 0))
+base_t = tls_raw if tls_raw > 0 else tcp_raw
+ttfb = max(0.0, ttfb_raw - base_t)
+total = to_ms(data.get("total", 0))
+status = data.get("status", "000")
+ip = data.get("remote_ip", "unknown")
+size = data.get("size", "0")
+
+status_color = "\033[1;32m" if status.startswith("2") else ("\033[1;33m" if status.startswith("3") else "\033[1;31m")
+RESET = "\033[0m"
+BOLD = "\033[1m"
+CYAN = "\033[1;36m"
+DIM = "\033[2m"
+
+print(f"{BOLD}╭──────────────── HTTP TIMING & LATENCY CARD ────────────────╮{RESET}")
+print(f"│ Status Code : {status_color}{status}{RESET}                Remote IP: {CYAN}{ip}{RESET}")
+print(f"│ Total Time  : {BOLD}{total:.1f} ms{RESET}             Download : {size} bytes")
+print(f"{BOLD}├─────────────────────────────────────────────────────────────┤{RESET}")
+print(f"│  DNS Lookup     : {dns:7.1f} ms  {'█' * max(1, min(20, int(dns/10)))}")
+print(f"│  TCP Connect    : {tcp:7.1f} ms  {'█' * max(1, min(20, int(tcp/10)))}")
+if tls > 0:
+    print(f"│  TLS Handshake  : {tls:7.1f} ms  {'█' * max(1, min(20, int(tls/10)))}")
+print(f"│  TTFB (Server)  : {ttfb:7.1f} ms  {'█' * max(1, min(20, int(ttfb/10)))}")
+print(f"│  Total Duration : {total:7.1f} ms")
+print(f"{BOLD}╰─────────────────────────────────────────────────────────────╯{RESET}")
+' <<< "$timing"
+
+  echo ""
+  echo "📋 Response Headers:"
+  if command -v bat >/dev/null 2>&1; then
+    bat --color=always -l http "$tmp_header" 2>/dev/null || cat "$tmp_header"
+  else
+    cat "$tmp_header"
+  fi
+  rm -f "$tmp_header"
+
+  echo -n "$target" | pbcopy
+  _clip_record "$target"
+}
+
+# ------------------------------------------------------------------------------
+# 5. Universal Dev Server & Stack Runner (dev / up)
+# ------------------------------------------------------------------------------
+dev() {
+  # 1. Check Docker Compose if no source files present
+  if [ -f "docker-compose.yml" ] || [ -f "compose.yaml" ]; then
+    if [ ! -f "package.json" ] && [ ! -f "Cargo.toml" ] && [ ! -f "go.mod" ]; then
+      echo "🐳 Starting Docker Compose environment..."
+      docker compose up
+      return
+    fi
+  fi
+
+  # 2. Check Node / JS / TS
+  if [ -f "package.json" ]; then
+    local pkg_manager="npm"
+    [ -f "pnpm-lock.yaml" ] && pkg_manager="pnpm"
+    [ -f "yarn.lock" ] && pkg_manager="yarn"
+    [ -f "bun.lockb" ] || [ -f "bun.lock" ] && pkg_manager="bun"
+
+    local scripts
+    scripts=$(jq -r '.scripts | keys[]' package.json 2>/dev/null)
+    if echo "$scripts" | grep -q "^dev$"; then
+      echo "🚀 Starting Node dev server ($pkg_manager run dev)..."
+      $pkg_manager run dev
+      return
+    elif echo "$scripts" | grep -q "^start$"; then
+      echo "🚀 Starting Node server ($pkg_manager start)..."
+      $pkg_manager start
+      return
+    elif [ -n "$scripts" ]; then
+      local picked
+      picked=$(echo "$scripts" | fzf --prompt="⚡ Select package.json script to run > ")
+      if [ -n "$picked" ]; then
+        $pkg_manager run "$picked"
+        return
+      fi
+    fi
+  fi
+
+  # 3. Check Rust
+  if [ -f "Cargo.toml" ]; then
+    if command -v cargo-watch >/dev/null 2>&1; then
+      echo "🦀 Starting Rust watcher (cargo watch -x run)..."
+      cargo watch -x run
+    else
+      echo "🦀 Starting Rust app (cargo run)..."
+      cargo run
+    fi
+    return
+  fi
+
+  # 4. Check Go
+  if [ -f "go.mod" ]; then
+    echo "🐹 Starting Go application (go run .)..."
+    go run .
+    return
+  fi
+
+  # 5. Check Python
+  if [ -f "pyproject.toml" ] || [ -f "requirements.txt" ] || [ -f "setup.py" ]; then
+    if [ -f "manage.py" ]; then
+      echo "🐍 Starting Django dev server..."
+      python3 manage.py runserver
+      return
+    elif [ -f "main.py" ]; then
+      echo "🐍 Running python3 main.py..."
+      python3 main.py
+      return
+    elif [ -f "app.py" ]; then
+      echo "🐍 Running python3 app.py..."
+      python3 app.py
+      return
+    fi
+  fi
+
+  # 6. Check Makefile
+  if [ -f "Makefile" ]; then
+    if grep -q "^dev:" Makefile; then
+      echo "🛠️ Running make dev..."
+      make dev
+      return
+    elif grep -q "^run:" Makefile; then
+      echo "🛠️ Running make run..."
+      make run
+      return
+    fi
+  fi
+
+  echo "❓ Could not automatically detect a dev server in $(pwd)."
+  echo "  Hint: use 'frun' to select from available tasks, or 'newproj' to scaffold."
+}
+alias up='dev'
+
+# ------------------------------------------------------------------------------
+# 6. Zero-Touchpad macOS App Launcher & Switcher (fapp / app)
+# ------------------------------------------------------------------------------
+fapp() {
+  local app
+  app=$(find /Applications /System/Applications "$HOME/Applications" -maxdepth 2 -name "*.app" 2>/dev/null | \
+        sed 's|.*/||; s|\.app$||' | sort -u | \
+        fzf --prompt="🚀 Switch / Launch App > " --header="[Enter: Open App | Esc: Cancel]")
+  if [ -n "$app" ]; then
+    open -a "$app"
+    echo "🚀 Launched: $app"
+  fi
+}
+alias app='fapp'

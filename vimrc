@@ -475,6 +475,7 @@ let g:which_key_map.b = {
       \ 'p': [':bprevious',   'Previous buffer'],
       \ 'l': [':Buffers',     'List/find buffers'],
       \ 's': [':Scratch',     'Open disposable scratchpad buffer'],
+      \ 'j': [':DailyNote',   'Open today''s Dev Journal (notes/YYYY-MM-DD.md)'],
       \ }
 
 " Windows
@@ -842,6 +843,33 @@ function! s:OpenScratchpad() abort
 endfunction
 command! -bar Scratch call <SID>OpenScratchpad()
 
+" 13b. Daily Developer Journal & Notes (:DailyNote)
+function! s:OpenDailyNote() abort
+  let l:notes_dir = expand('~/notes')
+  if !isdirectory(l:notes_dir)
+    call mkdir(l:notes_dir, 'p')
+  endif
+  let l:today_file = l:notes_dir . '/' . strftime('%Y-%m-%d') . '.md'
+  if !filereadable(l:today_file)
+    call writefile([
+          \ '# 📝 Dev Journal: ' . strftime('%Y-%m-%d'),
+          \ '',
+          \ '## 🎯 Focus & Priorities',
+          \ '- [ ] ',
+          \ '',
+          \ '## 💡 Notes & Implementation Findings',
+          \ '',
+          \ '',
+          \ '## 🔗 References & Commands',
+          \ ''
+          \ ], l:today_file)
+  endif
+  execute 'edit ' . fnameescape(l:today_file)
+  echo "📓 Opened Daily Dev Journal: " . strftime('%Y-%m-%d')
+endfunction
+command! -bar DailyNote call <SID>OpenDailyNote()
+command! -bar Note call <SID>OpenDailyNote()
+
 " 14. In-Vim Code & Test Runner (Execute in bottom terminal drawer)
 let s:last_run_cmd = ''
 function! s:RunCurrentFile() abort
@@ -984,6 +1012,7 @@ nnoremap <silent> <leader>g  :Rg<CR>
 nnoremap <silent> <leader>gw :RgWord<CR>
 nnoremap <silent> <leader>b  :Buffers<CR>
 nnoremap <silent> <leader>bs :Scratch<CR>
+nnoremap <silent> <leader>bj :DailyNote<CR>
 nnoremap <silent> <leader>w  :w<CR>
 nnoremap <silent> <leader>z  :ToggleZoom<CR>
 nnoremap <silent> <leader>rf :RunFile<CR>

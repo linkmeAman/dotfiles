@@ -176,6 +176,7 @@ Your terminal is your complete development home. Here is how to navigate everyth
 | **Buffers & Tabs** | Top Tab Bar | **Shows all open files across top of screen** |
 | | `Shift-L` / `Shift-H` | Next / previous buffer tab |
 | | `<Space> b s` | **Open disposable scratchpad (`:Scratch`)** |
+| | `<Space> b j` | **Open today's Dev Journal (`:DailyNote`)** |
 | | `<Space> b d` | Close active buffer |
 | **Git** | `<Space> g s` | Interactive Git dashboard (`:Git`) |
 | | `]c` / `[c` | Jump to next / previous diff hunk |
@@ -192,6 +193,12 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 
 | Command | Usage | Description |
 | :--- | :--- | :--- |
+| `note [topic]` | `note`, `note auth-refactor` | Daily markdown developer journal & notes in Neovim (`~/notes/`). |
+| `fnotes` | `fnotes` | Fuzzy search and open past notes with live `bat` syntax preview. |
+| `todo [add\|done\|clean]` | `todo`, `todo add "task"`, `todo done 1` | Instant zero-dependency terminal action checklist and task manager. |
+| `vdiff file1 [file2]` | `vdiff app.js old.js`, `vdiff main.py` | Side-by-side synchronized Neovim visual file differ (or against Git HEAD). |
+| `fh [query]` | `fh docker` | Fuzzy command history inspector; pastes command right onto prompt to edit. |
+| `fenv [query]` | `fenv token` | Fuzzy search active shell environment variables and copy values. |
 | `ports` | `ports` | List all active listening TCP ports, processes, and PIDs. |
 | `fport` / `killport` | `killport 3000` / `fport` | Interactive port & process killer; frees blocked ports in 1 second. |
 | `frun [task]` | `frun`, `frun test` | Universal project task runner for `package.json`, `Makefile`, `Cargo`, `Docker`. |

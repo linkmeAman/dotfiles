@@ -742,47 +742,252 @@ dev() {
   fi
 }
 
-# Fuzzy Project Selector: Search any repo on your machine and launch dev cockpit
-p() {
-  local search_roots=("$HOME/Documents" "$HOME/dotfiles")
-  local selected
-  if [ -n "$1" ]; then
-    selected=$(fd -H -td '^\.git$' "${search_roots[@]}" --max-depth 4 2>/dev/null | sed 's#/\.git/\{0,1\}$##' | fzf --query="$1" --select-1 --exit-0)
-  else
-    selected=$(fd -H -td '^\.git$' "${search_roots[@]}" --max-depth 4 2>/dev/null | sed 's#/\.git/\{0,1\}$##' | fzf --header="[Select Project to Launch Dev Cockpit | Esc: Cancel]" --preview='eza --tree --icons -L 2 {} 2>/dev/null || ls -la {}' --preview-window=right:50%)
-  fi
-  if [ -n "$selected" ]; then
-    builtin cd "$selected"
-    dev
+# Ctrl+F in shell triggers tmux-sessionizer immediately
+bindkey -s '^f' 'tmux-sessionizer\n'
+alias p="/Users/tr/.local/bin/tmux-sessionizer"
+alias proj="/Users/tr/.local/bin/tmux-sessionizer"
+
+# Interactive Git Add with multi-select (Tab: select, Enter: stage)
+fga() {
+  local files
+  files=$(git status -s | fzf -m --header="[Tab: Multi-select to stage | Enter: Stage | Esc: Cancel]" --preview="git diff --color=always {2} 2>/dev/null" | awk '{print $2}')
+  if [ -n "$files" ]; then
+    echo "$files" | xargs git add
+    echo "✓ Staged files:"
+    echo "$files"
   fi
 }
-alias proj='p'
 
-# Kill process listening on a port with zero mouse clicks (killport 3000)
-killport() {
+# Auto-stage, generate commit with Antigravity, and push in one go
+gpush-ai() {
+  if [ -z "$(git status -s)" ]; then
+    echo "No changes to commit."
+    return 0
+  fi
+  if [ -z "$(git diff --cached --name-only)" ]; then
+    echo "Staging all tracked modifications..."
+    git add -u
+  fi
+  echo "🤖 Generating commit message with Antigravity..."
+  local msg
+  msg=$(git diff --cached | /Users/tr/.local/bin/agy "Write ONLY a single concise git conventional commit title and description")
+  echo ""
+  echo "Proposed Commit Message:"
+  echo "------------------------"
+  echo "$msg"
+  echo "------------------------"
+  read -q "REPLY?Commit and push to origin? (y/n): "
+  echo ""
+  if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+    git commit -m "$msg"
+    local branch
+    branch=$(git branch --show-current)
+    git push origin "$branch"
+    echo "✓ Committed and pushed to $branch."
+  else
+    echo "Aborted."
+  fi
+}
+
+# Terminal clipboard viewer & helper
+clip() {
+  echo "📋 Current macOS Clipboard:"
+  echo "---------------------------"
+  pbpaste
+  echo "---------------------------"
+}
+
+# ==============================================================================
+# Daily Developer Journal & Markdown Notes (note, fnotes)
+# ==============================================================================
+note() {
+  local notes_dir="$HOME/notes"
+  mkdir -p "$notes_dir"
+  local target_file
+
   if [ -z "$1" ]; then
-    echo "Usage: killport <port_number>"
+    local today=$(date +%Y-%m-%d)
+    target_file="$notes_dir/${today}.md"
+    if [ ! -f "$target_file" ]; then
+      cat << EOF > "$target_file"
+# 📝 Dev Journal: $today
+
+## 🎯 Focus & Priorities
+- [ ] 
+
+## 💡 Notes & Implementation Findings
+
+
+## 🔗 References & Commands
+
+EOF
+    fi
+  else
+    target_file="$notes_dir/$1.md"
+    if [ ! -f "$target_file" ]; then
+      cat << EOF > "$target_file"
+# 📝 Note: $1
+
+Created: $(date '+%Y-%m-%d %H:%M')
+
+## 💡 Content
+
+EOF
+    fi
+  fi
+
+  echo "📓 Opening note: $target_file"
+  ${EDITOR:-nvim} "$target_file"
+}
+
+fnotes() {
+  local notes_dir="$HOME/notes"
+  mkdir -p "$notes_dir"
+  local file
+  file=$(fd --type f -e md . "$notes_dir" 2>/dev/null | fzf --query="$*" \
+    --header="[Enter: Open in $EDITOR | Ctrl-Y: Copy path | Esc: Cancel]" \
+    --bind="ctrl-y:execute(echo -n {} | pbcopy)+abort" \
+    --preview='bat --style=numbers --color=always {} 2>/dev/null || cat {}' \
+    --preview-window=right:60%:wrap)
+  [ -n "$file" ] && ${EDITOR:-nvim} "$file"
+}
+alias fnote='fnotes'
+
+# ==============================================================================
+# Terminal Zero-Touchpad Task & Checklist Tracker (todo)
+# ==============================================================================
+todo() {
+  local todo_file="$HOME/notes/tasks.txt"
+  mkdir -p "$HOME/notes"
+  [ ! -f "$todo_file" ] && touch "$todo_file"
+
+  case "$1" in
+    add|a)
+      shift
+      if [ -z "$*" ]; then
+        echo "Usage: todo add <task description>"
+        return 1
+      fi
+      echo "[ ] $*" >> "$todo_file"
+      echo "✓ Added: $*"
+      ;;
+    done|d)
+      shift
+      if [ -z "$1" ]; then
+        echo "Usage: todo done <task_number>"
+        return 1
+      fi
+      local num="$1"
+      local total=$(wc -l < "$todo_file" | tr -d ' ')
+      if [ "$num" -gt "$total" ] 2>/dev/null || [ "$num" -le 0 ] 2>/dev/null; then
+        echo "❌ Invalid task number: $num (total tasks: $total)"
+        return 1
+      fi
+      sed -i '' "${num}s/^\[ \]/[x]/" "$todo_file"
+      echo "🎉 Completed task #$num!"
+      todo list
+      ;;
+    clean|clear)
+      sed -i '' '/^\[x\]/d' "$todo_file"
+      echo "🧹 Cleaned completed tasks."
+      todo list
+      ;;
+    list|l|"")
+      echo "📋 Developer Action Checklist ($todo_file):"
+      echo "--------------------------------------------------------"
+      if [ ! -s "$todo_file" ]; then
+        echo "  (No pending tasks! Add one with: todo add \"<task>\")"
+      else
+        local i=1
+        while IFS= read -r line; do
+          if [[ "$line" == "[x]"* ]]; then
+            echo -e "  \033[32m✓\033[0m [\033[90m$i\033[0m] \033[90m${line#\[x\] }\033[0m"
+          else
+            echo -e "  \033[33m⏳\033[0m [$i] ${line#\[ \]* }"
+          fi
+          ((i++))
+        done < "$todo_file"
+      fi
+      echo "--------------------------------------------------------"
+      echo " Commands: todo add <task> | todo done <num> | todo clean"
+      ;;
+    *)
+      todo add "$@"
+      ;;
+  esac
+}
+
+# ==============================================================================
+# Zero-Touchpad Visual File Differ (vdiff, cdiff)
+# ==============================================================================
+vdiff() {
+  if [ -z "$1" ]; then
+    echo "Usage: vdiff <file1> <file2>  (or: vdiff <file> to diff against Git HEAD)"
     return 1
   fi
-  local pids
-  pids=$(lsof -ti :"$1" 2>/dev/null)
-  if [ -n "$pids" ]; then
-    echo "Killing PID(s) on port $1: $pids"
-    echo "$pids" | xargs kill -9
-    echo "✓ Port $1 freed."
+  if [ -n "$2" ]; then
+    if [ ! -f "$1" ] || [ ! -f "$2" ]; then
+      echo "❌ Both files must exist: '$1' and '$2'"
+      return 1
+    fi
+    ${EDITOR:-nvim} -d "$1" "$2"
   else
-    echo "No process running on port $1."
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      ${EDITOR:-nvim} -d "$1" <(git show HEAD:"$1" 2>/dev/null)
+    else
+      echo "❌ Please provide two files to diff: vdiff <file1> <file2>"
+    fi
   fi
 }
 
-# Quick terminal scratchpad / developer notes (in Neovim)
-note() {
-  local notes_file="$HOME/.daily_notes.md"
-  if [ ! -f "$notes_file" ]; then
-    echo "# Developer Scratchpad & Daily Notes\n" > "$notes_file"
+cdiff() {
+  if [ -z "$2" ]; then
+    echo "Usage: cdiff <file1> <file2>"
+    return 1
   fi
-  ${EDITOR:-nvim} "$notes_file"
+  delta --side-by-side "$1" "$2"
 }
+
+# ==============================================================================
+# Fuzzy Command History Search & Quick Editor (fh [query])
+# ==============================================================================
+fh() {
+  local cmd
+  local history_source
+  if [ -s "$HOME/.zsh_history" ]; then
+    history_source=$(sed -E 's/^: [0-9]+:[0-9]+;//' "$HOME/.zsh_history" 2>/dev/null | awk '!seen[$0]++')
+  else
+    history_source=$(history 1 | sed 's/^[ ]*[0-9]*[ ]*//' | awk '!seen[$0]++')
+  fi
+  cmd=$(echo "$history_source" | \
+    fzf --tac --query="$*" \
+        --header="[Enter: Edit on prompt | Ctrl-Y: Copy to clipboard | Esc: Cancel]" \
+        --bind="ctrl-y:execute(echo -n {} | pbcopy && echo Copied)+abort" \
+        --prompt="📜 Command History > ")
+  if [ -n "$cmd" ]; then
+    print -z "$cmd"
+  fi
+}
+
+# ==============================================================================
+# Environment Variable & Secret Inspector (fenv [query])
+# ==============================================================================
+fenv() {
+  local entry
+  entry=$(printenv | sort | fzf --query="$*" \
+    --header="[Enter: Copy Value | Ctrl-E: Copy 'export VAR=VAL' | Esc: Cancel]" \
+    --bind="ctrl-e:execute(echo -n 'export {}' | pbcopy && echo Copied export string)+abort" \
+    --preview='echo {}' \
+    --preview-window=down:3:wrap \
+    --prompt="🔐 Environment Vars > ")
+  if [ -n "$entry" ]; then
+    local var_name=$(echo "$entry" | cut -d= -f1)
+    local var_val=$(echo "$entry" | cut -d= -f2-)
+    echo -n "$var_val" | pbcopy
+    echo "📋 Copied value of \$$var_name to clipboard!"
+  fi
+}
+
 
 # Terminal Keyboard HUD Cheatsheet
 keys() {
@@ -973,3 +1178,130 @@ EOF
   ${EDITOR:-nvim} "$main_file"
 }
 alias sb='sandbox'
+
+# ==============================================================================
+# Zero-Touchpad Developer Superpowers (Terminal as Sole Base of Operations)
+# ==============================================================================
+
+# 1. Zero-Touchpad Command Output Grabber (cl / copylast)
+# Captures stdout/stderr of the last executed command directly to macOS clipboard
+cl() {
+  local last_cmd=$(fc -ln -1 | sed 's/^[[:space:]]*//')
+  if [ -z "$last_cmd" ] || [[ "$last_cmd" == cl* ]] || [[ "$last_cmd" == copylast* ]]; then
+    echo "ℹ️ No previous command to capture."
+    return 1
+  fi
+  echo "📋 Re-running to capture output: $last_cmd"
+  local out
+  out=$(eval "$last_cmd" 2>&1)
+  echo -n "$out" | pbcopy
+  local lines=$(echo "$out" | wc -l | tr -d ' ')
+  echo "✅ Copied $lines lines of output from \"$last_cmd\" to macOS clipboard!"
+}
+alias copylast='cl'
+
+# Pipe last command output directly into an Antigravity prompt
+clask() {
+  local last_cmd=$(fc -ln -1 | sed 's/^[[:space:]]*//')
+  if [ -z "$last_cmd" ]; then
+    echo "ℹ️ No previous command found."
+    return 1
+  fi
+  local prompt="${*:-Explain this output and provide fixes if there are errors}"
+  echo "🤖 Sending output of \"$last_cmd\" to Antigravity..."
+  eval "$last_cmd" 2>&1 | /Users/tr/.local/bin/agy "$prompt"
+}
+
+# 2. Interactive Git Branch Manager (fgb / fbranch)
+# Browse, checkout, create, or delete branches with zero mouse clicks
+fgb() {
+  local branch
+  branch=$(git for-each-ref --sort=-committerdate refs/heads/ --format='%(refname:short)|%(committerdate:relative)|%(authorname)|%(subject)' 2>/dev/null | \
+    column -t -s '|' | \
+    fzf --prompt="🌿 Branches > " \
+        --header="[Enter: Checkout | Ctrl-D: Delete Branch | Esc: Cancel]" \
+        --bind="ctrl-d:execute(git branch -D \$(echo {} | awk '{print \$1}') && echo Deleted branch)+reload(git for-each-ref --sort=-committerdate refs/heads/ --format='%(refname:short)|%(committerdate:relative)|%(authorname)|%(subject)' | column -t -s '|')" \
+        --preview="git log -n 12 --color=always --oneline \$(echo {} | awk '{print \$1}') 2>/dev/null" \
+        --preview-window=right:60%:wrap)
+  if [ -n "$branch" ]; then
+    local target=$(echo "$branch" | awk '{print $1}')
+    [ -n "$target" ] && git checkout "$target"
+  fi
+}
+alias fbranch='fgb'
+
+# 3. Interactive Git Modified Files Picker (fmod / fchanged)
+# View modified files with Delta diff preview, stage with Ctrl-A, open in Neovim
+fmod() {
+  local file
+  file=$(git status --porcelain 2>/dev/null | awk '{print $2}' | \
+    fzf --prompt="📝 Modified Files > " \
+        --header="[Enter: Open in $EDITOR | Ctrl-A: Stage | Esc: Cancel]" \
+        --bind="ctrl-a:execute(git add {})+reload(git status --porcelain | awk '{print \$2}')" \
+        --preview="git diff --color=always {} 2>/dev/null | delta --side-by-side || cat {}" \
+        --preview-window=right:65%:wrap)
+  [ -n "$file" ] && ${EDITOR:-nvim} "$file"
+}
+alias fchanged='fmod'
+
+# 4. Fuzzy Environment Variables Inspector & Copier (fenv)
+fenv() {
+  local var
+  var=$(env | sort | fzf --prompt="🔐 Env Vars > " \
+    --header="[Enter: Copy Value | Ctrl-N: Copy Variable Name | Esc: Cancel]" \
+    --bind="ctrl-n:execute(echo -n \$(echo {} | cut -d= -f1) | pbcopy)+abort" \
+    --preview="echo {}" --preview-window=down:3:wrap)
+  if [ -n "$var" ]; then
+    local val=$(echo "$var" | cut -d= -f2-)
+    echo -n "$val" | pbcopy
+    echo "📋 Copied value of $(echo "$var" | cut -d= -f1) to clipboard!"
+  fi
+}
+
+# 5. Fuzzy Shell Aliases & Functions Search (falias)
+falias() {
+  local item
+  item=$(alias | fzf --prompt="⚡ Aliases > " --header="[Enter: Copy Command | Esc: Cancel]" --preview="echo {}" --preview-window=down:3:wrap)
+  if [ -n "$item" ]; then
+    local cmd=$(echo "$item" | cut -d= -f2- | sed "s/^'//; s/'$//")
+    echo -n "$cmd" | pbcopy
+    echo "📋 Copied alias command to clipboard: $cmd"
+  fi
+}
+
+# 6. Clean System PATH Viewer (fpath)
+fpath() {
+  echo "🛤 Current System PATH Entries:"
+  echo "$PATH" | tr ':' '\n' | awk '{
+    if (system("test -d \"" $0 "\"") == 0)
+      printf "  \033[32m✔\033[0m %-40s\n", $0;
+    else
+      printf "  \033[31m✘\033[0m %-40s (directory missing)\n", $0;
+  }'
+}
+
+# 7. Fuzzy Command Help & Flag Search (fhelp <cmd>)
+fhelp() {
+  if [ -z "$1" ]; then
+    echo "Usage: fhelp <command>  (e.g. fhelp git, fhelp cargo, fhelp docker)"
+    return 1
+  fi
+  "$1" --help 2>&1 | fzf --prompt="📖 Help: $1 > " --header="[Enter / Esc: Exit]" --preview-window=hidden
+}
+
+# 8. Terminal QR Code Generator (qr <text_or_url>)
+# Instant QR code directly in the terminal to transfer links to mobile without mouse
+qr() {
+  if [ -z "$*" ]; then
+    echo "Usage: qr <text or url>  (e.g. qr https://github.com)"
+    return 1
+  fi
+  curl -s "https://qrenco.de/$*"
+}
+
+# 9. Quick Local HTTP File Server with port fallback (serve [port])
+serve() {
+  local port="${1:-8080}"
+  echo "🌐 Starting local web server on http://localhost:$port (serving $PWD)"
+  python3 -m http.server "$port"
+}

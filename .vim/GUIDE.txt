@@ -147,6 +147,7 @@
   <Space> v s / v v        Split horizontally / vertically
   <Space> v c              Close current window
   <Space> b s              Open instant disposable scratchpad (:Scratch)
+  <Space> b j              Open today's Dev Journal (:DailyNote)
   Shift-L or ]b            Next buffer tab
   Shift-H or [b            Previous buffer tab
   <Space> b d              Close current buffer
@@ -195,6 +196,11 @@
 ==============================================================================
 11. TERMINAL & SHELL POWER TOOLS (OUTSIDE VIM)
 ==============================================================================
+  note [topic] / fnotes    Daily markdown dev journal & notes in Neovim
+  todo [add|done|clean]    Instant terminal action checklist & tracker
+  vdiff file1 [file2]      Side-by-side synchronized Neovim visual file differ
+  fh [query]               Fuzzy command history search, edit & paste onto prompt
+  fenv [query]             Fuzzy environment variable & secrets inspector
   ports                    List active listening TCP ports, PIDs & processes
   fport / killport [port]  Interactive port & process killer (kill port 3000/8000)
   frun [task]              Universal project task runner (package.json, Makefile)

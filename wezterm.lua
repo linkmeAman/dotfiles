@@ -179,12 +179,16 @@ wezterm.on('open-uri', function(window, pane, uri)
   end
 end)
 
--- Developer QuickSelect Patterns (Git hashes, IPs, UUIDs, stack traces)
+-- Developer QuickSelect Patterns (URLs, Git hashes, IPs, UUIDs, stack traces, env vars)
 config.quick_select_patterns = {
-  [[(?:[\w\.\-/]+):(?:\d+)(?::(?:\d+))?]],
+  [[(?:https?://[^\s'"`\(\)\[\]{}]+)]],
+  [[(?:[\w\.\-/]+\.[a-zA-Z0-9_]+:\d+(?::\d+)?)]],
   [[(?:[0-9a-f]{7,40})]],
   [[(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?::[0-9]{1,5})?]],
   [[(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})]],
+  [[(?:#[0-9a-fA-F]{6})]],
+  [[(?:v?[0-9]+\.[0-9]+\.[0-9]+)]],
+  [[(?:[A-Za-z_][A-Za-z0-9_]*=[^\s]+)]],
 }
 
 -- ====================================================================
@@ -239,6 +243,13 @@ local hints = {
   { key = '⇧+Drag', desc = 'Select text' },
   { key = '⌘+Click', desc = 'Open in VS Code' },
   { key = '⌥+Arrows', desc = 'Word jump' },
+  { key = '⌘⇧W', desc = 'Visual pane jump' },
+  { key = '⌘⌥W', desc = 'Visual pane swap' },
+  { key = '⌘⌥O', desc = 'Rotate split panes' },
+  { key = '⌘⇧{ / }', desc = 'Move tab left / right' },
+  { key = 'cl', desc = 'Copy last cmd output' },
+  { key = 'fmod', desc = 'Fuzzy git changed files' },
+  { key = 'fgb', desc = 'Fuzzy git branches' },
   { key = '⌘K', desc = 'Clear screen' },
   { key = '⌘⇧P', desc = 'Command palette' },
   { key = '⌘⇧L', desc = 'Launch menu' },
@@ -283,6 +294,8 @@ config.keys = {
   { key = 'w', mods = 'CMD', action = act.CloseCurrentPane { confirm = false } },
   { key = '[', mods = 'CMD|SHIFT', action = act.ActivateTabRelative(-1) },
   { key = ']', mods = 'CMD|SHIFT', action = act.ActivateTabRelative(1) },
+  { key = '{', mods = 'CMD|SHIFT', action = act.MoveTabRelative(-1) },
+  { key = '}', mods = 'CMD|SHIFT', action = act.MoveTabRelative(1) },
   { key = 't', mods = 'CMD|SHIFT', action = act.ShowLauncherArgs { flags = 'FUZZY|TABS' } },
 
   -- Splits / Panes (Horizontal & Vertical)
@@ -291,6 +304,10 @@ config.keys = {
   { key = 'z', mods = 'CMD|SHIFT', action = act.TogglePaneZoomState },
   { key = '[', mods = 'CMD', action = act.ActivatePaneDirection 'Prev' },
   { key = ']', mods = 'CMD', action = act.ActivatePaneDirection 'Next' },
+  -- Zero-Touchpad Visual Pane Jump (Cmd+Shift+W) & Visual Pane Swap (Cmd+Alt+W)
+  { key = 'w', mods = 'CMD|SHIFT', action = act.PaneSelect { alphabet = '1234567890abcdefghijklmnopqrstuvwxyz' } },
+  { key = 'w', mods = 'CMD|ALT', action = act.PaneSelect { mode = 'SwapWithActive', alphabet = '1234567890abcdefghijklmnopqrstuvwxyz' } },
+  { key = 'o', mods = 'CMD|ALT', action = act.RotatePanes 'Clockwise' },
   -- Arrow & Vim (H/J/K/L) Pane Navigation
   { key = 'LeftArrow', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Left' },
   { key = 'RightArrow', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Right' },
@@ -466,6 +483,56 @@ config.key_tables = {
     { key = 'j', action = act.AdjustPaneSize { 'Down', 3 } },
     { key = 'Escape', action = 'PopKeyTable' },
     { key = 'Enter', action = 'PopKeyTable' },
+  },
+  copy_mode = {
+    { key = 'Tab', mods = 'NONE', action = act.CopyMode 'MoveForwardWord' },
+    { key = 'Tab', mods = 'SHIFT', action = act.CopyMode 'MoveBackwardWord' },
+    { key = 'Enter', mods = 'NONE', action = act.CopyMode 'MoveToStartOfNextLine' },
+    { key = 'Escape', mods = 'NONE', action = act.CopyMode 'Close' },
+    { key = 'q', mods = 'NONE', action = act.CopyMode 'Close' },
+    { key = 'c', mods = 'CTRL', action = act.CopyMode 'Close' },
+
+    -- Cursor motions (Vim standard)
+    { key = 'h', mods = 'NONE', action = act.CopyMode 'MoveLeft' },
+    { key = 'j', mods = 'NONE', action = act.CopyMode 'MoveDown' },
+    { key = 'k', mods = 'NONE', action = act.CopyMode 'MoveUp' },
+    { key = 'l', mods = 'NONE', action = act.CopyMode 'MoveRight' },
+    { key = 'LeftArrow', mods = 'NONE', action = act.CopyMode 'MoveLeft' },
+    { key = 'DownArrow', mods = 'NONE', action = act.CopyMode 'MoveDown' },
+    { key = 'UpArrow', mods = 'NONE', action = act.CopyMode 'MoveUp' },
+    { key = 'RightArrow', mods = 'NONE', action = act.CopyMode 'MoveRight' },
+
+    -- Word & line motions
+    { key = 'w', mods = 'NONE', action = act.CopyMode 'MoveForwardWord' },
+    { key = 'b', mods = 'NONE', action = act.CopyMode 'MoveBackwardWord' },
+    { key = 'e', mods = 'NONE', action = act.CopyMode 'MoveForwardWordEnd' },
+    { key = '0', mods = 'NONE', action = act.CopyMode 'MoveToStartOfLine' },
+    { key = '^', mods = 'NONE', action = act.CopyMode 'MoveToStartOfLineContent' },
+    { key = '$', mods = 'NONE', action = act.CopyMode 'MoveToEndOfLineContent' },
+
+    -- Visual selection (Character, Line, Block)
+    { key = 'v', mods = 'NONE', action = act.CopyMode { SetSelectionMode = 'Cell' } },
+    { key = 'V', mods = 'NONE', action = act.CopyMode { SetSelectionMode = 'Line' } },
+    { key = 'v', mods = 'CTRL', action = act.CopyMode { SetSelectionMode = 'Block' } },
+
+    -- Yank directly to macOS system clipboard & close
+    { key = 'y', mods = 'NONE', action = act.Multiple { { CopyTo = 'ClipboardAndPrimarySelection' }, { CopyMode = 'Close' } } },
+
+    -- Viewport scrolling
+    { key = 'PageUp', mods = 'NONE', action = act.CopyMode 'PageUp' },
+    { key = 'PageDown', mods = 'NONE', action = act.CopyMode 'PageDown' },
+    { key = 'u', mods = 'CTRL', action = act.CopyMode { MoveByPage = -0.5 } },
+    { key = 'd', mods = 'CTRL', action = act.CopyMode { MoveByPage = 0.5 } },
+    { key = 'b', mods = 'CTRL', action = act.CopyMode 'PageUp' },
+    { key = 'f', mods = 'CTRL', action = act.CopyMode 'PageDown' },
+    { key = 'g', mods = 'NONE', action = act.CopyMode 'MoveToScrollbackTop' },
+    { key = 'G', mods = 'NONE', action = act.CopyMode 'MoveToScrollbackBottom' },
+    { key = 'H', mods = 'NONE', action = act.CopyMode 'MoveToViewportTop' },
+    { key = 'M', mods = 'NONE', action = act.CopyMode 'MoveToViewportMiddle' },
+    { key = 'L', mods = 'NONE', action = act.CopyMode 'MoveToViewportBottom' },
+
+    -- Search
+    { key = '/', mods = 'NONE', action = act.Search { CaseSensitiveString = '' } },
   },
 }
 

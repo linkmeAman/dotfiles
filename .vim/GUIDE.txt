@@ -78,6 +78,9 @@
 5. PRODUCTIVITY HELPERS & UTILITIES
 ==============================================================================
   <Space> t                Toggle integrated bottom terminal drawer (:terminal)
+  <Space> r f              Run current file in terminal drawer (:RunFile)
+  <Space> r l              Re-run last command in terminal drawer (:RunLast)
+  <Space> c d              Fuzzy jump to project / folder using Zoxide (:CdProject)
   <Space> c f              Format code via active LSP (:Format)
   <Space> r w              Smart search & replace word under cursor (:ReplaceWord)
   <Space> y p              Copy absolute file path to macOS clipboard
@@ -92,7 +95,27 @@
   <Space> s v              Reload ~/.vimrc configuration (:ReloadConfig)
 
 ==============================================================================
-6. MOTIONS & EDITING POWER TOOLS
+6. ZERO-TOUCHPAD WORKFLOW & NAVIGATION (HOME ROW MASTERY)
+==============================================================================
+  v file.py:42:15          CLI: Open file and jump directly to line & column
+  gF (in Normal mode)      Jump to file:line under cursor (stack traces / logs)
+  <Space> r f              Run current script in terminal drawer without switching
+  <Space> r l              Re-run last test/script with one keystroke
+  <Space> c d              Fuzzy jump between projects without quitting Vim
+  <Space> z                Maximize current split to full screen / restore
+  <Space> g s              Full Git staging dashboard (s:stage, u:unstage, cc:commit)
+
+  WEZTERM SHORTCUTS (OUTSIDE VIM):
+  Cmd + Shift + Space      QuickSelect: letter badges over hashes/URLs to copy
+  Cmd + Shift + E          Open link: letter badges over URLs to open in browser
+  Cmd + Shift + X          Vi Copy Mode: h/j/k/l scrollback navigation & yank
+  Cmd + Opt + H/J/K/L      Jump between terminal split panes (Vim home-row)
+  Cmd + Shift + I          Bottom terminal scratchpad drawer
+  Cmd + Shift + Z          Zoom active terminal pane
+  Cmd + Shift + G          Launch Lazygit in dedicated tab
+
+==============================================================================
+7. MOTIONS & EDITING POWER TOOLS
 ==============================================================================
   s{char}{char}            Jump directly to any 2 characters on screen (Sneak)
   S{char}{char}            Jump backwards to any 2 characters on screen
@@ -107,7 +130,7 @@
   <Space> w / q            Save file / Quit
 
 ==============================================================================
-7. WINDOWS, SPLITS & BUFFERS
+8. WINDOWS, SPLITS & BUFFERS
 ==============================================================================
   TOP BUFFER TAB BAR       Shows all open files across top of screen (1: file.py)
   <Space> z  or  <Space>vz Toggle Zoom active split (maximize window / restore)
@@ -122,7 +145,7 @@
   <Space> c o / c s        Search code outline / symbols in current file (:BTags)
 
 ==============================================================================
-8. BACKPROPAGATION: REVERTING STATE, UNDO & EXITING
+9. BACKPROPAGATION: REVERTING STATE, UNDO & EXITING
 ==============================================================================
   <Space> u                Open Undo, Revert & Backprop Which-Key menu:
     - u                    Undo last edit (:Undo or press 'u')
@@ -153,7 +176,7 @@
     <Esc> / <Ctrl-c>       Cancel out of any prompt, search, or insert mode
 
 ==============================================================================
-9. TROUBLESHOOTING & GETTING UNSTUCK
+10. TROUBLESHOOTING & GETTING UNSTUCK
 ==============================================================================
   Stuck in FZF / Rg search :  Press <Esc> or type :close<Enter> to dismiss
   Stuck in Terminal / AI   :  Press <Esc> to exit insert, then :close or <Space>vc

@@ -105,6 +105,27 @@ Never worry about making mistakes or getting lost:
 
 ---
 
+## ⌨️ 6. Zero-Touchpad Workflow (Never Touch Your Mouse)
+
+Your terminal is your complete development home. Here is how to navigate everything from the home row:
+
+| Task | Key / Command | Context | What It Does |
+| :--- | :--- | :--- | :--- |
+| **Open compiler / test errors** | `v file.py:42:15` | Terminal | Opens file directly at line 42, column 15! |
+| **Jump to error under cursor** | `gF` | Vim Normal | Jumps straight to `path/to/file:line` under cursor in logs/traces. |
+| **Run current script** | `<Space> r f` | Vim Normal | Saves file and executes in 12-line bottom terminal drawer. |
+| **Re-run last command** | `<Space> r l` | Vim Normal | Re-runs last test or script instantly. |
+| **Fuzzy jump projects** | `<Space> c d` | Vim Normal | Changes project root via Zoxide + FZF without quitting Vim. |
+| **Maximize / restore split** | `<Space> z` | Vim Normal | Zooms active split to full screen, and restores. |
+| **QuickSelect terminal text** | `Cmd + Shift + Space` | WezTerm | Highlights hashes, URLs, and paths with letter badges to copy. |
+| **Open link in browser** | `Cmd + Shift + E` | WezTerm | Letter badges over URLs; type letters to open without clicking. |
+| **Vi scrollback copy mode** | `Cmd + Shift + X` | WezTerm | Navigate terminal scrollback with `h/j/k/l`, `/` search, `y` yank. |
+| **Jump between panes** | `Cmd + Option + H/J/K/L` | WezTerm | Seamlessly move between WezTerm splits. |
+| **Terminal scratchpad drawer** | `Cmd + Shift + I` | WezTerm | Toggles bottom terminal drawer. |
+| **Interactive Git UI** | `<Space> g s` *(Vim)* / `Cmd + Shift + G` *(WezTerm)* | Both | Full Git staging, diffing, and commits without mouse. |
+
+---
+
 ## 🛠️ Complete Keybindings Cheat Sheet
 
 | Category | Shortcut | Command / Action |
@@ -136,6 +157,10 @@ Never worry about making mistakes or getting lost:
 | | `<C-n>` | Multi-cursor word selection |
 | | `<Space> u` | Visual undo tree (`undotree`) |
 | | `<Space> r w` | Search & replace word under cursor |
+| | `<Space> r f` | **Run current file in terminal drawer (`:RunFile`)** |
+| | `<Space> r l` | **Re-run last command in terminal drawer (`:RunLast`)** |
+| | `<Space> c d` | **Fuzzy jump to project / folder via Zoxide (`:CdProject`)** |
+| | `gF` | **Jump to file:line under cursor (compiler traces)** |
 | | `<Space> c f` | Format code via LSP or auto-indent |
 | | `<Space> y p` / `y r` / `y n` | Copy full path / relative path / file name |
 | **Splits & Windows**| `<Space> z` | **Toggle Zoom active split (maximize window / restore)** |

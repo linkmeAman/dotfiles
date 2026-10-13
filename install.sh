@@ -22,7 +22,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   fi
 
   echo "==> Installing core CLI tools via Homebrew..."
-  brew install fzf ripgrep bat eza tlrc
+  brew install fzf ripgrep fd bat eza tlrc yazi neovim lazygit lazydocker lazysql dust jless httpie zoxide
 
   if ! command -v wezterm >/dev/null 2>&1; then
     echo "==> Installing WezTerm via Homebrew Cask..."
@@ -77,9 +77,14 @@ ln -sf "$DOTFILES_DIR/custom/functions.zsh" "$ZSH_CUSTOM/functions.zsh"
 ln -sf "$DOTFILES_DIR/custom/dev_options.zsh" "$ZSH_CUSTOM/dev_options.zsh"
 ln -sf "$DOTFILES_DIR/custom/themes/devpro.zsh-theme" "$ZSH_CUSTOM/themes/devpro.zsh-theme"
 
-# 6. Link WezTerm configuration
-echo "==> Linking WezTerm configuration..."
+# 6. Link WezTerm configuration and CLI companion
+echo "==> Linking WezTerm configuration and wz companion..."
+mkdir -p "$HOME/.local/bin"
 ln -sf "$DOTFILES_DIR/wezterm.lua" "$HOME/.wezterm.lua"
+if [[ -f "$DOTFILES_DIR/bin/wz" ]]; then
+  ln -sf "$DOTFILES_DIR/bin/wz" "$HOME/.local/bin/wz"
+  chmod +x "$HOME/.local/bin/wz"
+fi
 
 # 7. Setup & Link Vim configuration
 echo "==> Setting up Vim environment..."
@@ -96,7 +101,20 @@ if command -v vim >/dev/null 2>&1; then
   vim +PlugInstall +qall 2>/dev/null || true
 fi
 
-# 8. Update tldr cache
+# 8. Setup Neovim configuration
+echo "==> Setting up Neovim configuration..."
+mkdir -p "$HOME/.config/nvim"
+cat << 'EOF' > "$HOME/.config/nvim/init.vim"
+" Inherits and runs master ~/.vimrc with true color support
+set runtimepath^=~/.vim runtimepath+=~/.vim/after
+let &packpath = &runtimepath
+if (has("termguicolors"))
+  set termguicolors
+endif
+source ~/.vimrc
+EOF
+
+# 9. Update tldr cache
 if command -v tldr >/dev/null 2>&1; then
   echo "==> Initializing tldr cache..."
   tldr --update 2>/dev/null || true

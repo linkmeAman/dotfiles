@@ -72,6 +72,8 @@ Plug 'prabirshrestha/vim-lsp'          " Async Language Server Protocol client
 Plug 'mattn/vim-lsp-settings'          " Automated server installer (:LspInstallServer)
 Plug 'prabirshrestha/asyncomplete.vim' " Async autocomplete popup
 Plug 'prabirshrestha/asyncomplete-lsp.vim' " LSP autocomplete bridge
+Plug 'prabirshrestha/asyncomplete-buffer.vim' " Buffer word completion source
+Plug 'prabirshrestha/asyncomplete-file.vim'   " File path completion source
 
 " AI Assistance & Autocomplete
 Plug 'github/copilot.vim'              " Official GitHub Copilot inline AI completions
@@ -153,13 +155,23 @@ set smartcase                  " Switch to case-sensitive if uppercase letter is
 set incsearch                  " Search incrementally as you type
 set hlsearch                   " Highlight matching search results
 
+" Interactive Command-Line Popup Menu (suggestions appear when typing : commands!)
+set wildmenu                   " Enhanced command-line completion
+set wildmode=longest:full,full
+if has('patch-8.2.0001') || exists('&wildoptions')
+  set wildoptions=pum          " Display command suggestions in a clean popup dropdown
+endif
+
+" Better completion behavior in Insert mode
+set completeopt=menu,menuone,noselect,preview
+
 " Natural window splitting
 set splitbelow                 " Open new horizontal splits below
 set splitright                 " Open new vertical splits to the right
 
 " Performance and responsiveness
 set updatetime=300             " Faster gitgutter updates and hover popups (default 4000ms)
-set timeoutlen=500             " Quicker response for mapped sequences
+set timeoutlen=300             " Snappy Which-Key popup menu on <Space> press
 set ttimeoutlen=50
 
 " System clipboard integration (macOS pbcopy/pbpaste seamless)
@@ -233,7 +245,7 @@ let g:sneak#use_ic_scs = 1
 " Vim-Smoothie (buttery smooth scrolling)
 let g:smoothie_enabled = 1
 
-" Lightline statusbar
+" Lightline statusbar with permanent navigation & command hints
 let g:lightline = {
       \ 'colorscheme': 'onedark',
       \ 'active': {
@@ -241,7 +253,10 @@ let g:lightline = {
       \             [ 'gitbranch', 'readonly', 'filename', 'modified' ] ],
       \   'right': [ [ 'lineinfo' ],
       \              [ 'percent' ],
-      \              [ 'fileformat', 'fileencoding', 'filetype' ] ]
+      \              [ 'hint' ] ]
+      \ },
+      \ 'component': {
+      \   'hint': '⌨ <Space>:Menu  <Space>p:Commands  <F1>:Help'
       \ },
       \ 'component_function': {
       \   'gitbranch': 'FugitiveHead'
@@ -299,6 +314,24 @@ let g:lsp_diagnostics_highlights_enabled = 1
 let g:lsp_diagnostics_signs_enabled = 1
 let g:asyncomplete_auto_popup = 1
 
+" Register Asyncomplete Buffer & File sources (Universal autocomplete in all files)
+augroup AsyncompleteCustom
+  autocmd!
+  autocmd User asyncomplete_setup if exists('*asyncomplete#sources#buffer#get_source_config') | call asyncomplete#register_source(asyncomplete#sources#buffer#get_source_config({
+        \ 'name': 'buffer',
+        \ 'allowlist': ['*'],
+        \ 'completor': function('asyncomplete#sources#buffer#completor'),
+        \ 'config': {
+        \    'max_buffer_size': 5000000,
+        \ },
+        \ })) | endif
+  autocmd User asyncomplete_setup if exists('*asyncomplete#sources#file#get_source_config') | call asyncomplete#register_source(asyncomplete#sources#file#get_source_config({
+        \ 'name': 'file',
+        \ 'allowlist': ['*'],
+        \ 'completor': function('asyncomplete#sources#file#completor'),
+        \ })) | endif
+augroup END
+
 " ------------------------------------------------------------------------------
 " 6. WHICH-KEY & INTERACTIVE GUIDANCE
 " ------------------------------------------------------------------------------
@@ -310,6 +343,9 @@ let g:which_key_map = {}
 
 " Top-level actions
 let g:which_key_map['?'] = [ ':Guide',            'Open cheatsheet guide' ]
+let g:which_key_map['p'] = [ ':Commands',         'Command Palette (Search all commands)' ]
+let g:which_key_map['<Space>'] = [ ':Commands',   'Command Palette (Search all commands)' ]
+let g:which_key_map[':'] = [ ':Commands',         'Command Palette' ]
 let g:which_key_map['w'] = [ ':w',                'Save file' ]
 let g:which_key_map['q'] = [ ':q',                'Quit' ]
 let g:which_key_map['Q'] = [ ':qa!',              'Force quit all' ]
@@ -645,13 +681,18 @@ nnoremap <silent> <leader>w  :w<CR>
 nnoremap <silent> <leader>q  :q<CR>
 nnoremap <silent> <leader>u  :UndotreeToggle<CR>
 nnoremap <silent> <leader>?  :Guide<CR>
+nnoremap <silent> <F1>        :Guide<CR>
+
+" Command Palette (VS Code style search for any command, tool, or action)
+nnoremap <silent> <leader>p        :Commands<CR>
+nnoremap <silent> <leader><leader> :Commands<CR>
+nnoremap <silent> <leader>:        :Commands<CR>
 
 " Ctrl+p for file finding (popular muscle-memory shortcut)
 nnoremap <silent> <C-p> :Files<CR>
 
-" Clear search highlight with Escape or <leader><space>
+" Clear search highlight with double Escape or <leader>/
 nnoremap <silent> <Esc><Esc> :nohlsearch<CR>
-nnoremap <silent> <leader><Space> :nohlsearch<CR>
 
 " Seamless window navigation with Ctrl + h/j/k/l
 nnoremap <C-h> <C-w>h

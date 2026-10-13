@@ -190,6 +190,8 @@ config.quick_select_patterns = {
 -- 5. Developer Launch Menu & Dynamic Hints
 -- ====================================================================
 config.launch_menu = {
+  { label = 'Yazi (Terminal File Manager)', args = { '/opt/homebrew/bin/yazi' } },
+  { label = 'Neovim (Code Editor)', args = { '/opt/homebrew/bin/nvim' } },
   { label = 'Lazygit (Git UI)', args = { '/opt/homebrew/bin/lazygit' } },
   { label = 'Lazydocker (Docker UI)', args = { '/opt/homebrew/bin/lazydocker' } },
   { label = 'Lazysql (Database UI)', args = { '/opt/homebrew/bin/lazysql' } },
@@ -202,28 +204,32 @@ config.launch_menu = {
 
 -- Rotating Hints & Command Suggestions (cycles periodically in the status bar)
 local hints = {
-  { key = '⌘D', desc = 'Split pane side-by-side' },
-  { key = '⌘⇧D', desc = 'Split pane stacked (top/bottom)' },
-  { key = '⌘⇧I', desc = 'Toggle bottom scratchpad drawer' },
-  { key = '⌘⇧Z', desc = 'Zoom active pane full-screen' },
-  { key = '⌘⇧R', desc = 'Resize Mode (arrows or hjkl)' },
-  { key = '⌘⇧G', desc = 'Launch Lazygit Git visual UI' },
-  { key = '⌘⇧K', desc = 'Launch Lazydocker Docker visual UI' },
-  { key = '⌘⇧U', desc = 'Launch Lazysql Database explorer' },
-  { key = '⌘⇧B', desc = 'Launch Btop system monitor' },
-  { key = '⌘⇧O', desc = 'Project Sessionizer (fuzzy find repos)' },
-  { key = '⌘⇧Space', desc = 'QuickSelect (tap letter to copy URL/hash)' },
-  { key = '⌘⇧X', desc = 'Copy Mode (keyboard nav: v to select, y to copy)' },
-  { key = '⌘⇧S', desc = 'Fuzzy Workspace switcher' },
-  { key = '⌘⇧N', desc = 'Create new named workspace' },
-  { key = '⌘⇧↑ / ↓', desc = 'Jump to previous/next command prompt' },
-  { key = '⇧ + Drag', desc = 'Bypass CLI mouse capture to select text' },
-  { key = '⌘ + Click', desc = 'Open compiler error/path in VS Code' },
-  { key = '⌥ + Arrows', desc = 'Jump whole words in shell' },
-  { key = '⌘K', desc = 'Clear screen and scrollback buffer' },
-  { key = '⌘⇧P', desc = 'Command Palette (search all commands)' },
-  { key = '⌘⇧L', desc = 'Launch Menu (Node / Python / Tools)' },
-  { key = '⌘⇧H', desc = 'Open interactive Hints Guide' },
+  { key = '⌘D', desc = 'Split right' },
+  { key = '⌘⇧D', desc = 'Split down' },
+  { key = '⌘⇧I', desc = 'Scratchpad drawer' },
+  { key = '⌘⇧Z', desc = 'Zoom active pane' },
+  { key = '⌘⇧R', desc = 'Resize mode' },
+  { key = '⌘⇧Y', desc = 'Yazi files' },
+  { key = '⌘⇧V', desc = 'Neovim editor' },
+  { key = '⌘⇧G', desc = 'Lazygit' },
+  { key = '⌘⇧K', desc = 'Lazydocker' },
+  { key = '⌘⇧U', desc = 'Lazysql' },
+  { key = '⌘⇧B', desc = 'Btop monitor' },
+  { key = '⌘⇧O', desc = 'Git repos' },
+  { key = '⌘⇧T', desc = 'Tab search' },
+  { key = '⌘⇧E', desc = 'Open link' },
+  { key = '⌘⇧Space', desc = 'QuickSelect' },
+  { key = '⌘⇧X', desc = 'Copy mode' },
+  { key = '⌘⇧S', desc = 'Workspaces' },
+  { key = '⌘⇧N', desc = 'New workspace' },
+  { key = '⌘⇧↑/↓', desc = 'Jump prompt' },
+  { key = '⇧+Drag', desc = 'Select text' },
+  { key = '⌘+Click', desc = 'Open in VS Code' },
+  { key = '⌥+Arrows', desc = 'Word jump' },
+  { key = '⌘K', desc = 'Clear screen' },
+  { key = '⌘⇧P', desc = 'Command palette' },
+  { key = '⌘⇧L', desc = 'Launch menu' },
+  { key = '⌘⇧H', desc = 'Hints guide' },
 }
 
 local hint_choices = {}
@@ -264,6 +270,7 @@ config.keys = {
   { key = 'w', mods = 'CMD', action = act.CloseCurrentPane { confirm = false } },
   { key = '[', mods = 'CMD|SHIFT', action = act.ActivateTabRelative(-1) },
   { key = ']', mods = 'CMD|SHIFT', action = act.ActivateTabRelative(1) },
+  { key = 't', mods = 'CMD|SHIFT', action = act.ShowLauncherArgs { flags = 'FUZZY|TABS' } },
 
   -- Splits / Panes (Horizontal & Vertical)
   { key = 'd', mods = 'CMD', action = act.SplitHorizontal { domain = 'CurrentPaneDomain' } },
@@ -271,17 +278,43 @@ config.keys = {
   { key = 'z', mods = 'CMD|SHIFT', action = act.TogglePaneZoomState },
   { key = '[', mods = 'CMD', action = act.ActivatePaneDirection 'Prev' },
   { key = ']', mods = 'CMD', action = act.ActivatePaneDirection 'Next' },
+  -- Arrow & Vim (H/J/K/L) Pane Navigation
   { key = 'LeftArrow', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Left' },
   { key = 'RightArrow', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Right' },
   { key = 'UpArrow', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Up' },
   { key = 'DownArrow', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Down' },
+  { key = 'h', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Left' },
+  { key = 'l', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Right' },
+  { key = 'k', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Up' },
+  { key = 'j', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Down' },
 
   -- Interactive Pane Resize Mode (Cmd+Shift+R)
   { key = 'r', mods = 'CMD|SHIFT', action = act.ActivateKeyTable { name = 'resize_pane', one_shot = false } },
 
+  -- Keyboard Scrollback (Page Up/Down without trackpad)
+  { key = 'PageUp', mods = 'SHIFT', action = act.ScrollByPage(-0.5) },
+  { key = 'PageDown', mods = 'SHIFT', action = act.ScrollByPage(0.5) },
+  { key = 'PageUp', mods = 'CMD', action = act.ScrollToTop },
+  { key = 'PageDown', mods = 'CMD', action = act.ScrollToBottom },
+
   -- Semantic Prompt Scrolling (Jump between command prompts in terminal history)
   { key = 'UpArrow', mods = 'CMD|SHIFT', action = act.ScrollToPrompt(-1) },
   { key = 'DownArrow', mods = 'CMD|SHIFT', action = act.ScrollToPrompt(1) },
+
+  -- Keyboard URL Opener (Opens links in browser with letter hints - zero mouse)
+  {
+    key = 'e',
+    mods = 'CMD|SHIFT',
+    action = act.QuickSelectArgs {
+      patterns = { 'https?://[^\\s]+' },
+      action = wezterm.action_callback(function(window, pane)
+        local url = window:get_selection_text_for_pane(pane)
+        if url and url ~= '' then
+          wezterm.open_with(url)
+        end
+      end),
+    },
+  },
 
   -- Workspaces & Sessions
   { key = 's', mods = 'CMD|SHIFT', action = act.ShowLauncherArgs { flags = 'FUZZY|WORKSPACES' } },
@@ -305,6 +338,8 @@ config.keys = {
   -- Launch Menu, Tools & Command Palette
   { key = 'l', mods = 'CMD|SHIFT', action = act.ShowLauncherArgs { flags = 'FUZZY|LAUNCH_MENU_ITEMS|DOMAINS' } },
   { key = 'p', mods = 'CMD|SHIFT', action = act.ActivateCommandPalette },
+  { key = 'y', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/opt/homebrew/bin/yazi' } } },
+  { key = 'v', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/opt/homebrew/bin/nvim' } } },
   { key = 'g', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/opt/homebrew/bin/lazygit' } } },
   { key = 'b', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/opt/homebrew/bin/btop' } } },
   { key = 'k', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/opt/homebrew/bin/lazydocker' } } },
@@ -420,25 +455,67 @@ config.key_tables = {
 }
 
 -- ====================================================================
--- 7. Clean Tab Titles & Dynamic Status Bar (Battery, Mode, Path & Time)
+-- 7. Clean Tab Titles & Dynamic Status Bar (Hints, Battery & Time)
 -- ====================================================================
-wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max_width)
+local function clean_tab_title(tab)
   local pane = tab.active_pane
-  local title = pane.title
-  if not title or title == '' then
+  local title = pane.title or ''
+
+  if title == '' and pane.foreground_process_name then
     title = pane.foreground_process_name:match('([^/\\]+)$') or 'shell'
   end
+
+  -- If title is a path (e.g. ~/Documents/UEM), extract only the folder basename
+  if title:find('/') or title:find('\\') then
+    title = title:gsub('[/\\]+$', '')
+    local basename = title:match('([^/\\]+)$')
+    if basename and basename ~= '' then
+      title = basename
+    end
+  end
+
+  -- Clean up home directory or empty title
+  if title == '' or title == os.getenv('USER') then
+    title = '~'
+  end
+
+  -- Truncate to maximum 14 characters with ellipsis so tabs never crowd the tab bar
+  if #title > 14 then
+    title = title:sub(1, 13) .. '…'
+  end
+
+  return title
+end
+
+wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max_width)
+  local title = clean_tab_title(tab)
   local index = tab.tab_index + 1
-  local prefix = tab.is_active and '● ' or '○ '
+
+  local bg = '#16161e'
+  local fg = '#565f89'
+  local intensity = 'Normal'
+
+  if tab.is_active then
+    bg = '#24283b'
+    fg = '#7aa2f7'
+    intensity = 'Bold'
+  elseif hover then
+    bg = '#1f2335'
+    fg = '#c0caf5'
+  end
+
   return {
-    { Text = ' ' .. prefix .. index .. ': ' .. title .. ' ' },
+    { Background = { Color = bg } },
+    { Foreground = { Color = fg } },
+    { Attribute = { Intensity = intensity } },
+    { Text = string.format(' %d: %s ', index, title) },
   }
 end)
 
 wezterm.on('update-right-status', function(window, pane)
   local cells = {}
 
-  -- 1. Mode indicator (e.g. RESIZE_PANE, COPY_MODE, SEARCH_MODE)
+  -- 1. Modal key table indicator (e.g. RESIZE_PANE)
   local mode = window:active_key_table()
   if mode then
     table.insert(cells, { Background = { Color = '#e0af68' } })
@@ -447,30 +524,18 @@ wezterm.on('update-right-status', function(window, pane)
     table.insert(cells, { Text = ' ' .. string.upper(mode) .. ' ' })
   end
 
-  -- 2. Rotating Command Hint (changes smoothly every 12 seconds)
+  -- 2. Rotating Command Hint (concise, updates every 12s)
   local now = os.time()
   local hint_idx = (math.floor(now / 12) % #hints) + 1
   local hint = hints[hint_idx]
   table.insert(cells, { Foreground = { Color = '#e0af68' } })
-  table.insert(cells, { Text = ' 💡 ' .. hint.key .. ': ' .. hint.desc .. '  ' })
+  table.insert(cells, { Text = ' 💡 ' .. hint.key .. ': ' .. hint.desc .. ' ' })
 
-  -- 3. Workspace indicator
+  -- 3. Workspace badge (shown only when inside a named workspace)
   local workspace = window:active_workspace()
   if workspace and workspace ~= 'default' then
     table.insert(cells, { Foreground = { Color = '#bb9af7' } })
-    table.insert(cells, { Text = ' ' .. workspace .. ' ' })
-  end
-
-  -- 4. Working Directory
-  local cwd_uri = pane:get_current_working_dir()
-  if cwd_uri then
-    local cwd = cwd_uri.file_path or tostring(cwd_uri)
-    local home = os.getenv('HOME') or ''
-    if home ~= '' and cwd:sub(1, #home) == home then
-      cwd = '~' .. cwd:sub(#home + 1)
-    end
-    table.insert(cells, { Foreground = { Color = '#7dcfff' } })
-    table.insert(cells, { Text = '  ' .. cwd .. ' ' })
+    table.insert(cells, { Text = '  ' .. workspace .. ' ' })
   end
 
   -- 4. Battery Indicator (for MacBooks)
@@ -493,7 +558,7 @@ wezterm.on('update-right-status', function(window, pane)
   -- 5. Current Time
   local time = wezterm.strftime('%I:%M %p')
   table.insert(cells, { Foreground = { Color = '#7aa2f7' } })
-  table.insert(cells, { Text = ' ' .. time .. '  ' })
+  table.insert(cells, { Text = ' ' .. time .. ' ' })
 
   window:set_right_status(wezterm.format(cells))
 end)

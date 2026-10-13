@@ -34,16 +34,31 @@ A GPU-accelerated terminal emulator configured for Apple Silicon and modern high
 * **macOS Window Aesthetics**: Integrated traffic-light window controls, 0.95 opacity, 30 blur, and custom padding.
 * **Smart Inactive Panes**: Inactive split panes subtly dim to maintain visual focus on the active buffer.
 
-### Essential WezTerm Shortcuts:
+### Essential WezTerm Shortcuts (Zero-Touchpad Navigation):
 | Action | Shortcut (macOS) | Description |
 | :--- | :--- | :--- |
-| **Split Horizontal** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> | Split current pane horizontally |
-| **Split Vertical** | <kbd>Cmd</kbd> + <kbd>D</kbd> | Split current pane vertically |
-| **Navigate Panes** | <kbd>Cmd</kbd> + <kbd>[</kbd> / <kbd>]</kbd> | Cycle through active split panes |
-| **Close Pane** | <kbd>Cmd</kbd> + <kbd>W</kbd> | Close active pane or tab |
-| **New Tab** | <kbd>Cmd</kbd> + <kbd>T</kbd> | Open a fresh terminal tab |
-| **Switch Tabs** | <kbd>Cmd</kbd> + <kbd>1</kbd> - <kbd>9</kbd> | Direct tab switching |
-| **Font Zoom** | <kbd>Cmd</kbd> + <kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd> | Increase, decrease, or reset font size |
+| **Open Link (No Mouse)** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd> | Displays letter badge over every URL; type letters to open in browser |
+| **Fuzzy Tab Search** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd> | Fuzzy search and switch open tabs by name without touching mouse |
+| **Vim Pane Jump** | <kbd>Cmd</kbd> + <kbd>Option</kbd> + <kbd>H/J/K/L</kbd> | Instant home-row pane navigation (left, down, up, right) |
+| **Split Pane (Right)** | <kbd>Cmd</kbd> + <kbd>D</kbd> | Split current pane side-by-side |
+| **Split Pane (Down)** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> | Split current pane top/bottom (35% height drawer) |
+| **Scratchpad Drawer** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>I</kbd> | Instant bottom terminal drawer |
+| **Zoom Active Pane** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> | Maximize active pane to full window (toggle) |
+| **Modal Resize Mode** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> | Resize panes with arrow keys or `h/j/k/l` (`Enter`/`Esc` to exit) |
+| **File Manager (Yazi)** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>Y</kbd> | Launch Yazi terminal file manager in new tab |
+| **Code Editor (Neovim)** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd> | Launch Neovim in new tab |
+| **Git UI (Lazygit)** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>G</kbd> | Launch Lazygit in new tab |
+| **Docker UI (Lazydocker)**| <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>K</kbd> | Launch Lazydocker in new tab |
+| **Database UI (Lazysql)** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>U</kbd> | Launch Lazysql in new tab |
+| **System Monitor (Btop)** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd> | Launch Btop real-time monitor in new tab |
+| **Project Workspaces** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>O</kbd> | Fuzzy search Git repos and spawn dedicated workspace |
+| **Command Palette** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> | Search all WezTerm actions interactively |
+| **Hints Guide** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd> | Interactive search of all configured hotkeys |
+| **Keyboard Scrollback** | <kbd>Shift</kbd> + <kbd>PageUp/Down</kbd> | Scroll half-page through output without trackpad |
+| **Prompt Jump** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>↑ / ↓</kbd> | Jump directly between previous command prompts |
+| **QuickSelect** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>Space</kbd> | Hit overlay letters to copy URLs, Git hashes, IPs, or UUIDs |
+| **Vi Copy Mode** | <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd> | Full Vi navigation: `h/j/k/l`, `/` search, `v` select, `y` yank |
+| **Direct Tab Jump** | <kbd>Cmd</kbd> + <kbd>1</kbd> - <kbd>9</kbd> | Switch directly to tabs 1 through 9 |
 
 ---
 
@@ -155,6 +170,8 @@ dotfiles/
 ├── zshrc                          # Calibrated ~/.zshrc configuration
 ├── wezterm.lua                    # GPU-accelerated terminal emulator configuration
 ├── vimrc                          # Modern Vim 9 IDE & AI agent launchpad
+├── bin/
+│   └── wz                         # WezTerm developer companion CLI utility
 ├── .vim/                          # Vim documentation & guides
 │   ├── GUIDE.txt                  # In-editor interactive cheatsheet (:Guide)
 │   └── README.md                  # Comprehensive Vim workflow guide

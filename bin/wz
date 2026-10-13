@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# wz - WezTerm Developer CLI Utility
+# ==============================================================================
+set -euo pipefail
+
+function show_help() {
+  cat << 'EOF'
+wz - WezTerm Developer CLI Companion
+
+Usage:
+  wz split [cmd]             Split current pane horizontally and run command
+  wz vsplit [cmd]            Split current pane vertically and run command
+  wz next                    Switch to the next tab
+  wz prev                    Switch to the previous tab
+  wz goto <number>           Switch to tab by number (e.g. wz goto 2)
+  wz list                    List all open windows, tabs, and panes
+  wz project [dir]           Open or switch to a workspace rooted at [dir]
+  wz port <number> [-k]      Inspect (and optionally kill) processes on a port
+  wz json [file]             Explore JSON with interactive tree viewer (jless)
+  wz disk [path]             Analyze disk space usage with visual bars (dust)
+  wz sql                     Launch terminal database explorer (lazysql)
+  wz notify <title> <body>   Trigger a desktop notification
+  wz copy [file]             Copy file or piped stdin to macOS clipboard
+  wz help                    Show this help message
+
+Examples:
+  wz port 3000 -k            # Kill whatever is blocking port 3000
+  wz json payload.json       # Interactive JSON explorer
+  wz disk ~/Projects         # Find heavy node_modules / cache
+  wz split "npm run dev"
+  npm run build && wz notify "Build Complete" "Frontend ready!"
+  cat file.txt | wz copy
+EOF
+}
+
+case "${1:-help}" in
+  split)
+    shift
+    if [ $# -eq 0 ]; then
+      wezterm cli split-pane --horizontal
+    else
+      wezterm cli split-pane --horizontal -- "$@"
+    fi
+    ;;
+  vsplit)
+    shift
+    if [ $# -eq 0 ]; then
+      wezterm cli split-pane
+    else
+      wezterm cli split-pane -- "$@"
+    fi
+    ;;
+  tab)
+    shift
+    if [ $# -eq 0 ]; then
+      wezterm cli spawn
+    else
+      wezterm cli spawn -- "$@"
+    fi
+    ;;
+  next)
+    wezterm cli activate-tab --tab-relative 1
+    ;;
+  prev)
+    wezterm cli activate-tab --tab-relative -1
+    ;;
+  goto)
+    shift
+    target="${1:-1}"
+    idx=$((target - 1))
+    wezterm cli activate-tab --tab-index "$idx"
+    ;;
+  list)
+    wezterm cli list
+    ;;
+  port)
+    shift
+    port="${1:-}"
+    if [ -z "$port" ]; then
+      echo "Usage: wz port <port_number> [-k|--kill]"
+      exit 1
+    fi
+    pids=$(lsof -ti :"$port" 2>/dev/null || true)
+    if [ -z "$pids" ]; then
+      echo "No process is listening on port $port."
+    else
+      echo "Processes on port $port:"
+      lsof -i :"$port"
+      if [[ "${2:-}" == "--kill" ]] || [[ "${2:-}" == "-k" ]]; then
+        echo "$pids" | xargs kill -9
+        echo "Killed PID(s): $pids on port $port."
+      else
+        printf "\nKill these process(es)? [y/N]: "
+        read -r ans
+        if [[ "$ans" =~ ^[Yy]$ ]]; then
+          echo "$pids" | xargs kill -9
+          echo "Killed PID(s): $pids."
+        fi
+      fi
+    fi
+    ;;
+  json)
+    shift
+    if [ $# -gt 0 ]; then
+      jless "$@"
+    else
+      jless
+    fi
+    ;;
+  disk)
+    shift
+    dust "${@:-.}"
+    ;;
+  sql)
+    shift
+    lazysql "$@"
+    ;;
+  notify)
+    shift
+    title="${1:-WezTerm}"
+    msg="${2:-Task completed}"
+    printf "\e]777;notify;%s;%s\e\\" "$title" "$msg"
+    osascript -e "display notification \"$msg\" with title \"$title\"" 2>/dev/null || true
+    ;;
+  copy)
+    shift
+    if [ $# -gt 0 ] && [ -f "$1" ]; then
+      pbcopy < "$1"
+      echo "Copied $1 to clipboard."
+    else
+      pbcopy
+      echo "Copied input to clipboard."
+    fi
+    ;;
+  project)
+    shift
+    target="${1:-$(pwd)}"
+    target="$(cd "$target" 2>/dev/null && pwd || echo "$target")"
+    name="$(basename "$target")"
+    wezterm cli spawn --cwd "$target" --workspace "$name"
+    echo "Spawned workspace '$name' at $target"
+    ;;
+  help|--help|-h)
+    show_help
+    ;;
+  *)
+    echo "Unknown command: $1"
+    show_help
+    exit 1
+    ;;
+esac

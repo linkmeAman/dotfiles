@@ -587,10 +587,26 @@ local ai_tools = {
 local tab_states = {}
 
 local function get_pane_proc_info(pane)
+  local full_name = pane.foreground_process_name or ''
   local raw_proc = ''
-  if pane.foreground_process_name and pane.foreground_process_name ~= '' then
-    raw_proc = pane.foreground_process_name:match('([^/\\]+)$') or pane.foreground_process_name
+  if full_name ~= '' then
+    raw_proc = full_name:match('([^/\\]+)$') or full_name
     raw_proc = raw_proc:gsub('%.exe$', '')
+  end
+
+  -- Clean up version-named binaries (e.g. Claude Code stores executables as ~/.local/share/claude/versions/2.1.296)
+  if full_name:find('/claude/') or full_name:find('/claude$') or full_name:find('claude') then
+    raw_proc = 'claude'
+  elseif full_name:find('/agy/') or full_name:find('/agy$') then
+    raw_proc = 'agy'
+  elseif full_name:find('/cline/') or full_name:find('/cline$') then
+    raw_proc = 'cline'
+  elseif raw_proc:match('^v?%d+%.%d+') then
+    -- Fallback: If executable name is purely numbers (e.g. 2.1.296), extract tool name from parent folder
+    local tool = full_name:match('/([^/]+)/versions/') or full_name:match('/%.?([^/]+)/bin/')
+    if tool and tool ~= '' then
+      raw_proc = tool
+    end
   end
 
   local title = pane.title or ''

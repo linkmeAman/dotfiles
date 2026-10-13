@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# tmux-sessionizer: Universal Project & Session Switcher
+# Inspired by The Primeagen, optimized for macOS Apple Silicon & WezTerm
+
+set -e
+
+if [[ $# -eq 1 ]]; then
+    selected="$1"
+else
+    search_dirs=("$HOME/dotfiles" "$HOME/Documents" "$HOME/Desktop" "$HOME")
+    
+    # Fast discovery of git repos and top-level project folders
+    selected=$( (
+        if command -v fd >/dev/null 2>&1; then
+            fd -H -td '^(\.git)$' "${search_dirs[@]}" --max-depth 4 --prune 2>/dev/null | sed 's#/\.git/$##'
+            fd --type d --max-depth 2 . "$HOME/Documents" "$HOME/Desktop" 2>/dev/null
+        else
+            find "${search_dirs[@]}" -maxdepth 3 -not -path '*/.*' -type d 2>/dev/null
+        fi
+    ) | awk '!seen[$0]++' | fzf --prompt="🚀 Switch Project > " --header="[Enter: Open Session | Esc: Cancel]" --height=45% --layout=reverse --border )
+fi
+
+if [[ -z "$selected" ]]; then
+    exit 0
+fi
+
+selected_name=$(basename "$selected" | tr '.' '_' | tr ':' '_')
+
+# If inside tmux, switch client; if outside tmux, create/attach session
+if command -v tmux >/dev/null 2>&1; then
+    tmux_running=$(pgrep tmux || true)
+
+    if [[ -z "$TMUX" ]] && [[ -z "$tmux_running" ]]; then
+        tmux new-session -s "$selected_name" -c "$selected"
+        exit 0
+    fi
+
+    if ! tmux has-session -t="$selected_name" 2>/dev/null; then
+        tmux new-session -ds "$selected_name" -c "$selected"
+    fi
+
+    if [[ -z "$TMUX" ]]; then
+        tmux attach-session -t "$selected_name"
+    else
+        tmux switch-client -t "$selected_name"
+    fi
+else
+    # Fallback if tmux is not installed: cd directly into directory
+    cd "$selected" && exec "$SHELL"
+fi

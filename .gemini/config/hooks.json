@@ -1,0 +1,10 @@
+{
+  "git-status-feedback": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "git status -s 2>/dev/null || true"
+      }
+    ]
+  }
+}

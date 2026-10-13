@@ -524,6 +524,7 @@ let g:which_key_map.r = {
       \ 'name': '+run/refactor',
       \ 'f': [':RunFile',     'Run current file in terminal drawer'],
       \ 'l': [':RunLast',     'Re-run last command in terminal drawer'],
+      \ 't': [':RunTask',     'Interactive project task runner (frun)'],
       \ 'w': [':ReplaceWord', 'Search & replace word under cursor'],
       \ }
 
@@ -556,6 +557,21 @@ let g:which_key_map.o = {
       \ 'c': [':OpenInCode',            'Open project in Visual Studio Code'],
       \ 'f': [':OpenInCodeFile',        'Open file at cursor in VS Code'],
       \ }
+
+" Harpoon / File Pins (<Space>m and <Space>1..4)
+let g:which_key_map.m = {
+      \ 'name': '+marks/pins',
+      \ '1': [':PinFile 1', 'Pin current file to slot 1'],
+      \ '2': [':PinFile 2', 'Pin current file to slot 2'],
+      \ '3': [':PinFile 3', 'Pin current file to slot 3'],
+      \ '4': [':PinFile 4', 'Pin current file to slot 4'],
+      \ 'l': [':ListPins',  'List all pinned files'],
+      \ 'c': [':ClearPins', 'Clear all file pins'],
+      \ }
+let g:which_key_map['1'] = [':JumpPin 1', 'Jump to pinned file 1']
+let g:which_key_map['2'] = [':JumpPin 2', 'Jump to pinned file 2']
+let g:which_key_map['3'] = [':JumpPin 3', 'Jump to pinned file 3']
+let g:which_key_map['4'] = [':JumpPin 4', 'Jump to pinned file 4']
 
 " Register with vim-which-key
 autocmd VimEnter * call which_key#register('<Space>', "g:which_key_map")
@@ -905,6 +921,59 @@ endfunction
 
 command! -bar CdProject call <SID>FzfChangeDirectory()
 
+" 16. Harpoon-Style File Pinning (<Space>m and <Space>1..4)
+let g:file_pins = {}
+
+function! s:PinCurrentFile(slot) abort
+  let l:file = expand('%:p')
+  if empty(l:file)
+    echo "No file to pin"
+    return
+  endif
+  let g:file_pins[a:slot] = l:file
+  echo "📌 Pinned [" . a:slot . "]: " . expand('%:t') . " (" . l:file . ")"
+endfunction
+
+function! s:JumpToPin(slot) abort
+  if !has_key(g:file_pins, a:slot) || empty(g:file_pins[a:slot])
+    echo "📌 Pin [" . a:slot . "] is empty. Pin with <Space>m" . a:slot
+    return
+  endif
+  execute 'edit ' . fnameescape(g:file_pins[a:slot])
+  echo "📌 Jumped to [" . a:slot . "]: " . expand('%:t')
+endfunction
+
+function! s:ListPins() abort
+  echo "=========================================================="
+  echo "                 PINNED FILES (HARPOON)                   "
+  echo "=========================================================="
+  for i in [1, 2, 3, 4]
+    if has_key(g:file_pins, i) && !empty(g:file_pins[i])
+      echo " [" . i . "] " . fnamemodify(g:file_pins[i], ':t') . "  -->  " . g:file_pins[i]
+    else
+      echo " [" . i . "] (empty)"
+    endif
+  endfor
+  echo "=========================================================="
+  echo " Jump: <Space>1..4   |   Pin: <Space>m1..4   |   Clear: <Space>mc"
+endfunction
+
+function! s:ClearPins() abort
+  let g:file_pins = {}
+  echo "📌 All file pins cleared."
+endfunction
+
+command! -nargs=1 PinFile call <SID>PinCurrentFile(<args>)
+command! -nargs=1 JumpPin call <SID>JumpToPin(<args>)
+command! -bar ListPins call <SID>ListPins()
+command! -bar ClearPins call <SID>ClearPins()
+
+" 17. Universal Project Task Runner (:RunTask)
+function! s:RunProjectTask() abort
+  call s:ExecuteInTerminalDrawer('frun')
+endfunction
+command! -bar RunTask call <SID>RunProjectTask()
+
 " ------------------------------------------------------------------------------
 " 8. ERGONOMIC KEY MAPPINGS
 " ------------------------------------------------------------------------------
@@ -919,9 +988,20 @@ nnoremap <silent> <leader>w  :w<CR>
 nnoremap <silent> <leader>z  :ToggleZoom<CR>
 nnoremap <silent> <leader>rf :RunFile<CR>
 nnoremap <silent> <leader>rl :RunLast<CR>
+nnoremap <silent> <leader>rt :RunTask<CR>
 nnoremap <silent> <leader>cd :CdProject<CR>
 nnoremap <silent> <leader>co :BTags<CR>
 nnoremap <silent> <leader>cs :BTags<CR>
+nnoremap <silent> <leader>1  :JumpPin 1<CR>
+nnoremap <silent> <leader>2  :JumpPin 2<CR>
+nnoremap <silent> <leader>3  :JumpPin 3<CR>
+nnoremap <silent> <leader>4  :JumpPin 4<CR>
+nnoremap <silent> <leader>m1 :PinFile 1<CR>
+nnoremap <silent> <leader>m2 :PinFile 2<CR>
+nnoremap <silent> <leader>m3 :PinFile 3<CR>
+nnoremap <silent> <leader>m4 :PinFile 4<CR>
+nnoremap <silent> <leader>ml :ListPins<CR>
+nnoremap <silent> <leader>mc :ClearPins<CR>
 nnoremap <silent> <leader>?  :Guide<CR>
 nnoremap <silent> <F1>        :Guide<CR>
 

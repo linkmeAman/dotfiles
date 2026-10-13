@@ -262,6 +262,124 @@ if command -v fzf >/dev/null 2>&1; then
   }
   alias tldrf='ftldr'
 
+  # Interactive Git Stash Inspector with Delta preview (fstash)
+  fstash() {
+    local stash
+    stash=$(git stash list --pretty=format:'%gd: %s (%cr)' 2>/dev/null | \
+      fzf --ansi --no-sort \
+          --header="[Enter: Pop stash | Ctrl-A: Apply (keep) | Ctrl-D: Drop stash | Esc: Cancel]" \
+          --bind="ctrl-a:execute(git stash apply \$(echo {} | cut -d: -f1) && echo Applied)+abort" \
+          --bind="ctrl-d:execute(git stash drop \$(echo {} | cut -d: -f1) && echo Dropped)+abort" \
+          --preview='git stash show -p --color=always $(echo {} | cut -d: -f1) 2>/dev/null | delta --side-by-side' \
+          --preview-window=right:65%:wrap)
+    if [ -n "$stash" ]; then
+      local stash_id=$(echo "$stash" | cut -d: -f1)
+      git stash pop "$stash_id"
+    fi
+  }
+
+  # Interactive Git Diff Browser (fdiff [target_branch_or_commit])
+  fdiff() {
+    local target="${1:-HEAD}"
+    if [ "$target" = "main" ] || [ "$target" = "master" ]; then
+      local base=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+      [ -n "$base" ] && target="$base"
+    fi
+    local file
+    file=$(git diff --name-only "$target" 2>/dev/null | \
+      fzf --header="[Enter: Open in $EDITOR | Esc: Cancel] Diff against $target" \
+          --preview="git diff --color=always $target -- {} | delta --side-by-side" \
+          --preview-window=right:65%:wrap)
+    [ -n "$file" ] && ${EDITOR:-nvim} "$file"
+  }
+
+  # Universal Project Script & Task Runner (frun [task])
+  # Auto-detects package.json scripts, Makefile targets, Cargo, and Docker tasks
+  frun() {
+    local tasks=()
+    # 1. Node.js / package.json
+    if [ -f "package.json" ]; then
+      local node_scripts
+      node_scripts=$(node -e "try { const p = require('./package.json'); Object.keys(p.scripts||{}).forEach(k => console.log('npm run ' + k + '  # ' + (p.scripts[k]||''))); } catch(e){}" 2>/dev/null)
+      [ -n "$node_scripts" ] && tasks+=("${(f)node_scripts}")
+    fi
+    # 2. Makefile targets
+    if [ -f "Makefile" ] || [ -f "makefile" ]; then
+      local make_targets
+      make_targets=$(awk -F':' '/^[a-zA-Z0-9_-]+:/ && !/^\./ {print "make " $1}' [Mm]akefile 2>/dev/null)
+      [ -n "$make_targets" ] && tasks+=("${(f)make_targets}")
+    fi
+    # 3. Cargo / Rust
+    if [ -f "Cargo.toml" ]; then
+      tasks+=("cargo run" "cargo test" "cargo check" "cargo build --release")
+    fi
+    # 4. Python
+    if [ -f "pyproject.toml" ]; then
+      tasks+=("poetry run pytest" "poetry run python main.py" "pytest")
+    elif [ -f "pytest.ini" ] || [ -d "tests" ]; then
+      tasks+=("pytest")
+    fi
+    # 5. Docker Compose
+    if [ -f "docker-compose.yml" ] || [ -f "compose.yaml" ]; then
+      tasks+=("docker compose up" "docker compose down" "docker compose ps" "docker compose logs -f")
+    fi
+
+    # Fallback to general repo commands if no config files found
+    if [ ${#tasks[@]} -eq 0 ]; then
+      tasks+=("git status" "git pull" "git log -n 5 --oneline")
+    fi
+
+    local selected
+    selected=$(printf "%s\n" "${tasks[@]}" | fzf --query="$*" \
+      --header="[Enter: Execute Task | Esc: Cancel]" \
+      --prompt="⚡ Run Task > ")
+
+    if [ -n "$selected" ]; then
+      local cmd=$(echo "$selected" | sed 's/  #.*//')
+      echo "🚀 Executing: $cmd"
+      eval "$cmd"
+    fi
+  }
+
+  # Port & Process Assassin (ports, fport, killport [port])
+  ports() {
+    echo "📡 Active Listening TCP Ports:"
+    lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null | awk 'NR>1 {printf "%-10s %-8s %-6s %s\n", $9, $1, $2, $8}' | sort -n -k1.11 | column -t
+  }
+
+  fport() {
+    local target
+    target=$(lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null | awk 'NR>1 {print $9, "-->", $1, "(PID: " $2 ")"}' | sort -u | \
+      fzf --query="$*" \
+          --header="[Enter: Kill Process on Port | Esc: Cancel]" \
+          --prompt="🔌 Port / Process > ")
+    if [ -n "$target" ]; then
+      local pid=$(echo "$target" | grep -o 'PID: [0-9]*' | awk '{print $2}')
+      local port=$(echo "$target" | awk '{print $1}')
+      if [ -n "$pid" ]; then
+        kill -9 "$pid" 2>/dev/null
+        echo "✅ Killed process (PID $pid) listening on $port"
+      fi
+    fi
+  }
+  alias fkillport='fport'
+
+  killport() {
+    if [ -n "$1" ]; then
+      local port="$1"
+      local pid
+      pid=$(lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null)
+      if [ -n "$pid" ]; then
+        kill -9 $pid 2>/dev/null
+        echo "✅ Killed process(es) on port $port (PID: $pid)"
+      else
+        echo "ℹ️ No process listening on port $port"
+      fi
+    else
+      fport
+    fi
+  }
+
   # Fuzzy Find & Preview Images (fpic [dir|file|query])
   fpic() {
     # If passed an existing file directly, immediately view it
@@ -596,20 +714,121 @@ agy-ask() {
   cat "$file" | /Users/tr/.local/bin/agy "$*"
 }
 
-# 1-Second Dev Session Launcher (Vim + Antigravity CLI + Terminal Runner)
+# Ask Antigravity CLI directly from shell without switching modes
+ask() {
+  if [ -z "$*" ]; then
+    echo "Usage: ask <question or prompt>"
+    return 1
+  fi
+  /Users/tr/.local/bin/agy "$*"
+}
+
+# 1-Second Dev Session Launcher (Neovim + Antigravity CLI + Terminal Runner)
 dev() {
   local session_name="$(basename "$PWD" | tr '.' '_')"
   tmux has-session -t "$session_name" 2>/dev/null
   if [ $? -ne 0 ]; then
     tmux new-session -d -s "$session_name" -n "dev"
-    tmux send-keys -t "$session_name:dev" "vim" C-m
+    tmux send-keys -t "$session_name:dev" "nvim" C-m
     tmux split-window -h -p 40 -t "$session_name:dev"
     tmux send-keys -t "$session_name:dev.1" "/Users/tr/.local/bin/agy" C-m
     tmux split-window -v -p 45 -t "$session_name:dev.1"
     tmux select-pane -t "$session_name:dev.0"
   fi
-  tmux attach-session -t "$session_name"
+  if [ -n "$TMUX" ]; then
+    tmux switch-client -t "$session_name"
+  else
+    tmux attach-session -t "$session_name"
+  fi
 }
+
+# Fuzzy Project Selector: Search any repo on your machine and launch dev cockpit
+p() {
+  local search_roots=("$HOME/Documents" "$HOME/dotfiles")
+  local selected
+  if [ -n "$1" ]; then
+    selected=$(fd -H -td '^\.git$' "${search_roots[@]}" --max-depth 4 2>/dev/null | sed 's#/\.git/\{0,1\}$##' | fzf --query="$1" --select-1 --exit-0)
+  else
+    selected=$(fd -H -td '^\.git$' "${search_roots[@]}" --max-depth 4 2>/dev/null | sed 's#/\.git/\{0,1\}$##' | fzf --header="[Select Project to Launch Dev Cockpit | Esc: Cancel]" --preview='eza --tree --icons -L 2 {} 2>/dev/null || ls -la {}' --preview-window=right:50%)
+  fi
+  if [ -n "$selected" ]; then
+    builtin cd "$selected"
+    dev
+  fi
+}
+alias proj='p'
+
+# Kill process listening on a port with zero mouse clicks (killport 3000)
+killport() {
+  if [ -z "$1" ]; then
+    echo "Usage: killport <port_number>"
+    return 1
+  fi
+  local pids
+  pids=$(lsof -ti :"$1" 2>/dev/null)
+  if [ -n "$pids" ]; then
+    echo "Killing PID(s) on port $1: $pids"
+    echo "$pids" | xargs kill -9
+    echo "✓ Port $1 freed."
+  else
+    echo "No process running on port $1."
+  fi
+}
+
+# Quick terminal scratchpad / developer notes (in Neovim)
+note() {
+  local notes_file="$HOME/.daily_notes.md"
+  if [ ! -f "$notes_file" ]; then
+    echo "# Developer Scratchpad & Daily Notes\n" > "$notes_file"
+  fi
+  ${EDITOR:-nvim} "$notes_file"
+}
+
+# Terminal Keyboard HUD Cheatsheet
+keys() {
+  cat << 'EOF'
+=============================================================================
+              TERMINAL COCKPIT KEYBOARD CHEATSHEET (ZERO TOUCHPAD)
+=============================================================================
+  PROJECT & LAUNCH:
+    p / proj        Fuzzy search any project repository & launch 3-pane dev
+    dev             Open 3-pane layout in current directory (Nvim | AGY | Terminal)
+    note            Open quick terminal scratchpad buffer
+    killport <port> Free port instantly (e.g., killport 3000)
+
+  ANTIGRAVITY CLI:
+    a               Launch Antigravity CLI (agy)
+    ask "<prompt>"  Quick ask Antigravity directly from shell
+    agy-review      Feed unstaged git diff into Antigravity for review
+    agy-cm          Generate conventional git commit message from staged changes
+    agy-last        Send last command error directly to Antigravity to fix
+
+  WEZTERM SHORTCUTS:
+    ⌘ ⌥ A           Split pane right (40%) and launch Antigravity CLI
+    ⌘ ⇧ A           Open Antigravity CLI in new tab
+    ⌘ D / ⌘ ⇧ D     Split horizontally / vertically
+    ⌘ ⌥ H/J/K/L     Jump between panes (Vim keys)
+    ⌘ ⇧ E           Fuzzy open any URL with keyboard letter hints
+    ⌘ ⇧ Space       QuickSelect copy mode (hashes, paths, IPs)
+
+  TMUX FLOATING POPUPS (Press Ctrl+B then key):
+    Prefix + a      Instant floating Antigravity CLI popup
+    Prefix + g      Instant floating Lazygit popup
+    Prefix + y      Instant floating Yazi file manager popup
+    Prefix + b      Instant floating Btop system monitor popup
+    Prefix + [      Vi copy mode (v = select, y = copy to macOS clipboard)
+
+  NVIM / VIM SHORTCUTS:
+    <Space> a a     Launch Antigravity CLI in terminal drawer
+    <Space> a r     Review current file with Antigravity
+    <Space> e       Toggle NERDTree file tree
+    <Space> f       Fuzzy find files (fzf)
+    <Space> g       Live grep search (ripgrep)
+=============================================================================
+EOF
+}
+alias cheatsheet='keys'
+alias hud='keys'
 
 # ==============================================================================
 # REST API Explorer & Interactive JSON Viewer (HTTPie + jless)
@@ -632,7 +851,7 @@ api() {
 # ==============================================================================
 # Instant Shell AI / Terminal Command Assistant (?? <question>)
 # ==============================================================================
-??() {
+function \?\?() {
   if [ -z "$*" ]; then
     echo "Usage: ?? <natural language question or command intent>"
     echo "Example: ?? find files larger than 100MB and sort by size"

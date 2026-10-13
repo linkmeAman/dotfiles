@@ -80,6 +80,11 @@
   <Space> t                Toggle integrated bottom terminal drawer (:terminal)
   <Space> r f              Run current file in terminal drawer (:RunFile)
   <Space> r l              Re-run last command in terminal drawer (:RunLast)
+  <Space> r t              Interactive project task runner (:RunTask / frun)
+  <Space> 1 .. 4           Jump directly to pinned file 1, 2, 3, or 4 (Harpoon)
+  <Space> m 1 .. 4         Pin active file to slot 1, 2, 3, or 4 (:PinFile)
+  <Space> m l              List all pinned files (:ListPins)
+  <Space> m c              Clear all file pins (:ClearPins)
   <Space> c d              Fuzzy jump to project / folder using Zoxide (:CdProject)
   <Space> c f              Format code via active LSP (:Format)
   <Space> c e              Show document diagnostics (errors & warnings list)
@@ -190,6 +195,11 @@
 ==============================================================================
 11. TERMINAL & SHELL POWER TOOLS (OUTSIDE VIM)
 ==============================================================================
+  ports                    List active listening TCP ports, PIDs & processes
+  fport / killport [port]  Interactive port & process killer (kill port 3000/8000)
+  frun [task]              Universal project task runner (package.json, Makefile)
+  fstash                   Interactive Git stash manager with delta diff preview
+  fdiff [branch]           Interactive branch/commit diff browser with delta preview
   ftldr [cmd]              Interactive fuzzy tldr manual with color preview
   api [get/post] <url>     REST API explorer piping formatted output to jless
   ?? <question>            Instant shell AI assistant (generates exact command)

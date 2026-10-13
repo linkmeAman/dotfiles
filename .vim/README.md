@@ -159,6 +159,10 @@ Your terminal is your complete development home. Here is how to navigate everyth
 | | `<Space> r w` | Search & replace word under cursor |
 | | `<Space> r f` | **Run current file in terminal drawer (`:RunFile`)** |
 | | `<Space> r l` | **Re-run last command in terminal drawer (`:RunLast`)** |
+| | `<Space> r t` | **Interactive project task runner (`:RunTask` / `frun`)** |
+| | `<Space> 1` .. `4` | **Jump directly to pinned files 1, 2, 3, or 4 (Harpoon)** |
+| | `<Space> m 1` .. `4` | **Pin active file to slot 1, 2, 3, or 4 (`:PinFile`)** |
+| | `<Space> m l` / `m c` | **List all pinned files / Clear all pins** |
 | | `<Space> c d` | **Fuzzy jump to project / folder via Zoxide (`:CdProject`)** |
 | | `gF` | **Jump to file:line under cursor (compiler traces)** |
 | | `]d` / `[d` | **Jump to next / previous LSP error or warning** |
@@ -188,6 +192,11 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 
 | Command | Usage | Description |
 | :--- | :--- | :--- |
+| `ports` | `ports` | List all active listening TCP ports, processes, and PIDs. |
+| `fport` / `killport` | `killport 3000` / `fport` | Interactive port & process killer; frees blocked ports in 1 second. |
+| `frun [task]` | `frun`, `frun test` | Universal project task runner for `package.json`, `Makefile`, `Cargo`, `Docker`. |
+| `fstash` | `fstash` | Interactive Git stash browser with side-by-side `delta` diff preview and pop/drop. |
+| `fdiff [branch]` | `fdiff main` | Interactive Git diff file browser against branch/HEAD with `delta` preview. |
 | `ftldr [query]` | `ftldr docker` | Interactive fuzzy search across all `tldr` pages with colored bat preview. |
 | `api [method] <url>` | `api get https://dummyjson.com/products/1` | REST API test runner piping formatted JSON into `jless` viewer. |
 | `?? <question>` | `?? find files larger than 100M` | Instant shell AI assistant that generates the exact command. |

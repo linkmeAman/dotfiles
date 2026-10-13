@@ -203,6 +203,13 @@ Connected rounded-tree prompt that displays path, git status, live timestamp, an
 
 ### 🧰 Developer Superpowers & Zero-Touchpad Workflow
 * **`dash` / `base` / `home`** — Interactive terminal dashboard showing RAM %, disk, active listening ports, git status, and single-key actions.
+* **`fix`** — Single-keystroke AI error fixer: pipes the last failed terminal command + error trace into Antigravity AI (`agy`) for instant root-cause analysis and code fix.
+* **`ai "<prompt>"` / `ask "<prompt>"`** — Prompt Antigravity AI directly from the command line without opening a new tab or window.
+* **`task` / `frun [query]`** — Universal project task runner: auto-discovers and fuzzy runs targets from `package.json`, `Makefile`, `Justfile`, `Cargo.toml`, `pyproject.toml`, and `docker-compose`.
+* **`sandbox [lang]` / `play`** — Ephemeral scratch playground: spins up an isolated sandbox in `/tmp` (`py`, `ts`, `go`, `rs`, `sh`), launches Neovim, runs code, and prompts to persist or clean.
+* **`clipimg [dest]`** — Zero-Finder clipboard image saver: grabs screenshots from macOS clipboard (`Cmd+Ctrl+Shift+4`) and saves directly to `./assets/` with an instant in-terminal preview.
+* **`envswitch`** — Interactive environment file switcher: fuzzy-selects between `.env.local`, `.env.development`, etc., and activates as `.env` with a masked preview.
+* **`greview [base]`** — Side-by-side branch review: inspects differences between your current branch and `main` using Delta side-by-side diff.
 * **`furl` / `links`** — Fuzzy URL grabber: extracts links from current screen, history, and clipboard. Press <kbd>Enter</kbd> to open in browser, <kbd>Ctrl-R</kbd> to read in terminal, or <kbd>Ctrl-Y</kbd> to copy.
 * **`reader <url>`** — Zero-browser web reader: strips ads/scripts and formats articles or documentation cleanly as markdown directly inside your terminal pager.
 * **`fps` / `fkill`** — Interactive CPU% and RAM process assassin: search running processes, press <kbd>Enter</kbd> to gracefully terminate (`SIGTERM`), <kbd>Ctrl-9</kbd> to force kill (`SIGKILL`), or <kbd>Ctrl-Y</kbd> to copy PID.

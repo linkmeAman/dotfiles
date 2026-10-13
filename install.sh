@@ -28,6 +28,16 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     echo "==> Installing WezTerm via Homebrew Cask..."
     brew install --cask wezterm || true
   fi
+
+  if ! command -v aerospace >/dev/null 2>&1; then
+    echo "==> Installing AeroSpace tiling window manager via Homebrew Cask..."
+    brew install --cask nikitabobko/tap/aerospace || true
+  fi
+
+  if [[ ! -d "/Applications/Hammerspoon.app" ]]; then
+    echo "==> Installing Hammerspoon (for Option+Space Quake toggle)..."
+    brew install --cask hammerspoon || true
+  fi
 fi
 
 # 2. Install Oh My Zsh if not installed
@@ -77,16 +87,32 @@ ln -sf "$DOTFILES_DIR/custom/functions.zsh" "$ZSH_CUSTOM/functions.zsh"
 ln -sf "$DOTFILES_DIR/custom/dev_options.zsh" "$ZSH_CUSTOM/dev_options.zsh"
 ln -sf "$DOTFILES_DIR/custom/themes/devpro.zsh-theme" "$ZSH_CUSTOM/themes/devpro.zsh-theme"
 
-# 6. Link WezTerm configuration and CLI companion
-echo "==> Linking WezTerm configuration and wz companion..."
+# 6. Link WezTerm, Terminal Dashboard, and CLI tools
+echo "==> Linking WezTerm configuration and CLI companions..."
 mkdir -p "$HOME/.local/bin"
 ln -sf "$DOTFILES_DIR/wezterm.lua" "$HOME/.wezterm.lua"
 if [[ -f "$DOTFILES_DIR/bin/wz" ]]; then
   ln -sf "$DOTFILES_DIR/bin/wz" "$HOME/.local/bin/wz"
   chmod +x "$HOME/.local/bin/wz"
 fi
+if [[ -f "$DOTFILES_DIR/bin/term-dash" ]]; then
+  ln -sf "$DOTFILES_DIR/bin/term-dash" "$HOME/.local/bin/term-dash"
+  chmod +x "$HOME/.local/bin/term-dash"
+fi
 
-# 7. Setup & Link Vim configuration
+# 7. Link AeroSpace Tiling Window Manager & Hammerspoon
+echo "==> Linking AeroSpace & Hammerspoon configurations..."
+ln -sf "$DOTFILES_DIR/aerospace.toml" "$HOME/.aerospace.toml"
+if [[ -f "$DOTFILES_DIR/hammerspoon/init.lua" ]]; then
+  mkdir -p "$HOME/.hammerspoon"
+  ln -sf "$DOTFILES_DIR/hammerspoon/init.lua" "$HOME/.hammerspoon/init.lua"
+fi
+
+# 8. Link Tmux configuration
+echo "==> Linking Tmux configuration..."
+ln -sf "$DOTFILES_DIR/tmux.conf" "$HOME/.tmux.conf"
+
+# 9. Setup & Link Vim configuration
 echo "==> Setting up Vim environment..."
 mkdir -p "$HOME/.vim/backup" "$HOME/.vim/swap" "$HOME/.vim/undodir"
 ln -sf "$DOTFILES_DIR/vimrc" "$HOME/.vimrc"
@@ -101,7 +127,7 @@ if command -v vim >/dev/null 2>&1; then
   vim +PlugInstall +qall 2>/dev/null || true
 fi
 
-# 8. Setup Neovim configuration
+# 10. Setup Neovim configuration
 echo "==> Setting up Neovim configuration..."
 mkdir -p "$HOME/.config/nvim"
 cat << 'EOF' > "$HOME/.config/nvim/init.vim"

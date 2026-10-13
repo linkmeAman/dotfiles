@@ -352,17 +352,23 @@ if command -v fzf >/dev/null 2>&1; then
       make_targets=$(awk -F':' '/^[a-zA-Z0-9_-]+:/ && !/^\./ {print "make " $1}' [Mm]akefile 2>/dev/null)
       [ -n "$make_targets" ] && tasks+=("${(f)make_targets}")
     fi
-    # 3. Cargo / Rust
+    # 3. Justfile recipes
+    if [ -f "Justfile" ] || [ -f "justfile" ]; then
+      local just_targets
+      just_targets=$(just --list --unsorted 2>/dev/null | awk 'NR>1 {print "just " $1}')
+      [ -n "$just_targets" ] && tasks+=("${(f)just_targets}")
+    fi
+    # 4. Cargo / Rust
     if [ -f "Cargo.toml" ]; then
       tasks+=("cargo run" "cargo test" "cargo check" "cargo build --release")
     fi
-    # 4. Python
+    # 5. Python
     if [ -f "pyproject.toml" ]; then
       tasks+=("poetry run pytest" "poetry run python main.py" "pytest")
     elif [ -f "pytest.ini" ] || [ -d "tests" ]; then
       tasks+=("pytest")
     fi
-    # 5. Docker Compose
+    # 6. Docker Compose
     if [ -f "docker-compose.yml" ] || [ -f "compose.yaml" ]; then
       tasks+=("docker compose up" "docker compose down" "docker compose ps" "docker compose logs -f")
     fi
@@ -383,6 +389,7 @@ if command -v fzf >/dev/null 2>&1; then
       eval "$cmd"
     fi
   }
+  alias task='frun'
 
   # Port & Process Assassin (ports, fport, killport [port])
   unalias ports 2>/dev/null || true
@@ -766,6 +773,8 @@ ask() {
   fi
   /Users/tr/.local/bin/agy "$*"
 }
+alias ai='ask'
+alias fix='agy-last'
 
 # 1-Second Dev Session Launcher (Neovim + Antigravity CLI + Terminal Runner)
 dev() {
@@ -988,13 +997,52 @@ gwt() {
 # ==============================================================================
 # Dotfiles Version Control & One-Stroke Cloud Sync (dotsync, dot)
 # ==============================================================================
+# ==============================================================================
+# Dotfiles Version Control & One-Stroke Cloud Sync (dotsync, dot, dotlink)
+# ==============================================================================
 dot() {
+  local dotdir="$HOME/dotfiles"
   if [ -z "$1" ]; then
-    builtin cd "$HOME/dotfiles" 2>/dev/null || builtin cd "$HOME"
-    ${EDITOR:-nvim} "$HOME/.zshrc"
+    if command -v fzf >/dev/null 2>&1; then
+      local choice
+      choice=$(git -C "$dotdir" ls-files 2>/dev/null | fzf --prompt="📝 Edit Dotfile ❯ " \
+        --height=50% --layout=reverse \
+        --header="[Enter: Edit in Neovim | Esc: Cancel]")
+      if [ -n "$choice" ]; then
+        ${EDITOR:-nvim} "$dotdir/$choice"
+      fi
+    else
+      ${EDITOR:-nvim} "$dotdir/zshrc"
+    fi
   else
-    ${EDITOR:-nvim} "$HOME/dotfiles/$1"
+    local target
+    target=$(find "$dotdir" -maxdepth 2 -name "*$1*" -not -path '*/.*' | head -n 1)
+    if [ -n "$target" ]; then
+      ${EDITOR:-nvim} "$target"
+    else
+      ${EDITOR:-nvim} "$dotdir/$1"
+    fi
   fi
+}
+
+dotlink() {
+  local dotdir="$HOME/dotfiles"
+  echo "🔗 Linking home dotfiles to $dotdir repository..."
+  ln -sf "$dotdir/zshrc" "$HOME/.zshrc"
+  ln -sf "$dotdir/vimrc" "$HOME/.vimrc"
+  ln -sf "$dotdir/wezterm.lua" "$HOME/.wezterm.lua"
+  ln -sf "$dotdir/aerospace.toml" "$HOME/.aerospace.toml"
+  ln -sf "$dotdir/tmux.conf" "$HOME/.tmux.conf"
+  if [ -f "$dotdir/hammerspoon/init.lua" ]; then
+    mkdir -p "$HOME/.hammerspoon"
+    ln -sf "$dotdir/hammerspoon/init.lua" "$HOME/.hammerspoon/init.lua"
+  fi
+  if [ -f "$dotdir/bin/term-dash" ]; then
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$dotdir/bin/term-dash" "$HOME/.local/bin/term-dash"
+    chmod +x "$HOME/.local/bin/term-dash" 2>/dev/null || true
+  fi
+  echo "✓ All dotfiles linked! Edits will now directly reflect in git."
 }
 
 dotsync() {
@@ -1003,18 +1051,42 @@ dotsync() {
     echo "❌ $dotdir directory not found."
     return 1
   fi
-  echo "📦 Copying active configurations to $dotdir..."
-  cp ~/.zshrc "$dotdir/" 2>/dev/null || true
-  cp ~/.tmux.conf "$dotdir/" 2>/dev/null || true
-  cp ~/.wezterm.lua "$dotdir/" 2>/dev/null || true
-  cp ~/.vimrc "$dotdir/" 2>/dev/null || true
+
+  if [[ "$1" == "--link" || "$1" == "-l" ]]; then
+    dotlink
+    return 0
+  fi
+
+  if [[ "$1" == "--status" || "$1" == "-s" ]]; then
+    git -C "$dotdir" status
+    return 0
+  fi
+
+  echo "📦 Syncing active configurations with $dotdir..."
+  # If files are symlinks, git already tracks them. If regular files, copy them over:
+  [[ ! -L "$HOME/.zshrc" ]] && cp "$HOME/.zshrc" "$dotdir/zshrc" 2>/dev/null || true
+  [[ ! -L "$HOME/.tmux.conf" ]] && cp "$HOME/.tmux.conf" "$dotdir/tmux.conf" 2>/dev/null || true
+  [[ ! -L "$HOME/.wezterm.lua" ]] && cp "$HOME/.wezterm.lua" "$dotdir/wezterm.lua" 2>/dev/null || true
+  [[ ! -L "$HOME/.vimrc" ]] && cp "$HOME/.vimrc" "$dotdir/vimrc" 2>/dev/null || true
+  [[ ! -L "$HOME/.aerospace.toml" ]] && cp "$HOME/.aerospace.toml" "$dotdir/aerospace.toml" 2>/dev/null || true
+  if [[ -f "$HOME/.hammerspoon/init.lua" && ! -L "$HOME/.hammerspoon/init.lua" ]]; then
+    mkdir -p "$dotdir/hammerspoon"
+    cp "$HOME/.hammerspoon/init.lua" "$dotdir/hammerspoon/init.lua" 2>/dev/null || true
+  fi
+  if [[ -f "$HOME/.local/bin/term-dash" && ! -L "$HOME/.local/bin/term-dash" ]]; then
+    mkdir -p "$dotdir/bin"
+    cp "$HOME/.local/bin/term-dash" "$dotdir/bin/term-dash" 2>/dev/null || true
+  fi
   mkdir -p "$dotdir/.gemini/config"
-  cp ~/.gemini/config/AGENTS.md "$dotdir/.gemini/config/" 2>/dev/null || true
-  cp ~/.gemini/config/hooks.json "$dotdir/.gemini/config/" 2>/dev/null || true
+  cp "$HOME/.gemini/config/AGENTS.md" "$dotdir/.gemini/config/" 2>/dev/null || true
+  cp "$HOME/.gemini/config/hooks.json" "$dotdir/.gemini/config/" 2>/dev/null || true
 
   if [ -d "$dotdir/.git" ]; then
-    git -C "$dotdir" add .
-    git -C "$dotdir" commit -m "chore(dotfiles): sync terminal configuration updates $(date '+%Y-%m-%d %H:%M')" 2>/dev/null || true
+    git -C "$dotdir" add -A
+    local msg="${*:-chore(dotfiles): sync terminal configuration updates $(date '+%Y-%m-%d %H:%M')}"
+    if ! git -C "$dotdir" diff --cached --quiet 2>/dev/null; then
+      git -C "$dotdir" commit -m "$msg" 2>/dev/null || true
+    fi
     echo "🚀 Pushing dotfiles to origin..."
     git -C "$dotdir" push origin main 2>/dev/null || git -C "$dotdir" push 2>/dev/null || true
     echo "✓ Dotfiles synced to GitHub!"
@@ -1557,25 +1629,31 @@ keys() {
   GIT WORKFLOWS:
     fga             Interactive Git add with multi-select (Tab to pick, Enter to stage)
     gpush-ai        Auto-stage, generate commit message with Antigravity & push
+    greview [base]  Side-by-side branch review & diff against main with Delta
+    gsync / gprune  Prune deleted remote branches & sync repository
     fpr             Browse GitHub PRs (Enter to checkout, Ctrl-D for Delta diff)
     fissue          Browse GitHub Issues (Enter to view details)
     conflicts       Interactive merge conflict resolver (opens in Neovim)
     frebase / fsq   Interactive Git rebase & commit history squasher
     guncommit       Undo last commit safely (preserves staged files)
     gclean          Prune all merged Git branches in batch
-    gcompare        Compare current branch commits against main with Delta diff
 
   ANTIGRAVITY CLI:
-    a               Launch Antigravity CLI (agy)
-    ask "<prompt>"  Quick ask Antigravity directly from shell
+    a / agy         Launch Antigravity CLI interactive agent
+    ai / ask        Ask Antigravity directly from shell without switching modes
+    fix             Pipe last command error directly into Antigravity to fix
     agy-review      Feed unstaged git diff into Antigravity for review
     agy-cm          Generate conventional git commit message from staged changes
-    agy-last        Send last command error directly to Antigravity to fix
     <Space> a a     In-Vim: Launch Antigravity in bottom drawer
     <Space> a e     In-Vim: Ask Antigravity about code on current line
     <Space> a r     In-Vim: Review open file with Antigravity
 
   DEVELOPER PRODUCTIVITY & UTILITIES:
+    task / frun     Universal project task runner (npm, make, just, cargo, python)
+    sandbox [lang]  Ephemeral code playground (py/ts/go/rs/sh) in Neovim
+    clipimg [dest]  Save clipboard screenshot & preview in terminal (Zero Finder)
+    envswitch       Interactive environment file switcher (.env.local -> .env)
+    fjson [file]    Interactive JSON & YAML key path and value query
     furl / links    Fuzzy URL selector from terminal & open in browser or reader
     reader <url>    Read web pages & docs formatted as markdown in terminal
     fps / fkill     Interactive CPU & RAM process assassin with kill options
@@ -2837,6 +2915,23 @@ fps() {
 alias fkill='fps'
 
 # ------------------------------------------------------------------------------
+# 2b. Keyboard-First macOS App Switcher & Launcher (fapp / apps)
+# ------------------------------------------------------------------------------
+fapp() {
+  local app
+  app=$(find /Applications /System/Applications "$HOME/Applications" -maxdepth 2 -name "*.app" 2>/dev/null | \
+        sed 's|.*/||; s|\.app$||' | sort -u | \
+        fzf --prompt="🚀 Switch / Launch App ❯ " \
+            --height=50% --layout=reverse \
+            --header="[Enter: Open / Switch App | Esc: Cancel]")
+  if [[ -n "$app" ]]; then
+    echo "Opening $app..."
+    open -a "$app"
+  fi
+}
+alias apps='fapp'
+
+# ------------------------------------------------------------------------------
 # 3. Zero-Friction Project Scaffolder (newproj [name] [type])
 # ------------------------------------------------------------------------------
 newproj() {
@@ -3102,6 +3197,8 @@ hint() {
         echo "  fconflicts   --> Interactive merge conflict resolver with diffs"
         echo "  fpr          --> Browse GitHub pull requests with live diff & checkout"
         echo "  frebase [N]  --> Interactive git rebase & commit history squasher"
+        echo "  greview [base]--> Side-by-side branch review & diff against main"
+        echo "  gsync / gprune--> Prune deleted remote branches & sync repo"
         echo "  fwt          --> Git worktree switcher for parallel branches"
         ;;
       vim|nvim|v)
@@ -3119,8 +3216,13 @@ hint() {
       shell|sh|term)
         echo "⚡ Terminal Superpower Hints:"
         echo "  dash / base   --> Terminal Base of Operations Dashboard"
+        echo "  fix           --> Pipe last failed command error into Antigravity AI"
+        echo "  ai <prompt>   --> Ask Antigravity CLI directly from shell"
+        echo "  task / frun   --> Universal project task runner (npm/make/just/cargo)"
+        echo "  sandbox [lang]--> Ephemeral code playground in Neovim"
+        echo "  clipimg [dst] --> Save clipboard screenshot & preview in terminal"
+        echo "  envswitch     --> Interactive environment file switcher"
         echo "  fcommit / gc  --> Conventional commit assistant with type picker"
-        echo "  gsync         --> Sync repo and prune deleted remote branches"
         echo "  fjson [file]  --> Interactive JSON/YAML key path query & inspector"
         echo "  furl / links  --> Fuzzy URL picker from screen/history/clipboard"
         echo "  reader [url]  --> Read web articles & docs formatted as markdown in terminal"
@@ -3431,3 +3533,197 @@ fjson() {
   fi
 }
 alias fyaml='fjson'
+
+# ------------------------------------------------------------------------------
+# 4. Zero-Touchpad Clipboard Image Saver & Terminal Previewer (clipimg [dest])
+# ------------------------------------------------------------------------------
+clipimg() {
+  local dest="${1:-screenshot.png}"
+  local dir=$(dirname "$dest")
+  [[ -n "$dir" && "$dir" != "." ]] && mkdir -p "$dir"
+
+  if command -v pngpaste >/dev/null 2>&1; then
+    pngpaste "$dest" 2>/dev/null
+  else
+    osascript -e '
+    set theFile to (POSIX file "'"$PWD/$dest"'")
+    try
+      set pngData to the clipboard as «class PNGf»
+      set myFile to open for access theFile with write permission
+      set eof myFile to 0
+      write pngData to myFile
+      close access myFile
+      return "OK"
+    on error
+      try
+        close access (POSIX file "'"$PWD/$dest"'")
+      end try
+      return "FAIL"
+    end try' >/dev/null 2>&1
+  fi
+
+  if [ -s "$dest" ]; then
+    echo "📸 Image saved to: $dest"
+    echo -n "$dest" | pbcopy
+    if command -v pic >/dev/null 2>&1; then
+      pic "$dest" 2>/dev/null || true
+    fi
+  else
+    rm -f "$dest" 2>/dev/null
+    echo "❌ No image data found in clipboard."
+    echo "Tip: Take a screenshot with Cmd+Ctrl+Shift+4 (copies to clipboard), then run: clipimg assets/preview.png"
+    return 1
+  fi
+}
+alias pasteimg='clipimg'
+
+# ------------------------------------------------------------------------------
+# 5. Interactive Environment File Switcher (envswitch)
+# ------------------------------------------------------------------------------
+envswitch() {
+  local env_files
+  env_files=$(fd -H -I -t f '^\.env\..+' --max-depth 2 2>/dev/null | sort -u)
+  if [ -z "$env_files" ]; then
+    env_files=$(find . -maxdepth 2 -name ".env.*" 2>/dev/null | sort -u)
+  fi
+
+  if [ -z "$env_files" ]; then
+    echo "🔍 No environment variants (.env.local, .env.development, etc.) found."
+    return 0
+  fi
+
+  local selected
+  selected=$(echo "$env_files" | fzf \
+    --prompt="🔄 Select Environment > " \
+    --header="[Enter: Activate as .env | Esc: Cancel]" \
+    --preview="head -n 25 {}" \
+    --preview-window=right:60%:wrap)
+
+  if [ -n "$selected" ]; then
+    cp "$selected" .env
+    echo "✅ Activated $selected as .env"
+    if [ -f ".env" ]; then
+      echo "🔒 Masked preview:"
+      envsafe 2>/dev/null || head -n 5 .env
+    fi
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# 6. Ephemeral Scratch Sandbox Playground (sandbox [lang])
+# ------------------------------------------------------------------------------
+sandbox() {
+  local lang="${1:-py}"
+  local tmp_dir=$(mktemp -d -t "sandbox-XXXXXX")
+  local file="main.py"
+  local cmd="python3 main.py"
+
+  case "$lang" in
+    ts|typescript)
+      file="index.ts"
+      cat << 'EOF' > "$tmp_dir/$file"
+// Scratch TypeScript Playground
+console.log("Hello from Sandbox!");
+EOF
+      cmd="npx ts-node index.ts"
+      ;;
+    js|javascript|node)
+      file="index.js"
+      cat << 'EOF' > "$tmp_dir/$file"
+// Scratch JavaScript Playground
+console.log("Hello from Sandbox!");
+EOF
+      cmd="node index.js"
+      ;;
+    go|golang)
+      file="main.go"
+      cat << 'EOF' > "$tmp_dir/$file"
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello from Go Sandbox!")
+}
+EOF
+      cmd="go run main.go"
+      ;;
+    rs|rust)
+      file="main.rs"
+      cat << 'EOF' > "$tmp_dir/$file"
+fn main() {
+    println!("Hello from Rust Sandbox!");
+}
+EOF
+      cmd="rustc main.rs && ./main"
+      ;;
+    sh|bash|zsh)
+      file="test.sh"
+      cat << 'EOF' > "$tmp_dir/$file"
+#!/usr/bin/env zsh
+echo "Hello from Shell Sandbox!"
+EOF
+      chmod +x "$tmp_dir/$file"
+      cmd="./test.sh"
+      ;;
+    *)
+      file="main.py"
+      cat << 'EOF' > "$tmp_dir/$file"
+# Scratch Python Playground
+def main():
+    print("Hello from Python Sandbox!")
+
+if __name__ == "__main__":
+    main()
+EOF
+      cmd="python3 main.py"
+      ;;
+  esac
+
+  echo "🧪 Ephemeral sandbox created in $tmp_dir"
+  (
+    cd "$tmp_dir"
+    ${EDITOR:-nvim} "$file"
+    echo ""
+    echo "▶️  Executing Sandbox ($cmd):"
+    echo "--------------------------------------------------"
+    eval "$cmd"
+    echo "--------------------------------------------------"
+  )
+
+  echo ""
+  read -q "SAVE?Save sandbox code to ~/code/scratch/ ? (y/N): "
+  echo ""
+  if [[ "$SAVE" =~ ^[Yy]$ ]]; then
+    local save_dir="$HOME/code/scratch"
+    mkdir -p "$save_dir"
+    local timestamp=$(date +'%Y%m%d_%H%M%S')
+    local final_dest="$save_dir/${lang}_${timestamp}"
+    mv "$tmp_dir" "$final_dest"
+    echo "💾 Saved sandbox to: $final_dest"
+  else
+    rm -rf "$tmp_dir"
+    echo "🧹 Ephemeral sandbox discarded cleanly."
+  fi
+}
+alias play='sandbox'
+
+# ------------------------------------------------------------------------------
+# 7. Side-by-Side Branch Review & Commits Inspector (greview [base])
+# ------------------------------------------------------------------------------
+greview() {
+  local base="${1:-main}"
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+
+  if ! git rev-parse --verify "$base" >/dev/null 2>&1; then
+    if git rev-parse --verify "master" >/dev/null 2>&1; then
+      base="master"
+    fi
+  fi
+
+  echo "🔍 Reviewing changes between $base and HEAD..."
+  git diff "$base...HEAD" | delta --side-by-side
+}

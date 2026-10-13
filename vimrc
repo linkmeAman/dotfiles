@@ -136,6 +136,25 @@ if exists('$TERM')
   let &t_EI = "\<Esc>[2 q"     " Solid block
 endif
 
+" Visual Buffer Tab Bar (Shows all open files across top of screen)
+set showtabline=2              " Always show top tabline with open files
+function! BufferTabLine() abort
+  let l:s = ''
+  let l:cur = bufnr('%')
+  for b in range(1, bufnr('$'))
+    if buflisted(b)
+      let l:name = bufname(b)
+      let l:name = empty(l:name) ? '[No Name]' : fnamemodify(l:name, ':t')
+      let l:mod = getbufvar(b, '&modified') ? ' ●' : ''
+      let l:s .= (b == l:cur ? '%#TabLineSel#' : '%#TabLine#')
+      let l:s .= ' ' . b . ':' . l:name . l:mod . ' '
+    endif
+  endfor
+  let l:s .= '%#TabLineFill#%='
+  return l:s
+endfunction
+set tabline=%!BufferTabLine()
+
 " ------------------------------------------------------------------------------
 " 4. EDITING, INDENTATION & BEHAVIOR
 " ------------------------------------------------------------------------------
@@ -365,6 +384,7 @@ let g:which_key_map['w'] = [ ':w',                'Save file' ]
 let g:which_key_map['/'] = [ ':nohlsearch',       'Clear search highlight' ]
 let g:which_key_map['t'] = [ ':ToggleTerminal',   'Toggle terminal drawer' ]
 let g:which_key_map['Q'] = [ ':ForceQuit',        'Force quit all (:qa!)' ]
+let g:which_key_map['z'] = [ ':ToggleZoom',        'Toggle zoom active window (maximize/restore)' ]
 
 " Undo, History & Backpropagation (Revert to old state)
 let g:which_key_map.u = {
@@ -402,6 +422,7 @@ let g:which_key_map.f = {
       \ 'name': '+find/fuzzy',
       \ 'f': [':Files',       'Search files in project'],
       \ 'g': [':Rg',          'Search text in project (Ripgrep)'],
+      \ 'w': [':RgWord',      'Search word under cursor in project'],
       \ 'b': [':Buffers',     'Search open buffers'],
       \ 'l': [':BLines',      'Search lines in current buffer'],
       \ 'h': [':History',     'Search file history'],
@@ -418,6 +439,7 @@ let g:which_key_map.g = {
       \ 'p': [':GitGutterPreviewHunk', 'Preview git hunk at cursor'],
       \ 'u': [':GitGutterUndoHunk',    'Undo git hunk at cursor'],
       \ 'a': [':GitGutterStageHunk',   'Stage git hunk at cursor'],
+      \ 'w': [':RgWord',               'Search word under cursor in project (Rg)'],
       \ }
 
 " Buffers
@@ -427,6 +449,7 @@ let g:which_key_map.b = {
       \ 'n': [':bnext',       'Next buffer'],
       \ 'p': [':bprevious',   'Previous buffer'],
       \ 'l': [':Buffers',     'List/find buffers'],
+      \ 's': [':Scratch',     'Open disposable scratchpad buffer'],
       \ }
 
 " Windows
@@ -436,6 +459,7 @@ let g:which_key_map.v = {
       \ 'v': [':vsplit',      'Vertical split'],
       \ 'c': [':close',       'Close window'],
       \ 'o': [':only',        'Close all other windows'],
+      \ 'z': [':ToggleZoom',  'Toggle zoom split (maximize/restore)'],
       \ '=': ['<C-w>=',       'Equalize window sizes'],
       \ }
 
@@ -444,6 +468,7 @@ let g:which_key_map.c = {
       \ 'name': '+code/lsp',
       \ 'd': [':LspDefinition',         'Go to definition'],
       \ 'r': [':LspReferences',         'Find references'],
+      \ 'o': [':BTags',                 'Code outline (symbols / functions in file)'],
       \ 'h': [':LspHover',              'Show hover documentation'],
       \ 'n': [':LspRename',             'Rename symbol'],
       \ 'a': [':LspCodeAction',         'Code actions'],
@@ -716,6 +741,49 @@ command! -bar QuitWindow close
 command! -bar ForceQuit qa!
 command! -bar CloseAllOthers only
 
+" 11. Window Zoom Toggle (Maximize active split / Restore layout)
+let s:is_zoomed = 0
+function! s:ToggleZoom() abort
+  if s:is_zoomed
+    wincmd =
+    let s:is_zoomed = 0
+    echo "Splits restored to normal layout"
+  else
+    wincmd _
+    wincmd |
+    let s:is_zoomed = 1
+    echo "Window maximized (Press <Space>z to restore splits)"
+  endif
+endfunction
+command! -bar ToggleZoom call <SID>ToggleZoom()
+command! -bar Zoom call <SID>ToggleZoom()
+
+" 12. Search Word Under Cursor Across Codebase (Ripgrep)
+function! s:RgWordUnderCursor() abort
+  let l:word = expand('<cword>')
+  if empty(l:word)
+    echo "No word under cursor"
+    return
+  endif
+  execute 'Rg ' . l:word
+endfunction
+command! -bar RgWord call <SID>RgWordUnderCursor()
+
+" 13. Instant Disposable Scratchpad Buffer
+function! s:OpenScratchpad() abort
+  for win in range(1, winnr('$'))
+    if getwinvar(win, '&buftype') ==# 'nofile' && bufname(winbufnr(win)) ==# '[Scratchpad]'
+      execute win . 'close'
+      return
+    endif
+  endfor
+  botright 10new
+  setlocal buftype=nofile bufhidden=wipe noswapfile nobuflisted
+  file [Scratchpad]
+  echo "Opened Scratchpad (Type freely - discarded on close without prompts)"
+endfunction
+command! -bar Scratch call <SID>OpenScratchpad()
+
 " ------------------------------------------------------------------------------
 " 8. ERGONOMIC KEY MAPPINGS
 " ------------------------------------------------------------------------------
@@ -723,8 +791,13 @@ command! -bar CloseAllOthers only
 nnoremap <silent> <leader>e  :NERDTreeToggle<CR>
 nnoremap <silent> <leader>f  :Files<CR>
 nnoremap <silent> <leader>g  :Rg<CR>
+nnoremap <silent> <leader>gw :RgWord<CR>
 nnoremap <silent> <leader>b  :Buffers<CR>
+nnoremap <silent> <leader>bs :Scratch<CR>
 nnoremap <silent> <leader>w  :w<CR>
+nnoremap <silent> <leader>z  :ToggleZoom<CR>
+nnoremap <silent> <leader>co :BTags<CR>
+nnoremap <silent> <leader>cs :BTags<CR>
 nnoremap <silent> <leader>?  :Guide<CR>
 nnoremap <silent> <F1>        :Guide<CR>
 
@@ -761,9 +834,17 @@ nnoremap <silent> <S-h> :bprevious<CR>
 nnoremap <silent> ]c :GitGutterNextHunk<CR>
 nnoremap <silent> [c :GitGutterPrevHunk<CR>
 
-" Move lines up and down visually (Alt+j / Alt+k or J/K in visual mode)
-vnoremap J :m '>+1<CR>gv=gv
-vnoremap K :m '<-2<CR>gv=gv
+" Move lines up and down (Alt/Option + j/k in Normal and Visual modes, auto-indented)
+nnoremap <silent> <M-j> :m .+1<CR>==
+nnoremap <silent> <M-k> :m .-2<CR>==
+vnoremap <silent> <M-j> :m '>+1<CR>gv=gv
+vnoremap <silent> <M-k> :m '<-2<CR>gv=gv
+nnoremap <silent> <A-j> :m .+1<CR>==
+nnoremap <silent> <A-k> :m .-2<CR>==
+vnoremap <silent> <A-j> :m '>+1<CR>gv=gv
+vnoremap <silent> <A-k> :m '<-2<CR>gv=gv
+vnoremap <silent> J :m '>+1<CR>gv=gv
+vnoremap <silent> K :m '<-2<CR>gv=gv
 
 " Keep cursor centered when jumping half-page or searching
 nnoremap <C-d> <C-d>zz
@@ -771,12 +852,12 @@ nnoremap <C-u> <C-u>zz
 nnoremap n nzzzv
 nnoremap N Nzzzv
 
-" Better indenting in visual mode (keeps selection)
+" Better indenting in visual mode (keeps selection active for multiple indents)
 vnoremap < <gv
 vnoremap > >gv
 
-" Don't lose paste buffer when pasting over a visual selection
-vnoremap p "_dP
+" Safe visual paste: don't lose clipboard buffer when pasting over selected text
+xnoremap <silent> p "_dP
 
 " ------------------------------------------------------------------------------
 " 9. INTERACTIVE CHEATSHEET & GUIDANCE COMMAND (:Guide / :HelpMe)

@@ -379,6 +379,9 @@ qsearch() {
   fi
 }
 
+# Clear any legacy aliases from earlier shell sessions
+unalias google duck ddg bing github stackoverflow wiki 2>/dev/null || true
+
 # CLI search engine aliases (all 100% terminal-native, zero GUI redirection)
 alias google='search'
 alias duck='search'
@@ -389,7 +392,7 @@ alias qgoogle='qsearch'
 alias qduck='qsearch'
 
 # Site-specific CLI terminal searches
-github() {
+function github {
   if [ -z "$*" ]; then
     echo "Usage: github <query>"
     return 1
@@ -398,7 +401,7 @@ github() {
 }
 alias ghs='github'
 
-so() {
+function so {
   if [ -z "$*" ]; then
     echo "Usage: so <query>"
     return 1
@@ -407,7 +410,7 @@ so() {
 }
 alias stackoverflow='so'
 
-wiki() {
+function wiki {
   if [ -z "$*" ]; then
     echo "Usage: wiki <query>"
     return 1

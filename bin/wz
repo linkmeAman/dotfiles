@@ -161,10 +161,10 @@ case "${1:-help}" in
     abs_path="$(cd "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")"
     echo -n "$abs_path" | pbcopy
     echo "📋 Copied path to clipboard: $abs_path"
-    if command -v wezterm >/dev/null 2>&1 && [ -n "${WEZTERM_PANE:-}" ]; then
-      wezterm imgcat "$target"
+    if [ "${TERM_PROGRAM:-}" = "WezTerm" ] || [ -n "${WEZTERM_PANE:-}" ]; then
+      chafa -f kitty --scale max "$target" 2>/dev/null || chafa -f iterm --scale max "$target" 2>/dev/null || chafa "$target"
     elif command -v chafa >/dev/null 2>&1; then
-      chafa --format=kitty "$target" 2>/dev/null || chafa --format=iterm "$target" 2>/dev/null || chafa "$target"
+      chafa -f kitty --scale max "$target" 2>/dev/null || chafa -f iterm --scale max "$target" 2>/dev/null || chafa "$target"
     elif command -v viu >/dev/null 2>&1; then
       viu "$target"
     fi

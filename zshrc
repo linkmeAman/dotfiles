@@ -211,10 +211,11 @@ if command -v fzf >/dev/null 2>&1; then
     local file
     file=$(fd --type f -e png -e jpg -e jpeg -e gif -e webp -e svg -e bmp \
               -E "Library/Caches" -E ".git" -E "node_modules" -E ".cache" \
-              . "${search_dirs[@]}" 2>/dev/null | \
+              "" "${search_dirs[@]}" 2>/dev/null | \
       fzf --prompt="🖼 Select Image: " \
-          --header="Enter: View & Copy Path | Esc: Cancel" \
-          --preview='chafa --format=symbols -s 50x25 {} 2>/dev/null || viu -w 50 {} 2>/dev/null' \
+          --header="Enter: View & Copy Path | Ctrl-O: QuickLook | Esc: Cancel" \
+          --bind="ctrl-o:execute(qlmanage -p {} >/dev/null 2>&1 &)" \
+          --preview='chafa --format=symbols -s 50x25 "{}" 2>/dev/null || viu -w 50 "{}" 2>/dev/null' \
           --preview-window=right:60%)
     if [ -n "$file" ]; then
       pic "$file"
@@ -239,10 +240,11 @@ if command -v fzf >/dev/null 2>&1; then
     local file
     file=$(fd --type f -e mp4 -e mov -e mkv -e avi -e webm -e flv \
               -E "Library/Caches" -E ".git" -E "node_modules" -E ".cache" \
-              . "${search_dirs[@]}" 2>/dev/null | \
+              "" "${search_dirs[@]}" 2>/dev/null | \
       fzf --prompt="🎬 Select Video: " \
-          --header="Enter: Play & Copy Path | Esc: Cancel" \
-          --preview='ffprobe -v error -show_entries stream=width,height,codec_name:format=duration,size -of default=noprint_wrappers=1 {} 2>/dev/null' \
+          --header="Enter: Play & Copy Path | Ctrl-O: QuickLook | Esc: Cancel" \
+          --bind="ctrl-o:execute(qlmanage -p {} >/dev/null 2>&1 &)" \
+          --preview='ffprobe -v error -show_entries stream=width,height,codec_name:format=duration,size -of default=noprint_wrappers=1 "{}" 2>/dev/null' \
           --preview-window=right:50%)
     if [ -n "$file" ]; then
       vid "$file"
@@ -253,6 +255,15 @@ fi
 # ==============================================================================
 # Media Viewers (Photo & Video), Path Copier & CLI Web Browser
 # ==============================================================================
+
+# Instant macOS QuickLook preview
+ql() {
+  if [ -z "$1" ]; then
+    echo "Usage: ql <file>"
+    return 1
+  fi
+  qlmanage -p "$1" >/dev/null 2>&1 &
+}
 
 # Photo Viewer & Path Copier (pic <image_file>) - High-DPI Native Graphics
 pic() {
@@ -270,13 +281,11 @@ pic() {
   echo -n "$abs_path" | pbcopy
   echo "📋 Copied path to clipboard: $abs_path"
 
-  # 1. Native WezTerm GPU image rendering (crisp Retina resolution)
-  if command -v wezterm >/dev/null 2>&1 && [ -n "$WEZTERM_PANE" ]; then
-    wezterm imgcat "$target"
-  # 2. Chafa with Kitty or iTerm2 high-res protocol
+  # High-resolution pixel graphics using Kitty protocol (WezTerm native)
+  if [ "${TERM_PROGRAM:-}" = "WezTerm" ] || [ -n "${WEZTERM_PANE:-}" ]; then
+    chafa -f kitty --scale max "$target" 2>/dev/null || chafa -f iterm --scale max "$target" 2>/dev/null || chafa "$target"
   elif command -v chafa >/dev/null 2>&1; then
-    chafa --format=kitty "$target" 2>/dev/null || chafa --format=iterm "$target" 2>/dev/null || chafa "$target"
-  # 3. Viu without -b (enables native graphics protocol instead of low-res blocks)
+    chafa -f kitty --scale max "$target" 2>/dev/null || chafa -f iterm --scale max "$target" 2>/dev/null || chafa "$target"
   elif command -v viu >/dev/null 2>&1; then
     viu "$target"
   fi

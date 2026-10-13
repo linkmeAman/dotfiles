@@ -144,19 +144,19 @@ Connected rounded-tree prompt that displays path, git status, live timestamp, an
   - `... L` / `... W` ➔ `| less` / `| wc -l`
 
 ### 🖼️ Media (Photo & Video) Viewers & Path Copiers
-* **`pic <image>`** — View image in high-resolution inside WezTerm (`viu`/`chafa`) and automatically copy its absolute path to clipboard.
-* **`fpic`** — Interactive fuzzy finder for all images with live terminal image rendering previews!
+* **`pic <image>`** — View image in high-resolution inside WezTerm (`viu`/`chafa`) and automatically copy its absolute path to clipboard without trailing newline.
+* **`fpic [dir]`** — Interactive fuzzy finder for images with live terminal previews. Searches current folder, or automatically checks `~/Pictures`, `~/Downloads`, `~/Desktop` if current folder has no images!
 * **`vid <video>`** — Play video with keyboard-driven `mpv`, inspect metadata (`ffprobe`), and copy path to clipboard.
-* **`fvid`** — Interactive fuzzy finder for all video files in current folder/project.
+* **`fvid [dir]`** — Interactive fuzzy finder for videos with live stream metadata preview.
 
 ### 🌐 Terminal CLI Web Browsers & Search Suite (100% In-Terminal, Zero GUI Redirects)
+* **`browse <url_or_query>` / `web [url_or_query]`** — Smart terminal browser & search: if given a URL (e.g. `github.com`), opens directly in `w3m`; if given a search query (e.g. `browse "what is llm"`), automatically executes in-terminal CLI search!
 * **`search <query>` / `google <query>` / `duck <query>`** — Search DuckDuckGo/Google inside terminal using `ddgr`. Displays results, lets you press a number to open in `w3m`, or press `c <num>` to copy link. Never launches Chrome or Safari!
 * **`qsearch <query>` / `qgoogle <query>`** — Instant terminal output: prints top search results directly to terminal stdout and exits immediately (zero prompt, zero lag).
 * **`github <query>` / `ghs <query>`** — Search GitHub repositories and issues directly in the terminal.
 * **`so <query>` / `stackoverflow <query>`** — Search StackOverflow answers directly in the terminal.
 * **`wiki <query>`** — Search Wikipedia directly in the terminal.
 * **`readweb <url>` / `catweb <url>`** — Dump any web page or article as clean, readable text directly in terminal via `w3m -dump`.
-* **`browse <url>` / `web [url]`** — Navigate websites directly inside terminal (`w3m` with vim `j/k` navigation, `Tab` link jump, `B` back, `q` quit).
 
 ### 🧰 Developer Helper Functions
 * **`kp`** — Interactive fuzzy process killer (<kbd>Tab</kbd> to multi-select, <kbd>Enter</kbd> to kill stuck port/server).

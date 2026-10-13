@@ -193,25 +193,57 @@ if command -v fzf >/dev/null 2>&1; then
     fi
   }
 
-  # Fuzzy Find & Preview Images (fpic)
+  # Fuzzy Find & Preview Images (fpic [dir])
   fpic() {
+    local search_dirs=()
+    if [ -n "$1" ]; then
+      search_dirs=("$@")
+    else
+      local has_local
+      has_local=$(fd --type f -e png -e jpg -e jpeg -e gif -e webp -e svg -e bmp -E ".git" -E "node_modules" --max-results 1 . 2>/dev/null)
+      if [ -n "$has_local" ]; then
+        search_dirs=(".")
+      else
+        search_dirs=("$HOME/Pictures" "$HOME/Downloads" "$HOME/Desktop" "$HOME/Documents" ".")
+      fi
+    fi
+
     local file
-    file=$(fd --type f -e png -e jpg -e jpeg -e gif -e webp -e svg -e bmp --strip-cwd-prefix 2>/dev/null | \
+    file=$(fd --type f -e png -e jpg -e jpeg -e gif -e webp -e svg -e bmp \
+              -E "Library/Caches" -E ".git" -E "node_modules" -E ".cache" \
+              . "${search_dirs[@]}" 2>/dev/null | \
       fzf --prompt="🖼 Select Image: " \
-          --preview='chafa -s 50x25 {} 2>/dev/null || viu -w 50 {}' \
+          --header="Enter: View & Copy Path | Esc: Cancel" \
+          --preview='chafa --format=symbols -s 50x25 {} 2>/dev/null || viu -w 50 {} 2>/dev/null' \
           --preview-window=right:60%)
     if [ -n "$file" ]; then
       pic "$file"
     fi
   }
 
-  # Fuzzy Find & Inspect Videos (fvid)
+  # Fuzzy Find & Inspect Videos (fvid [dir])
   fvid() {
+    local search_dirs=()
+    if [ -n "$1" ]; then
+      search_dirs=("$@")
+    else
+      local has_local
+      has_local=$(fd --type f -e mp4 -e mov -e mkv -e avi -e webm -e flv -E ".git" -E "node_modules" --max-results 1 . 2>/dev/null)
+      if [ -n "$has_local" ]; then
+        search_dirs=(".")
+      else
+        search_dirs=("$HOME/Movies" "$HOME/Downloads" "$HOME/Desktop" "$HOME/Documents" "$HOME" ".")
+      fi
+    fi
+
     local file
-    file=$(fd --type f -e mp4 -e mov -e mkv -e avi -e webm -e flv --strip-cwd-prefix 2>/dev/null | \
+    file=$(fd --type f -e mp4 -e mov -e mkv -e avi -e webm -e flv \
+              -E "Library/Caches" -E ".git" -E "node_modules" -E ".cache" \
+              . "${search_dirs[@]}" 2>/dev/null | \
       fzf --prompt="🎬 Select Video: " \
-          --preview='ffprobe -v error -show_entries stream=width,height,codec_name -of default=noprint_wrappers=1 {} 2>/dev/null' \
-          --preview-window=right:45%)
+          --header="Enter: Play & Copy Path | Esc: Cancel" \
+          --preview='ffprobe -v error -show_entries stream=width,height,codec_name:format=duration,size -of default=noprint_wrappers=1 {} 2>/dev/null' \
+          --preview-window=right:50%)
     if [ -n "$file" ]; then
       vid "$file"
     fi
@@ -229,8 +261,13 @@ pic() {
     return 1
   fi
   local target="$1"
-  local abs_path="$(cd "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")"
-  echo "$abs_path" | pbcopy
+  if [ ! -f "$target" ]; then
+    echo "❌ File not found: $target"
+    return 1
+  fi
+  local abs_path
+  abs_path="$(cd "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")"
+  echo -n "$abs_path" | pbcopy
   echo "📋 Copied path to clipboard: $abs_path"
   if command -v viu >/dev/null 2>&1; then
     viu -b "$target"
@@ -246,8 +283,13 @@ vid() {
     return 1
   fi
   local target="$1"
-  local abs_path="$(cd "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")"
-  echo "$abs_path" | pbcopy
+  if [ ! -f "$target" ]; then
+    echo "❌ File not found: $target"
+    return 1
+  fi
+  local abs_path
+  abs_path="$(cd "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")"
+  echo -n "$abs_path" | pbcopy
   echo "📋 Copied path to clipboard: $abs_path"
   if command -v ffprobe >/dev/null 2>&1; then
     echo "🎞 Video Metadata:"
@@ -260,12 +302,26 @@ vid() {
   fi
 }
 
-# Fast CLI Web Browser (w3m)
+# Smart CLI Web Browser & Query Handler (w3m + ddgr)
 export BROWSER='w3m'
 
 web() {
-  local url="${1:-https://html.duckduckgo.com}"
-  w3m "$url"
+  if [ -z "$*" ]; then
+    w3m "https://html.duckduckgo.com"
+    return
+  fi
+
+  local input="$*"
+  # Detect if input is a URL (starts with http/file or is domain.tld / localhost)
+  if [[ "$input" =~ ^https?:// ]] || [[ "$input" =~ ^file:// ]] || [[ "$input" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$ ]] || [[ "$input" =~ ^localhost(:[0-9]+)? ]]; then
+    if [[ ! "$input" =~ ^[a-zA-Z]+:// ]]; then
+      input="https://$input"
+    fi
+    w3m "$input"
+  else
+    # Not a URL -> Search query! (e.g. browse "what is llm" or web rust async)
+    search "$@"
+  fi
 }
 alias browse='web'
 

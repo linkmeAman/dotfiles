@@ -1745,6 +1745,12 @@ hud() {
     "dev / up                 --> Universal project dev server & stack runner"
     "fci / factions           --> Interactive GitHub CI / Actions run watcher & logs"
     "fcreatepr / gpr          --> Zero-mouse GitHub pull request creation wizard"
+    "aireview [base]          --> Senior Staff AI code reviewer for current branch diff"
+    "pomo [mins] / timer      --> Terminal Pomodoro countdown timer with glass chime"
+    "tunnel [port]            --> Public webhook SSH tunnel to localhost (auto-copied)"
+    "outdated                 --> Polyglot dependency update auditor (npm/cargo/pip/go)"
+    "color <hex>              --> Truecolor swatch inspector, RGB/HSL & WCAG contrast"
+    "vol [0-100] / np         --> Terminal audio volume & Spotify/Apple Music controls"
     "gist [file|diff]         --> Instant secret GitHub Gist & code sharing (auto-copied)"
     "fgist                    --> Interactive GitHub Gist browser & URL copier"
     "envcheck / envdiff       --> Zero-leak .env vs .env.example variable auditor"
@@ -2191,7 +2197,6 @@ developer_launcher() {
 zle -N developer_launcher 2>/dev/null || true
 bindkey '^@' developer_launcher 2>/dev/null || true   # Ctrl+Space in most terminals
 bindkey '^g' developer_launcher 2>/dev/null || true   # Ctrl+G fallback
-alias do='developer_launcher'
 alias menu='developer_launcher'
 alias run='developer_launcher'
 
@@ -3192,6 +3197,7 @@ hint() {
         echo "  fcommit / gc --> Conventional commit wizard (type, scope, auto-staging)"
         echo "  fcreatepr/gpr--> Zero-mouse GitHub pull request creation wizard"
         echo "  fci /factions--> Interactive GitHub CI / Actions workflow watcher"
+        echo "  aireview     --> Senior Staff AI code review of current branch diff"
         echo "  gist / fgist --> Share code / diff as secret GitHub Gist (auto-copied)"
         echo "  fgitsearch   --> Git code archeology: find commits modifying symbol"
         echo "  frecent / g- --> Switch to recently active local branches (g- = prev)"
@@ -3221,6 +3227,11 @@ hint() {
       shell|sh|term)
         echo "⚡ Terminal Superpower Hints:"
         echo "  dash / base   --> Terminal Base of Operations Dashboard"
+        echo "  pomo [mins]   --> Pomodoro focus timer with progress bar & glass chime"
+        echo "  tunnel [port] --> Public SSH webhook tunnel exposing localhost"
+        echo "  outdated      --> Polyglot dependency update auditor (npm/cargo/pip/go)"
+        echo "  color <hex>   --> Truecolor swatch inspector, RGB/HSL & WCAG contrast"
+        echo "  vol [0-100]/np--> Terminal volume & Spotify/Apple Music controls"
         echo "  dev / up      --> Universal project dev server & stack runner"
         echo "  envcheck      --> Zero-leak audit comparing .env with .env.example"
         echo "  bench <cmd>   --> Benchmark command execution time & statistics"
@@ -4466,3 +4477,306 @@ frecent() {
   fi
 }
 alias 'g-'='git checkout -'
+
+# ==============================================================================
+# Complete Base Suite: Audio, Pomodoro, Tunnel, Outdated, Color & AI Review
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Zero-Touchpad Audio & Music Control (vol, mute, np, play, pause, next, prev)
+# ------------------------------------------------------------------------------
+vol() {
+  local target="$1"
+  if [ -z "$target" ]; then
+    local cur
+    cur=$(osascript -e "output volume of (get volume settings)" 2>/dev/null)
+    echo "🔊 Current volume: $cur%"
+    return
+  fi
+  [[ "$target" -lt 0 ]] 2>/dev/null && target=0
+  [[ "$target" -gt 100 ]] 2>/dev/null && target=100
+  osascript -e "set volume output volume $target" 2>/dev/null
+  echo "🔊 Volume set to: $target%"
+}
+
+mute() {
+  local is_muted
+  is_muted=$(osascript -e "output muted of (get volume settings)" 2>/dev/null)
+  if [ "$is_muted" = "true" ]; then
+    osascript -e "set volume without output muted" 2>/dev/null
+    echo "🔊 Unmuted"
+  else
+    osascript -e "set volume with output muted" 2>/dev/null
+    echo "🔇 Muted"
+  fi
+}
+
+np() {
+  if pgrep -xq Spotify; then
+    local track
+    track=$(osascript -e 'tell application "Spotify" to (artist of current track) & " - " & (name of current track)' 2>/dev/null)
+    local state
+    state=$(osascript -e 'tell application "Spotify" to player state as string' 2>/dev/null)
+    echo "🎵 Spotify [$state]: $track"
+  elif pgrep -xq Music; then
+    local track
+    track=$(osascript -e 'tell application "Music" to (artist of current track) & " - " & (name of current track)' 2>/dev/null)
+    local state
+    state=$(osascript -e 'tell application "Music" to player state as string' 2>/dev/null)
+    echo "🎵 Apple Music [$state]: $track"
+  else
+    echo "🔇 No music playing (neither Spotify nor Apple Music running)"
+  fi
+}
+
+play() {
+  if pgrep -xq Spotify; then
+    osascript -e 'tell application "Spotify" to playpause' 2>/dev/null
+    np
+  elif pgrep -xq Music; then
+    osascript -e 'tell application "Music" to playpause' 2>/dev/null
+    np
+  else
+    echo "Neither Spotify nor Apple Music is running."
+  fi
+}
+alias pause='play'
+
+next() {
+  if pgrep -xq Spotify; then
+    osascript -e 'tell application "Spotify" to next track' 2>/dev/null
+    sleep 0.2
+    np
+  elif pgrep -xq Music; then
+    osascript -e 'tell application "Music" to next track' 2>/dev/null
+    sleep 0.2
+    np
+  fi
+}
+
+prev() {
+  if pgrep -xq Spotify; then
+    osascript -e 'tell application "Spotify" to previous track' 2>/dev/null
+    sleep 0.2
+    np
+  elif pgrep -xq Music; then
+    osascript -e 'tell application "Music" to previous track' 2>/dev/null
+    sleep 0.2
+    np
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# 2. Terminal Pomodoro Focus Timer (pomo [minutes] [label] / timer)
+# ------------------------------------------------------------------------------
+pomo() {
+  local mins="${1:-25}"
+  local label="${2:-Focus Session}"
+  local total_sec=$(( mins * 60 ))
+  local rem=$total_sec
+
+  echo "🍅 Starting Pomodoro: $mins minutes for '$label'..."
+  echo "Press Ctrl-C to cancel timer."
+
+  trap 'echo "\n⏹️ Pomodoro cancelled."; return 1' INT
+
+  while [ $rem -gt 0 ]; do
+    local elapsed=$(( total_sec - rem ))
+    local filled=$(( (elapsed * 20) / total_sec ))
+    local empty=$(( 20 - filled ))
+    local bar=""
+    for ((i=0; i<filled; i++)); do bar="${bar}█"; done
+    for ((i=0; i<empty; i++)); do bar="${bar}░"; done
+
+    local m=$(( rem / 60 ))
+    local s=$(( rem % 60 ))
+    printf "\r\033[K[%s] %02d:%02d remaining - %s" "$bar" "$m" "$s" "$label"
+    sleep 1
+    rem=$(( rem - 1 ))
+  done
+
+  echo ""
+  echo "🎉 Pomodoro finished! Great job on '$label'!"
+  afplay /System/Library/Sounds/Glass.aiff 2>/dev/null &
+  osascript -e "display notification \"Time to take a break! Finished $mins min $label.\" with title \"🍅 Pomodoro Complete!\"" 2>/dev/null
+  trap - INT
+}
+alias timer='pomo'
+
+# ------------------------------------------------------------------------------
+# 3. Zero-Configuration Localhost Webhook Tunnel (tunnel [port])
+# ------------------------------------------------------------------------------
+tunnel() {
+  local port="${1:-3000}"
+  echo "🚇 Opening public tunnel to localhost:$port via SSH..."
+  echo "💡 Tip: Press Ctrl-C anytime to close the tunnel."
+  echo ""
+
+  ssh -R 80:localhost:"$port" localhost.run 2>&1 | while read -r line; do
+    echo "$line"
+    if [[ "$line" =~ "https://[a-zA-Z0-9.-]+\.lhr\.life" ]]; then
+      local url
+      url=$(echo "$line" | grep -oE "https://[a-zA-Z0-9.-]+\.lhr\.life")
+      echo -n "$url" | pbcopy
+      _clip_record "$url"
+      echo ""
+      echo "🚀 Public URL (Copied to clipboard): $url"
+      echo ""
+    fi
+  done
+}
+
+# ------------------------------------------------------------------------------
+# 4. Polyglot Project Dependency Outdated Inspector (outdated)
+# ------------------------------------------------------------------------------
+outdated() {
+  local checked=0
+
+  if [ -f "package.json" ]; then
+    checked=1
+    echo "📦 Checking Node/npm dependencies..."
+    if [ -f "pnpm-lock.yaml" ]; then
+      pnpm outdated 2>/dev/null || true
+    elif [ -f "yarn.lock" ]; then
+      yarn outdated 2>/dev/null || true
+    else
+      npm outdated 2>/dev/null || true
+    fi
+    echo ""
+  fi
+
+  if [ -f "Cargo.toml" ]; then
+    checked=1
+    echo "🦀 Checking Rust dependencies (cargo update --dry-run)..."
+    cargo update --dry-run 2>/dev/null || cargo outdated 2>/dev/null || true
+    echo ""
+  fi
+
+  if [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
+    checked=1
+    echo "🐍 Checking Python dependencies (pip list --outdated)..."
+    pip list --outdated 2>/dev/null || true
+    echo ""
+  fi
+
+  if [ -f "go.mod" ]; then
+    checked=1
+    echo "🐹 Checking Go dependencies..."
+    go list -u -m all 2>/dev/null | grep '\[' || echo "All Go modules up to date."
+    echo ""
+  fi
+
+  if [ $checked -eq 0 ]; then
+    echo "ℹ️ No recognized project manifest (package.json, Cargo.toml, requirements.txt, go.mod) found."
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# 5. Truecolor Terminal Color Swatch & WCAG Inspector (color <hex>)
+# ------------------------------------------------------------------------------
+color() {
+  local hex_code="$1"
+  if [ -z "$hex_code" ]; then
+    local clip
+    clip=$(pbpaste 2>/dev/null | tr -d ' #')
+    if [[ "$clip" =~ ^[0-9a-fA-F]{3,6}$ ]]; then
+      hex_code="$clip"
+      echo "📋 Using color from clipboard: #$hex_code"
+    else
+      echo "Usage: color <hex_code>"
+      echo "Example: color '#3b82f6' OR color ff5733"
+      return 1
+    fi
+  fi
+
+  python3 -c '
+import sys, colorsys
+
+hex_code = sys.argv[1].lstrip("#").strip()
+if len(hex_code) == 3:
+    hex_code = "".join(c * 2 for c in hex_code)
+
+if len(hex_code) != 6:
+    print(f"❌ Invalid HEX code: #{hex_code}")
+    sys.exit(1)
+
+r = int(hex_code[0:2], 16)
+g = int(hex_code[2:4], 16)
+b = int(hex_code[4:6], 16)
+
+h, l, s = colorsys.rgb_to_hls(r/255.0, g/255.0, b/255.0)
+
+def rel_lum(c):
+    c = c / 255.0
+    return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+L = 0.2126 * rel_lum(r) + 0.7152 * rel_lum(g) + 0.0722 * rel_lum(b)
+cw = (1.0 + 0.05) / (L + 0.05)
+cb = (L + 0.05) / (0.0 + 0.05)
+
+RESET = "\033[0m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+BG = f"\033[48;2;{r};{g};{b}m"
+
+swatch_line = f"{BG}                                                  {RESET}"
+pass_w = "\033[1;32mPASS\033[0m" if cw >= 4.5 else "\033[1;31mFAIL\033[0m"
+pass_b = "\033[1;32mPASS\033[0m" if cb >= 4.5 else "\033[1;31mFAIL\033[0m"
+
+print(f"{swatch_line}")
+print(f"{BG}       COLOR SWATCH: #{hex_code.upper()}                 {RESET}")
+print(f"{swatch_line}\n")
+print(f"{BOLD}HEX  :{RESET} #{hex_code.upper()}")
+print(f"{BOLD}RGB  :{RESET} rgb({r}, {g}, {b})")
+print(f"{BOLD}HSL  :{RESET} hsl({int(h*360)}deg, {int(s*100)}%, {int(l*100)}%)")
+print(f"{BOLD}WCAG :{RESET} vs White: {cw:.2f}:1 [{pass_w} AA] | vs Black: {cb:.2f}:1 [{pass_b} AA]")
+
+import subprocess
+subprocess.run(f"echo -n \"#{hex_code.upper()}\" | pbcopy", shell=True)
+print(f"\n📋 Copied #{hex_code.upper()} to clipboard!")
+' "$hex_code"
+}
+
+# ------------------------------------------------------------------------------
+# 6. Senior Staff AI Code Reviewer (aireview [base] / agy-branch)
+# ------------------------------------------------------------------------------
+aireview() {
+  local base="${1:-main}"
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+
+  if ! git rev-parse --verify "$base" >/dev/null 2>&1; then
+    if git rev-parse --verify "master" >/dev/null 2>&1; then
+      base="master"
+    fi
+  fi
+
+  local diff_content
+  diff_content=$(git diff "$base...HEAD" 2>/dev/null)
+  if [ -z "$diff_content" ]; then
+    diff_content=$(git diff HEAD~1 2>/dev/null)
+  fi
+
+  if [ -z "$diff_content" ]; then
+    echo "ℹ️ Zero changes found between $base and HEAD."
+    return 0
+  fi
+
+  local line_count
+  line_count=$(echo "$diff_content" | wc -l | tr -d ' ')
+  echo "🤖 Conducting Senior Staff AI Review of diff against $base ($line_count diff lines)..."
+
+  local prompt="You are a principal / senior staff software engineer conducting a rigorous code review of this git diff. Focus on: 1) Subtle logic/runtime bugs, 2) Concurrency & edge cases, 3) Security & invariant violations, 4) Performance. Provide line-referenced, high-signal, concise feedback."
+
+  if command -v agy >/dev/null 2>&1; then
+    echo "$diff_content" | agy ask "$prompt" | ${PAGER:-less -R}
+  elif command -v claude >/dev/null 2>&1; then
+    echo "$diff_content" | claude -p "$prompt" | ${PAGER:-less -R}
+  else
+    echo "Diff summary to review:"
+    echo "$diff_content" | delta --side-by-side
+  fi
+}
+alias agy-branch='aireview'

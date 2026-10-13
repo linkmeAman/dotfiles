@@ -37,14 +37,12 @@
 ==============================================================================
 2. AI AGENTS & HARNESSES LAUNCHPAD
 ==============================================================================
-  <Space> a a              Launch Antigravity AI Agent (:Agy)
-  <Space> a e              Ask Antigravity to explain code on cursor (:AgyExplain)
-  <Space> a r              Ask Antigravity to review entire open file (:AgyReview)
   <Space> a g              Launch Antigravity AI Agent (:Agy)
   <Space> a c              Launch Anthropic Claude Code (:Claude)
   <Space> a d              Launch Aider AI Pair Programmer (:Aider)
   <Space> a p              Launch Pi Coding Agent (:PiAgent)
   <Space> a o              Launch Ollama / DeepSeek (:Ollama)
+  <Space> a r              Senior Staff AI code review of diff (:AIReview / aireview)
   C-h / C-j / C-k / C-l    Seamlessly glide between Vim splits AND Tmux panes
   ]q  /  [q                Jump forward / backward through Quickfix compiler errors
   GITHUB COPILOT (copilot.vim):
@@ -86,6 +84,9 @@
   <Space> r f              Run current file in terminal drawer (:RunFile)
   <Space> r l              Re-run last command in terminal drawer (:RunLast)
   <Space> r t              Interactive project task runner (:RunTask / frun)
+  <Space> r d              Launch universal dev server (:DevServer / dev)
+  <Space> r p              Launch in-terminal Pomodoro timer (:Pomo / pomo)
+  <Space> r o              Polyglot outdated dependency checker (:Outdated / outdated)
   <Space> 1 .. 4           Jump directly to pinned file 1, 2, 3, or 4 (Harpoon)
   <Space> m 1 .. 4         Pin active file to slot 1, 2, 3, or 4 (:PinFile)
   <Space> m l              List all pinned files (:ListPins)
@@ -147,6 +148,8 @@
   gx                       Open URL under cursor in browser (Zero Mouse)
   <Space> o u              Open URL under cursor in browser
   <Space> o r              Read URL under cursor in terminal Reader split
+  <Space> o t              Expose localhost to public tunnel (:Tunnel / tunnel)
+  <Space> o C              Inspect color swatch & WCAG contrast (:Color / color)
   <Space> w / q            Save file / Quit
 
 ==============================================================================
@@ -209,6 +212,13 @@
 ==============================================================================
   hud  /  <F1>             Interactive shell command HUD & shortcuts menu
   hint [topic] / <F2>      Interactive developer hints & cheatsheet explorer
+  pomo [mins] [label]      In-terminal Pomodoro timer with progress bar & chime (:Pomo)
+  tunnel [port]            Zero-config public webhook tunnel for localhost:3000 (:Tunnel)
+  color <hex>              Truecolor swatch viewer, RGB/HSL & WCAG contrast (:Color)
+  outdated                 Polyglot dependency freshness checker (npm/cargo/pip) (:Outdated)
+  aireview [base]          Senior Staff AI code review of branch diff vs main (:AIReview)
+  vol [0-100] / mute       Terminal audio volume & mute control (zero mouse/touch bar)
+  np / play / pause / next Now playing track & music playback controls (Spotify/Music)
   dash / base              Terminal Base of Operations Dashboard (Vitals, Ports, Repos)
   dev  /  up               Universal project dev server & stack runner (:DevServer)
   fci  /  factions         Interactive GitHub CI / Actions run watcher & logs (:GitCI)

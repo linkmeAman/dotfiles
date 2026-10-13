@@ -140,8 +140,11 @@ Your terminal is your complete development home. Here is how to navigate everyth
 | | `<Space> a d` | Launch Aider Pair Programmer (`:Aider`) |
 | | `<Space> a p` | Launch Pi Coding Agent (`:PiAgent`) |
 | | `<Space> a o` | Launch Ollama / DeepSeek (`:Ollama`) |
-| **VS Code Bridge** | `<Space> o c` | Open current folder in VS Code |
+| | `<Space> a r` | **Senior Staff AI code review of diff (`:AIReview`)** |
+| **VS Code & Web** | `<Space> o c` | Open current folder in VS Code |
 | | `<Space> o f` | Open active file at cursor in VS Code |
+| | `<Space> o t` | **Public webhook tunnel for localhost:3000 (`:Tunnel`)** |
+| | `<Space> o C` | **Inspect color swatch & WCAG contrast (`:Color`)** |
 | **Terminal Drawer**| `<Space> t` | Toggle bottom terminal drawer |
 | **Files & Search** | `<Space> f` / `<C-p>` | Fuzzy find files (`fzf`) |
 | | `<Space> g` | Ripgrep project text |
@@ -161,6 +164,9 @@ Your terminal is your complete development home. Here is how to navigate everyth
 | | `<Space> r f` | **Run current file in terminal drawer (`:RunFile`)** |
 | | `<Space> r l` | **Re-run last command in terminal drawer (`:RunLast`)** |
 | | `<Space> r t` | **Interactive project task runner (`:RunTask` / `frun`)** |
+| | `<Space> r d` | **Universal project dev server (`:DevServer`)** |
+| | `<Space> r p` | **In-terminal Pomodoro timer (`:Pomo`)** |
+| | `<Space> r o` | **Polyglot outdated dependency checker (`:Outdated`)** |
 | | `<Space> 1` .. `4` | **Jump directly to pinned files 1, 2, 3, or 4 (Harpoon)** |
 | | `<Space> m 1` .. `4` | **Pin active file to slot 1, 2, 3, or 4 (`:PinFile`)** |
 | | `<Space> m l` / `m c` | **List all pinned files / Clear all pins** |
@@ -200,6 +206,13 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 | :--- | :--- | :--- |
 | `hud` / `<F1>` | `hud` | Interactive search menu of all terminal tools; pastes command onto prompt. |
 | `hint` / `<F2>`| `hint`, `hint git`, `hint vim` | Interactive developer hints & recommendations explorer with live cheat sheet. |
+| `pomo [mins]` | `pomo 25 'Feature'`, `timer 10` | In-terminal Pomodoro timer with progress bar, chime & desktop notification. |
+| `tunnel [port]` | `tunnel`, `tunnel 8080` | Zero-config public webhook tunnel for localhost:3000 via localhost.run. |
+| `color <hex>` | `color #38bdf8`, `color ff5733` | Truecolor terminal swatch viewer, RGB/HSL values & WCAG contrast compliance. |
+| `outdated` | `outdated` | Polyglot dependency freshness auditor across npm, cargo, pip, poetry, go. |
+| `aireview [base]` | `aireview`, `aireview main` | Senior Staff AI code review of current branch diff vs base. |
+| `vol [0-100]` / `mute` | `vol 50`, `vol +10`, `mute` | macOS terminal volume & mute control without mouse or Touch Bar. |
+| `np` / `play` / `next` | `np`, `play`, `next`, `prev` | Media player controls & current track inspector for Spotify / Music. |
 | `dev` / `up` | `dev`, `up` | Universal project dev server & stack runner (auto-detects npm, cargo, go, python). |
 | `fci` / `factions` | `fci`, `factions` | Interactive GitHub CI / Actions run watcher, status icons & logs in terminal pager. |
 | `fcreatepr` / `gpr` | `fcreatepr`, `gpr` | Zero-mouse GitHub PR creation wizard with title, body prompt & auto-pushed branch. |

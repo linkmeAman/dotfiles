@@ -536,6 +536,8 @@ let g:which_key_map.r = {
       \ 'l': [':RunLast',     'Re-run last command in terminal drawer'],
       \ 't': [':RunTask',     'Interactive project task runner (frun)'],
       \ 'd': [':DevServer',   'Run project dev server (dev)'],
+      \ 'p': [':Pomo',        'Pomodoro focus countdown timer (:Pomo)'],
+      \ 'o': [':Outdated',    'Check outdated project dependencies (:Outdated)'],
       \ 'w': [':ReplaceWord', 'Search & replace word under cursor'],
       \ }
 
@@ -560,6 +562,7 @@ let g:which_key_map.a = {
       \ 'd': [':Aider',                 'Launch Aider Pair Programmer (aider)'],
       \ 'p': [':PiAgent',               'Launch Pi Coding Agent (pi)'],
       \ 'o': [':Ollama',                'Launch Ollama / DeepSeek'],
+      \ 'r': [':AIReview',              'Senior Staff AI Code Review of diff (:AIReview)'],
       \ 's': [':Copilot status',        'Copilot status'],
       \ 'm': [':Copilot panel',         'Copilot suggestion panel'],
       \ }
@@ -569,6 +572,8 @@ let g:which_key_map.o = {
       \ 'name': '+open/url',
       \ 'u': [':call <SID>OpenUrlUnderCursor()', 'Open URL under cursor in Browser'],
       \ 'r': [':call <SID>ReadUrlUnderCursor()', 'Read URL in terminal Reader'],
+      \ 't': [':Tunnel',                         'Expose localhost to public tunnel (:Tunnel)'],
+      \ 'C': [':Color',                          'Inspect color swatch & WCAG contrast (:Color)'],
       \ 'c': [':OpenInCode',                     'Open project in Visual Studio Code'],
       \ 'f': [':OpenInCodeFile',                 'Open file at cursor in VS Code'],
       \ }
@@ -1109,6 +1114,35 @@ function! s:RunEnvCheck() abort
 endfunction
 command! -bar EnvCheck call <SID>RunEnvCheck()
 
+function! s:RunPomo(mins) abort
+  let l:cmd = empty(a:mins) ? 'pomo' : 'pomo ' . a:mins
+  call s:ExecuteInTerminalDrawer(l:cmd)
+endfunction
+command! -nargs=? Pomo call <SID>RunPomo(<q-args>)
+
+function! s:RunOutdated() abort
+  call s:ExecuteInTerminalDrawer('outdated')
+endfunction
+command! -bar Outdated call <SID>RunOutdated()
+
+function! s:RunAIReview(base) abort
+  let l:cmd = empty(a:base) ? 'aireview' : 'aireview ' . a:base
+  call s:ExecuteInTerminalDrawer(l:cmd)
+endfunction
+command! -nargs=? AIReview call <SID>RunAIReview(<q-args>)
+
+function! s:RunTunnel(port) abort
+  let l:cmd = empty(a:port) ? 'tunnel' : 'tunnel ' . a:port
+  call s:ExecuteInTerminalDrawer(l:cmd)
+endfunction
+command! -nargs=? Tunnel call <SID>RunTunnel(<q-args>)
+
+function! s:RunColor(hex) abort
+  let l:target = empty(a:hex) ? expand('<cword>') : a:hex
+  call s:ExecuteInTerminalDrawer('color ' . shellescape(l:target))
+endfunction
+command! -nargs=? Color call <SID>RunColor(<q-args>)
+
 " 18. Project Bookmarks Jumping (:Bookmarks / :Bm)
 function! s:FzfBookmarks() abort
   let l:bm_file = expand('~/.bookmarks')
@@ -1200,6 +1234,7 @@ function! s:OpenHints() abort
         \ '    <Space> r l      Re-run last command in terminal drawer (:RunLast)',
         \ '',
         \ '  ⚔️ GIT, DIFFS & MERGE CONFLICTS:',
+        \ '    <Space> a r      Senior Staff AI code review of current diff (:AIReview)',
         \ '    <Space> g S      Git code archeology: find commits modifying symbol (:GitSearch)',
         \ '    <Space> g g      Share buffer or selection as secret GitHub Gist (:Gist)',
         \ '    <Space> g e      Audit .env against .env.example for drift (:EnvCheck)',
@@ -1214,8 +1249,13 @@ function! s:OpenHints() abort
         \ '    <Space> g p      Preview Git diff hunk at cursor',
         \ '',
         \ '  ⚡ SHELL & TERMINAL (OUTSIDE VIM):',
-        \ '    hud / <F1>       Terminal Cockpit HUD (search and paste all 45+ commands)',
+        \ '    hud / <F1>       Terminal Cockpit HUD (search and paste all 50+ commands)',
         \ '    hint / <F2>      Interactive Shell Hints & cheat sheet explorer',
+        \ '    pomo [mins]      Pomodoro focus timer with progress bar & chime (:Pomo)',
+        \ '    tunnel [port]    Expose localhost to public SSH tunnel (:Tunnel)',
+        \ '    color <hex>      Truecolor swatch & WCAG accessibility checker (:Color)',
+        \ '    outdated         Polyglot dependency freshness auditor (:Outdated)',
+        \ '    vol [0-100]/np   Terminal volume & Spotify/Apple Music controls',
         \ '    gist [file|diff] Instant pastebin / GitHub Gist with auto-copied URL',
         \ '    envcheck         Zero-leak .env vs .env.example auditor',
         \ '    bench <cmd>      High-precision command latency benchmark',
@@ -1274,6 +1314,11 @@ nnoremap <silent> <leader>gg :Gist<CR>
 vnoremap <silent> <leader>gg :Gist<CR>
 nnoremap <silent> <leader>ge :EnvCheck<CR>
 nnoremap <silent> <leader>sR :Regex<CR>
+nnoremap <silent> <leader>rp :Pomo<CR>
+nnoremap <silent> <leader>ro :Outdated<CR>
+nnoremap <silent> <leader>ar :AIReview<CR>
+nnoremap <silent> <leader>ot :Tunnel<CR>
+nnoremap <silent> <leader>oC :Color<CR>
 nnoremap <silent> <leader>cd :CdProject<CR>
 nnoremap <silent> <leader>cb :Bookmarks<CR>
 nnoremap <silent> <leader>cp :Snippets<CR>

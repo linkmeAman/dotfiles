@@ -205,6 +205,10 @@
 11. TERMINAL & SHELL POWER TOOLS (OUTSIDE VIM)
 ==============================================================================
   hud  /  <F1>             Interactive shell command HUD & shortcuts menu
+  reader [url]             Terminal web reader & markdown article viewer
+  fps  /  fkill            Process & RAM assassin with CPU% live inspector
+  newproj <name> [type]    Instant project scaffolder with Git & bookmarks
+  frebase  /  fsq          Interactive Git rebase & commit history squasher
   ding [cmd]               Smart task completion alert with audio chime & desktop banner
   fconflicts               Interactive Git merge conflict resolver in Neovim
   search <query>           Terminal web search with auto-copied URL

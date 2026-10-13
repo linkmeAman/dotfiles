@@ -1664,6 +1664,10 @@ cl() {
 # ==============================================================================
 hud() {
   local entries=(
+    "reader [url]             --> Terminal web reader & markdown article viewer"
+    "fps / fkill              --> Process & RAM assassin with CPU% live inspector"
+    "newproj <name> [type]    --> Instant project scaffolder with Git & bookmarks"
+    "frebase / fsq [N|branch] --> Interactive Git rebase & commit history squasher"
     "ding [cmd]               --> Smart task completion alert with audio chime & banner"
     "fconflicts               --> Interactive Git merge conflict resolver in Neovim"
     "search <query>           --> Terminal web search with auto-copied URL"
@@ -2752,3 +2756,242 @@ watchrun() {
   done
 }
 alias fwatch='watchrun'
+
+# ==============================================================================
+# Final Station Superpowers: Reader, Process Assassin, Scaffolder & Rebase
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Terminal Web Reader & Article Viewer (reader [url])
+# ------------------------------------------------------------------------------
+reader() {
+  local target="$1"
+  if [ -z "$target" ]; then
+    local clip_content=$(pbpaste 2>/dev/null)
+    if [[ "$clip_content" == http* ]]; then
+      target="$clip_content"
+      echo "📋 Detected URL from clipboard: $target"
+    else
+      echo "Usage: reader <url>  (or copy URL to clipboard and just run 'reader')"
+      return 1
+    fi
+  fi
+
+  echo "📖 Loading reader view for: $target..."
+  python3 -c "
+import urllib.request, re, sys
+from html.parser import HTMLParser
+
+url = sys.argv[1]
+req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'})
+
+try:
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        html = resp.read().decode('utf-8', errors='replace')
+except Exception as e:
+    print(f'❌ Failed to fetch URL: {e}')
+    sys.exit(1)
+
+class CleanReader(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.text = []
+        self.skip_stack = 0
+    def handle_starttag(self, tag, attrs):
+        if tag in ('script', 'style', 'nav', 'header', 'footer', 'aside', 'svg', 'button'):
+            self.skip_stack += 1
+        elif tag in ('h1', 'h2', 'h3'):
+            self.text.append('\n\n## ')
+        elif tag in ('p', 'br', 'div', 'tr'):
+            self.text.append('\n')
+        elif tag == 'li':
+            self.text.append('\n• ')
+    def handle_endtag(self, tag):
+        if tag in ('script', 'style', 'nav', 'header', 'footer', 'aside', 'svg', 'button'):
+            self.skip_stack = max(0, self.skip_stack - 1)
+        elif tag in ('p', 'h1', 'h2', 'h3', 'li'):
+            self.text.append('\n')
+    def handle_data(self, data):
+        if self.skip_stack == 0:
+            self.text.append(data)
+
+parser = CleanReader()
+parser.feed(html)
+content = ''.join(parser.text)
+cleaned = re.sub(r'\n{3,}', '\n\n', content).strip()
+print(cleaned)
+" "$target" 2>/dev/null | ${PAGER:-less -R}
+}
+alias readurl='reader'
+
+# ------------------------------------------------------------------------------
+# 2. Interactive Process & RAM Assassin (fps / fkill)
+# ------------------------------------------------------------------------------
+fps() {
+  local target
+  target=$(ps -eo pid,user,%cpu,%mem,comm 2>/dev/null | awk 'NR>1 {printf "%-7s %-8s %-6s %-6s %s\n", $1, $2, $3, $4, $5}' | sort -k3 -nr | \
+    fzf --header="[Enter: Kill -15 (Graceful) | Ctrl-9: Kill -9 (Force) | Ctrl-Y: Copy PID | Esc: Cancel]" \
+        --bind="ctrl-9:execute(kill -9 \$(echo {} | awk '{print \$1}') && echo Force killed)+reload(ps -eo pid,user,%cpu,%mem,comm | awk 'NR>1 {printf \"%-7s %-8s %-6s %-6s %s\n\", \$1, \$2, \$3, \$4, \$5}' | sort -k3 -nr)" \
+        --bind="ctrl-y:execute(echo -n \$(echo {} | awk '{print \$1}') | pbcopy && echo Copied PID)+abort" \
+        --preview='ps -p $(echo {} | awk "{print \$1}") -o pid,user,%cpu,%mem,command 2>/dev/null' \
+        --preview-window=down:4:wrap \
+        --prompt="⚡ Running Processes > ")
+
+  if [ -n "$target" ]; then
+    local pid=$(echo "$target" | awk '{print $1}')
+    local name=$(echo "$target" | awk '{print $5}')
+    kill -15 "$pid" 2>/dev/null
+    echo "✅ Sent SIGTERM to $name (PID $pid)"
+  fi
+}
+alias fkill='fps'
+
+# ------------------------------------------------------------------------------
+# 3. Zero-Friction Project Scaffolder (newproj [name] [type])
+# ------------------------------------------------------------------------------
+newproj() {
+  local name="$1"
+  local type="${2:-ts}"
+  if [ -z "$name" ]; then
+    echo "Usage: newproj <project-name> [ts|py|go|rust|web]"
+    echo "Example: newproj my-api ts"
+    echo "         newproj data-pipeline py"
+    return 1
+  fi
+
+  local base_dir="$HOME/code"
+  mkdir -p "$base_dir"
+  local proj_dir="$base_dir/$name"
+  if [ -d "$proj_dir" ]; then
+    echo "❌ Directory already exists: $proj_dir"
+    return 1
+  fi
+
+  mkdir -p "$proj_dir"
+  builtin cd "$proj_dir"
+  git init -q
+
+  case "$type" in
+    py|python)
+      cat << 'EOF' > README.md
+# Python Project
+Structured Python project initialized.
+EOF
+      cat << 'EOF' > main.py
+#!/usr/bin/env python3
+"""Main application entry point."""
+import sys
+
+def main() -> int:
+    print("🚀 Project running!")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+EOF
+      cat << 'EOF' > .gitignore
+__pycache__/
+*.py[cod]
+.venv/
+env/
+.env
+dist/
+EOF
+      ;;
+    go|golang)
+      cat << 'EOF' > README.md
+# Go Project
+EOF
+      cat << 'EOF' > main.go
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("🚀 Go project running!")
+}
+EOF
+      cat << 'EOF' > .gitignore
+bin/
+dist/
+*.exe
+EOF
+      go mod init "$name" 2>/dev/null || true
+      ;;
+    rust|rs)
+      cargo init . --name "$name" 2>/dev/null || true
+      ;;
+    *)
+      cat << 'EOF' > README.md
+# TypeScript Project
+EOF
+      cat << 'EOF' > package.json
+{
+  "name": "my-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "start": "ts-node index.ts",
+    "test": "echo \"Tests pass\""
+  }
+}
+EOF
+      cat << 'EOF' > index.ts
+console.log("🚀 Project initialized!");
+EOF
+      cat << 'EOF' > .gitignore
+node_modules/
+dist/
+.env
+.DS_Store
+EOF
+      ;;
+  esac
+
+  git add -A
+  git commit -m "chore: initial project commit" -q
+  mark "$name" >/dev/null 2>&1 || true
+
+  echo "🎉 Project initialized at: $proj_dir"
+  echo "📌 Auto-bookmarked as: $name  (warp anytime with 'warp $name')"
+  ${EDITOR:-nvim} .
+}
+alias initproj='newproj'
+
+# ------------------------------------------------------------------------------
+# 4. Interactive Git Rebase & Clean Commit Squasher (frebase / fsq)
+# ------------------------------------------------------------------------------
+frebase() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+
+  if [ -n "$1" ]; then
+    if [[ "$1" =~ ^[0-9]+$ ]]; then
+      echo "🔄 Starting interactive rebase for last $1 commits..."
+      git rebase -i "HEAD~$1"
+      return
+    else
+      echo "🔄 Starting interactive rebase onto branch $1..."
+      git rebase -i "$1"
+      return
+    fi
+  fi
+
+  local commit
+  commit=$(git log -n 25 --color=always --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" 2>/dev/null | \
+    fzf --ansi --no-sort \
+        --header="[Enter: Rebase onto selected commit | Esc: Cancel]" \
+        --preview='git show --color=always $(echo {} | awk "{print \$1}") | delta --side-by-side' \
+        --preview-window=right:60%:wrap \
+        --prompt="🔄 Select Base Commit > ")
+
+  if [ -n "$commit" ]; then
+    local hash=$(echo "$commit" | awk '{print $1}')
+    echo "🔄 Rebasing onto commit $hash..."
+    git rebase -i "$hash"
+  fi
+}
+alias fsq='frebase'

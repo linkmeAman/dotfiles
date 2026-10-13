@@ -198,6 +198,10 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 | Command | Usage | Description |
 | :--- | :--- | :--- |
 | `hud` / `<F1>` | `hud` | Interactive search menu of all terminal tools; pastes command onto prompt. |
+| `reader [url]` | `reader https://docs...`, `reader` | Terminal web reader & markdown article viewer; reads clipboard URL. |
+| `fps` / `fkill` | `fps`, `fkill` | Interactive process & RAM assassin; live CPU% table & instant kill. |
+| `newproj <name>`| `newproj my-api ts`, `newproj app py` | Zero-friction project scaffolder with Git, template & bookmarks. |
+| `frebase` / `fsq`| `frebase 3`, `frebase main`, `fsq` | Interactive Git rebase & commit history squasher. |
 | `ding [cmd]` | `ding npm test`, `sleep 5; ding` | Smart task completion alert with audio chime & desktop notification. |
 | `fconflicts` | `fconflicts` | Interactive Git merge conflict resolver with diff preview & auto-jump in Neovim. |
 | `search <query>` | `search docker multi-stage` | Fast terminal web search; auto-copies URL to clipboard without mouse. |

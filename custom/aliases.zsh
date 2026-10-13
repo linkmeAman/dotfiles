@@ -34,12 +34,8 @@ alias nah="git reset --hard && git clean -df"
 # Shell & Configuration management
 alias reload="omz reload"
 alias zshconfig="${EDITOR:-nvim} ~/.zshrc"
-alias dot="dot"
-alias dotsync="dotsync"
-alias dash="dash"
-alias home="dash"
-alias base="dash"
-alias apps="fapp"
+alias wezconfig="${EDITOR:-nvim} ~/.wezterm.lua"
+alias vimconfig="${EDITOR:-nvim} ~/.vimrc"
 alias wez="wezterm"
 
 # Network & System

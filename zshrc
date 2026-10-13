@@ -91,7 +91,7 @@ plugins=(
 source $ZSH/oh-my-zsh.sh
 
 # Unalias conflicting Oh-My-Zsh plugin aliases so enhanced functions define cleanly
-unalias ports gwt gclean gcp myip fgb hud fnote 2>/dev/null || true
+unalias ports gwt gclean gcp myip fgb hud fnote dot dotsync dash home base apps 2>/dev/null || true
 
 # User configuration
 
@@ -997,6 +997,7 @@ gwt() {
 # ==============================================================================
 # Dotfiles Version Control & One-Stroke Cloud Sync (dotsync, dot)
 # ==============================================================================
+unalias dot dotsync 2>/dev/null || true
 dot() {
   local dotdir="$HOME/dotfiles"
   if [ -z "$1" ]; then

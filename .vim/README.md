@@ -161,6 +161,8 @@ Your terminal is your complete development home. Here is how to navigate everyth
 | | `<Space> r l` | **Re-run last command in terminal drawer (`:RunLast`)** |
 | | `<Space> c d` | **Fuzzy jump to project / folder via Zoxide (`:CdProject`)** |
 | | `gF` | **Jump to file:line under cursor (compiler traces)** |
+| | `]d` / `[d` | **Jump to next / previous LSP error or warning** |
+| | `<Space> c e` | **Show document diagnostics (errors / warnings list)** |
 | | `<Space> c f` | Format code via LSP or auto-indent |
 | | `<Space> y p` / `y r` / `y n` | Copy full path / relative path / file name |
 | **Splits & Windows**| `<Space> z` | **Toggle Zoom active split (maximize window / restore)** |
@@ -180,6 +182,23 @@ Your terminal is your complete development home. Here is how to navigate everyth
 
 ---
 
+## ⚡ 7. Terminal & Shell Productivity Powerhouse
+
+Outside Vim, your shell environment is packed with instant zero-touchpad helpers:
+
+| Command | Usage | Description |
+| :--- | :--- | :--- |
+| `ftldr [query]` | `ftldr docker` | Interactive fuzzy search across all `tldr` pages with colored bat preview. |
+| `api [method] <url>` | `api get https://dummyjson.com/products/1` | REST API test runner piping formatted JSON into `jless` viewer. |
+| `?? <question>` | `?? find files larger than 100M` | Instant shell AI assistant that generates the exact command. |
+| `sandbox [lang]` | `sandbox py`, `sandbox rs` | Creates a temporary Git-backed playground in `/tmp` and opens in Neovim. |
+| `fo [query]` | `fo config` | Fuzzy find any file with live bat preview and open in `$EDITOR`. |
+| `fcd [query]` | `fcd project` | Fuzzy change directory with live `eza` tree preview. |
+| `fgl` | `fgl` | Fuzzy Git log browser with side-by-side `delta` diff preview and commit hash copy. |
+| `fpic` / `fvid` | `fpic`, `fvid` | Fuzzy image and video search with high-resolution inline terminal preview. |
+
+---
+
 ## 🆘 Troubleshooting: Getting Unstuck
 
 | Situation | Immediate Fix |
@@ -189,3 +208,4 @@ Your terminal is your complete development home. Here is how to navigate everyth
 | **Vim says `No write since last change`** | Save with `:w` (or `<Space> w`), or force quit without saving with `:q!` / `<Space> Q`. |
 | **Command menu didn't appear** | Press `<Space>` and wait 0.3 seconds; Which-Key displays all available keys. |
 | **Lost or confused about layout** | Type `:only` (`<Space> v o`) to close all splits except your current file. |
+

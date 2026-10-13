@@ -249,6 +249,19 @@ if command -v fzf >/dev/null 2>&1; then
     fi
   }
 
+  # Interactive CLI manual search with live color preview (ftldr [query])
+  ftldr() {
+    local cmd
+    cmd=$(tldr --list 2>/dev/null | fzf --query="$*" \
+      --header="[Enter: Print tldr | Esc: Cancel]" \
+      --preview='tldr --color=always {} 2>/dev/null' \
+      --preview-window=right:65%:wrap)
+    if [ -n "$cmd" ]; then
+      tldr "$cmd"
+    fi
+  }
+  alias tldrf='ftldr'
+
   # Fuzzy Find & Preview Images (fpic [dir|file|query])
   fpic() {
     # If passed an existing file directly, immediately view it
@@ -549,4 +562,195 @@ fi
 unset ANTHROPIC_AUTH_TOKEN
 unset ANTHROPIC_BASE_URL
 
+# ==============================================================================
+# Terminal Dev Cockpit & Antigravity Automation
+# ==============================================================================
 
+# Fast TUI Shortcuts
+alias a="/Users/tr/.local/bin/agy"
+alias ap="/Users/tr/.local/bin/agy /plan"
+alias ab="/Users/tr/.local/bin/agy /boost"
+alias lg="lazygit"
+alias y="yazi"
+alias top="btop"
+
+# Antigravity Git & Code Review Helpers
+alias agy-review='git diff | /Users/tr/.local/bin/agy "Review these changes for edge cases, bugs, and performance"'
+alias agy-cm='git diff --staged | /Users/tr/.local/bin/agy "Generate a concise conventional commit message"'
+
+# Pipe last command error directly into Antigravity
+agy-last() {
+  local last_cmd=$(fc -ln -1)
+  echo "Analyzing output of: $last_cmd"
+  eval "$last_cmd" 2>&1 | /Users/tr/.local/bin/agy "Explain why this command failed and give the exact fix"
+}
+
+# Pipe any file into Antigravity with a custom question
+agy-ask() {
+  if [ -z "$1" ]; then
+    echo "Usage: agy-ask <file> <prompt>"
+    return 1
+  fi
+  local file="$1"
+  shift
+  cat "$file" | /Users/tr/.local/bin/agy "$*"
+}
+
+# 1-Second Dev Session Launcher (Vim + Antigravity CLI + Terminal Runner)
+dev() {
+  local session_name="$(basename "$PWD" | tr '.' '_')"
+  tmux has-session -t "$session_name" 2>/dev/null
+  if [ $? -ne 0 ]; then
+    tmux new-session -d -s "$session_name" -n "dev"
+    tmux send-keys -t "$session_name:dev" "vim" C-m
+    tmux split-window -h -p 40 -t "$session_name:dev"
+    tmux send-keys -t "$session_name:dev.1" "/Users/tr/.local/bin/agy" C-m
+    tmux split-window -v -p 45 -t "$session_name:dev.1"
+    tmux select-pane -t "$session_name:dev.0"
+  fi
+  tmux attach-session -t "$session_name"
+}
+
+# ==============================================================================
+# REST API Explorer & Interactive JSON Viewer (HTTPie + jless)
+# ==============================================================================
+api() {
+  if [ -z "$1" ]; then
+    echo "Usage: api [METHOD] <URL> [REQUEST_ITEMS...]"
+    echo "Example: api get https://dummyjson.com/products/1"
+    echo "         api https://api.github.com/zen"
+    echo "         api post https://httpbin.org/post name=John age:=30"
+    return 1
+  fi
+  if [ -t 1 ] && command -v jless >/dev/null 2>&1; then
+    http --print=b "$@" | jless
+  else
+    http "$@"
+  fi
+}
+
+# ==============================================================================
+# Instant Shell AI / Terminal Command Assistant (?? <question>)
+# ==============================================================================
+??() {
+  if [ -z "$*" ]; then
+    echo "Usage: ?? <natural language question or command intent>"
+    echo "Example: ?? find files larger than 100MB and sort by size"
+    echo "         ?? extract tar.gz"
+    echo "         ?? git show commits modifying specific file"
+    return 1
+  fi
+  local query="$*"
+  echo "🤖 Querying terminal assistant for: $query"
+  # 1. If local Ollama daemon is active, use it for zero-latency local answers
+  if pgrep -x "ollama" >/dev/null 2>&1; then
+    local model
+    model=$(ollama list 2>/dev/null | awk 'NR==2 {print $1}')
+    if [ -n "$model" ]; then
+      ollama run "$model" "Provide ONLY the exact terminal command(s) with a brief one-line comment for: $query"
+      return
+    fi
+  fi
+  # 2. Fast direct cheat sheet query
+  local res
+  res=$(curl -s --connect-timeout 4 "https://cht.sh/~${query// /+}")
+  if [ -n "$res" ] && [[ "$res" != *"404 Not Found"* ]]; then
+    echo "$res" | ${PAGER:-cat}
+  else
+    echo "💡 Searching CLI results via ddgr..."
+    ddgr --np -n 4 "$query"
+  fi
+}
+
+# ==============================================================================
+# Disposable Zero-Touchpad Code Sandbox (sandbox [lang])
+# ==============================================================================
+sandbox() {
+  local lang="${1:-python}"
+  local ts
+  ts=$(date +%Y%m%d_%H%M%S)
+  local dir="/tmp/sandbox_${lang}_${ts}"
+  mkdir -p "$dir"
+  builtin cd "$dir" || return 1
+  git init -q
+
+  local main_file="main.py"
+  case "$lang" in
+    py|python)
+      main_file="main.py"
+      cat << 'EOF' > "$main_file"
+def main():
+    print("🚀 Sandbox Python environment ready!")
+
+if __name__ == "__main__":
+    main()
+EOF
+      ;;
+    js|javascript|node)
+      main_file="index.js"
+      cat << 'EOF' > "$main_file"
+console.log("🚀 Sandbox JavaScript ready!");
+EOF
+      ;;
+    ts|typescript)
+      main_file="index.ts"
+      cat << 'EOF' > "$main_file"
+console.log("🚀 Sandbox TypeScript ready!");
+EOF
+      ;;
+    sh|bash|zsh)
+      main_file="script.sh"
+      cat << 'EOF' > "$main_file"
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "🚀 Sandbox Shell script ready!"
+EOF
+      chmod +x "$main_file"
+      ;;
+    go|golang)
+      main_file="main.go"
+      cat << 'EOF' > "$main_file"
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("🚀 Sandbox Go ready!")
+}
+EOF
+      ;;
+    rs|rust)
+      main_file="main.rs"
+      cat << 'EOF' > "$main_file"
+fn main() {
+    println!("🚀 Sandbox Rust ready!");
+}
+EOF
+      ;;
+    html|web)
+      main_file="index.html"
+      cat << 'EOF' > "$main_file"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sandbox</title>
+</head>
+<body>
+  <h1>🚀 Sandbox Web ready!</h1>
+</body>
+</html>
+EOF
+      ;;
+    *)
+      main_file="scratch.txt"
+      echo "🚀 Sandbox scratchpad ready!" > "$main_file"
+      ;;
+  esac
+
+  echo "🧪 Sandbox initialized at: $dir"
+  echo "📁 Opening $main_file in ${EDITOR:-nvim}..."
+  ${EDITOR:-nvim} "$main_file"
+}
+alias sb='sandbox'

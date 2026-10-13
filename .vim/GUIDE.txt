@@ -82,6 +82,8 @@
   <Space> r l              Re-run last command in terminal drawer (:RunLast)
   <Space> c d              Fuzzy jump to project / folder using Zoxide (:CdProject)
   <Space> c f              Format code via active LSP (:Format)
+  <Space> c e              Show document diagnostics (errors & warnings list)
+  ]d  /  [d                Jump to next / previous LSP error or warning directly
   <Space> r w              Smart search & replace word under cursor (:ReplaceWord)
   <Space> y p              Copy absolute file path to macOS clipboard
   <Space> y r              Copy relative file path to macOS clipboard
@@ -99,6 +101,8 @@
 ==============================================================================
   v file.py:42:15          CLI: Open file and jump directly to line & column
   gF (in Normal mode)      Jump to file:line under cursor (stack traces / logs)
+  ]d  /  [d                Jump next / previous compiler or lint error
+  ]c  /  [c                Jump next / previous Git diff hunk (GitGutter)
   <Space> r f              Run current script in terminal drawer without switching
   <Space> r l              Re-run last test/script with one keystroke
   <Space> c d              Fuzzy jump between projects without quitting Vim
@@ -182,6 +186,18 @@
   Stuck in Terminal / AI   :  Press <Esc> to exit insert, then :close or <Space>vc
   Reset / Close all splits :  Type :only (<Space>vo) to keep only current file
   Force quit without save  :  Type :qa! (<Space>Q)
+
+==============================================================================
+11. TERMINAL & SHELL POWER TOOLS (OUTSIDE VIM)
+==============================================================================
+  ftldr [cmd]              Interactive fuzzy tldr manual with color preview
+  api [get/post] <url>     REST API explorer piping formatted output to jless
+  ?? <question>            Instant shell AI assistant (generates exact command)
+  sandbox [py|js|rs|go]    Disposable Git-backed playground opened in Neovim
+  fo [query]               Fuzzy find file with live syntax-highlighted preview
+  fcd [query]              Fuzzy directory changer with eza tree preview
+  fgl                      Interactive Git log graph with delta diff preview
+  fpic / fvid              Interactive image & video previewer in terminal
 
 ==============================================================================
   To re-open this guide anytime in Vim:  <F1>  or  <Space>?  or  :Guide

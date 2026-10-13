@@ -304,7 +304,7 @@ let g:lightline = {
       \              [ 'hint' ] ]
       \ },
       \ 'component': {
-      \   'hint': '⌨ <Space>:Menu  u:Undo  <C-o>:Back  :q:Quit  <F1>:Help'
+      \   'hint': '⌨ <Space>:Menu  u:Undo  ]d:Err  <C-o>:Back  :q:Quit  <F1>:Help'
       \ },
       \ 'component_function': {
       \   'gitbranch': 'FugitiveHead'
@@ -493,6 +493,7 @@ let g:which_key_map.c = {
       \ 'name': '+code/lsp',
       \ 'd': [':LspDefinition',         'Go to definition'],
       \ 'r': [':LspReferences',         'Find references'],
+      \ 'e': [':LspDiagnostic',         'Show diagnostic error / warning message'],
       \ 'o': [':BTags',                 'Code outline (symbols / functions in file)'],
       \ 'h': [':LspHover',              'Show hover documentation'],
       \ 'n': [':LspRename',             'Rename symbol'],
@@ -724,11 +725,25 @@ command! -bar Aider call <SID>RunAIAgent('aider', 'Aider AI Pair Programmer')
 command! -bar PiAgent call <SID>RunAIAgent('pi', 'Pi Coding Agent')
 command! -bar Ollama call <SID>RunAIAgent('ollama', 'Ollama')
 
+" Antigravity Code Review & AI Assistance Mappings
+nnoremap <silent> <leader>aa :Agy<CR>
 nnoremap <silent> <leader>ag :Agy<CR>
 nnoremap <silent> <leader>ac :Claude<CR>
 nnoremap <silent> <leader>ad :Aider<CR>
 nnoremap <silent> <leader>ap :PiAgent<CR>
 nnoremap <silent> <leader>ao :Ollama<CR>
+
+" Send current file or visual selection to Antigravity
+function! s:AgyReviewCurrentFile() abort
+  let l:file = expand('%:p')
+  if empty(l:file) | echo "No file to review" | return | endif
+  write
+  botright 14split
+  execute 'terminal /Users/tr/.local/bin/agy "Review ' . l:file . ' for bugs, security, and edge cases"'
+  startinsert
+endfunction
+command! -bar AgyReview call <SID>AgyReviewCurrentFile()
+nnoremap <silent> <leader>ar :AgyReview<CR>
 
 " 9. Open in Visual Studio Code Bridge
 function! s:OpenInCode() abort
@@ -942,6 +957,12 @@ nnoremap <silent> <S-h> :bprevious<CR>
 " Git hunk navigation with GitGutter: ]c and [c
 nnoremap <silent> ]c :GitGutterNextHunk<CR>
 nnoremap <silent> [c :GitGutterPrevHunk<CR>
+
+" LSP Diagnostic navigation: ]d and [d (Jump next/previous error or warning)
+nnoremap <silent> ]d :LspNextDiagnostic<CR>
+nnoremap <silent> [d :LspPreviousDiagnostic<CR>
+nnoremap <silent> <leader>ce :LspDocumentDiagnostics<CR>
+command! -bar LspDiagnostic LspDocumentDiagnostics
 
 " Move lines up and down (Alt/Option + j/k in Normal and Visual modes, auto-indented)
 nnoremap <silent> <M-j> :m .+1<CR>==

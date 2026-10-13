@@ -382,6 +382,7 @@ if command -v fzf >/dev/null 2>&1; then
   }
 
   # Port & Process Assassin (ports, fport, killport [port])
+  unalias ports 2>/dev/null || true
   ports() {
     echo "📡 Active Listening TCP Ports:"
     lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null | awk 'NR>1 {printf "%-10s %-8s %-6s %s\n", $9, $1, $2, $8}' | sort -n -k1.11 | column -t
@@ -2184,6 +2185,7 @@ mem() {
   ps aux 2>/dev/null | awk 'NR>1 {printf "%-6s %-6s %-5s %s\n", $2, $4, $3, $11}' | sort -k2 -nr | head -n 5 | column -t
 }
 
+unalias myip 2>/dev/null || true
 myip() {
   local local_ip
   local_ip=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "Not connected")

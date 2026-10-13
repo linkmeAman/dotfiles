@@ -33,11 +33,9 @@ alias nah="git reset --hard && git clean -df"
 
 # Shell & Configuration management
 alias reload="omz reload"
-alias zshconfig="nano ~/.zshrc"
+alias zshconfig="${EDITOR:-nvim} ~/.zshrc"
 
-# Network, Ports & System
-alias myip="curl -s https://ifconfig.me"
-alias ports="lsof -iTCP -sTCP:LISTEN -P"
+# Network & System
 alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
 
 # Global Pipe Shortcuts (type anywhere on command line)

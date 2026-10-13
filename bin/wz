@@ -22,12 +22,18 @@ Usage:
   wz pic <image>             View photo in terminal & copy absolute path
   wz vid <video>             Play video with mpv & copy absolute path
   wz web [url]               Browse websites inside terminal (w3m)
+  wz search <query>          Interactive terminal web search (ddgr, no browser)
+  wz qsearch <query>         Fast terminal search print & exit (no GUI)
+  wz read <url>              Read any website as clean text in terminal
   wz sql                     Launch terminal database explorer (lazysql)
   wz notify <title> <body>   Trigger a desktop notification
   wz copy [file]             Copy file or piped stdin to macOS clipboard
   wz help                    Show this help message
 
 Examples:
+  wz search "react hooks"    # Search web in terminal (copy links, read text)
+  wz qsearch "wezterm tips"  # Instant terminal search output
+  wz read https://news.ycombinator.com # Read website in terminal
   wz pic logo.png            # View image in terminal and copy path
   wz vid demo.mp4            # Play video with mpv and copy path
   wz web github.com          # Browse web inside terminal
@@ -177,6 +183,22 @@ case "${1:-help}" in
     shift
     url="${1:-https://duckduckgo.com}"
     w3m "$url"
+    ;;
+  search|google|duck)
+    shift
+    if [ -z "${1:-}" ]; then echo "Usage: wz search <query>"; exit 1; fi
+    ddgr --url-handler w3m -n 7 "$@"
+    ;;
+  qsearch|qgoogle)
+    shift
+    if [ -z "${1:-}" ]; then echo "Usage: wz qsearch <query>"; exit 1; fi
+    ddgr --np -n 8 "$@"
+    ;;
+  read|catweb)
+    shift
+    url="${1:-}"
+    if [ -z "$url" ]; then echo "Usage: wz read <url>"; exit 1; fi
+    w3m -dump -cols 100 "$url" | ${PAGER:-less}
     ;;
   help|--help|-h)
     show_help

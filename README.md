@@ -149,10 +149,14 @@ Connected rounded-tree prompt that displays path, git status, live timestamp, an
 * **`vid <video>`** — Play video with keyboard-driven `mpv`, inspect metadata (`ffprobe`), and copy path to clipboard.
 * **`fvid`** — Interactive fuzzy finder for all video files in current folder/project.
 
-### 🌐 Terminal CLI Web Browsers (`w3m` & `lynx`)
-* **`browse <url>` / `web [url]`** — Open and navigate websites directly in terminal (`w3m` with vim `j/k` navigation, `Tab` link jump, `B` back, `q` quit).
-* **`search <query>` / `duck <query>`** — Search web directly inside terminal (`w3m`) without opening GUI browser.
-* **`google <query>`** — Search Google in default GUI browser (via Oh My Zsh `web-search`).
+### 🌐 Terminal CLI Web Browsers & Search Suite (100% In-Terminal, Zero GUI Redirects)
+* **`search <query>` / `google <query>` / `duck <query>`** — Search DuckDuckGo/Google inside terminal using `ddgr`. Displays results, lets you press a number to open in `w3m`, or press `c <num>` to copy link. Never launches Chrome or Safari!
+* **`qsearch <query>` / `qgoogle <query>`** — Instant terminal output: prints top search results directly to terminal stdout and exits immediately (zero prompt, zero lag).
+* **`github <query>` / `ghs <query>`** — Search GitHub repositories and issues directly in the terminal.
+* **`so <query>` / `stackoverflow <query>`** — Search StackOverflow answers directly in the terminal.
+* **`wiki <query>`** — Search Wikipedia directly in the terminal.
+* **`readweb <url>` / `catweb <url>`** — Dump any web page or article as clean, readable text directly in terminal via `w3m -dump`.
+* **`browse <url>` / `web [url]`** — Navigate websites directly inside terminal (`w3m` with vim `j/k` navigation, `Tab` link jump, `B` back, `q` quit).
 
 ### 🧰 Developer Helper Functions
 * **`kp`** — Interactive fuzzy process killer (<kbd>Tab</kbd> to multi-select, <kbd>Enter</kbd> to kill stuck port/server).

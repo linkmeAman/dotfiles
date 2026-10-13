@@ -83,7 +83,6 @@ plugins=(
       colored-man-pages     # Adds colors to man pages
       copypath              # Copies current directory path to clipboard
       copyfile              # Copies file contents to clipboard (e.g., 'copyfile ~/.ssh/id_rsa.pub')
-      web-search            # Search from terminal (e.g., 'google <query>' or 'github <query>')
       fzf                   # Interactive fuzzy finder (Ctrl+R history, Ctrl+T file search)
       zsh-autosuggestions   # Fish-like autosuggestions (from Step 1)
       zsh-syntax-highlighting # Syntax highlighting (from Step 1, must be last)
@@ -261,25 +260,91 @@ vid() {
   fi
 }
 
-# Fast CLI Web Browser (w3m / lynx)
+# Fast CLI Web Browser (w3m)
+export BROWSER='w3m'
+
 web() {
   local url="${1:-https://html.duckduckgo.com}"
   w3m "$url"
 }
 alias browse='web'
 
-# In-Terminal Web Search via w3m (leaves GUI search aliases from omz web-search intact)
+# ==============================================================================
+# CLI Web Search Suite (100% Terminal - No Browser Redirection, No GUI)
+# ==============================================================================
+
+# Interactive terminal web search (ddgr + w3m, copies links with 'c <num>')
 search() {
   if [ -z "$*" ]; then
     echo "Usage: search <query>"
     return 1
   fi
-  local query="$*"
-  query="${query// /+}"
-  w3m "https://html.duckduckgo.com/html/?q=$query"
+  if command -v ddgr >/dev/null 2>&1; then
+    ddgr --url-handler w3m -n 7 "$@"
+  else
+    w3m "https://html.duckduckgo.com/html/?q=${*// /+}"
+  fi
 }
-alias tsearch='search'
+
+# Quick instant print to terminal & exit (no interactive prompt, no lag)
+qsearch() {
+  if [ -z "$*" ]; then
+    echo "Usage: qsearch <query>"
+    return 1
+  fi
+  if command -v ddgr >/dev/null 2>&1; then
+    ddgr --np -n 8 "$@"
+  else
+    w3m -dump "https://html.duckduckgo.com/html/?q=${*// /+}" | head -n 35
+  fi
+}
+
+# CLI search engine aliases (all 100% terminal-native, zero GUI redirection)
+alias google='search'
 alias duck='search'
+alias ddg='search'
+alias bing='search'
+
+alias qgoogle='qsearch'
+alias qduck='qsearch'
+
+# Site-specific CLI terminal searches
+github() {
+  if [ -z "$*" ]; then
+    echo "Usage: github <query>"
+    return 1
+  fi
+  ddgr --url-handler w3m -w github.com "$@"
+}
+alias ghs='github'
+
+so() {
+  if [ -z "$*" ]; then
+    echo "Usage: so <query>"
+    return 1
+  fi
+  ddgr --url-handler w3m -w stackoverflow.com "$@"
+}
+alias stackoverflow='so'
+
+wiki() {
+  if [ -z "$*" ]; then
+    echo "Usage: wiki <query>"
+    return 1
+  fi
+  ddgr --url-handler w3m -w wikipedia.org "$@"
+}
+alias wikipedia='wiki'
+
+# Read any website or article as clean text directly in terminal
+readweb() {
+  if [ -z "$1" ]; then
+    echo "Usage: readweb <url>"
+    return 1
+  fi
+  w3m -dump -cols 100 "$1" | ${PAGER:-less}
+}
+alias catweb='readweb'
 
 # WezTerm Shell Integration (OSC 7 Directory Tracking & OSC 133 Semantic Prompts)
 if [[ "$TERM_PROGRAM" == "WezTerm" && -f "/Applications/WezTerm.app/Contents/Resources/wezterm.sh" ]]; then

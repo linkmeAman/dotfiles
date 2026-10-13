@@ -100,18 +100,26 @@
   gcc / gc (visual)        Toggle line / block comments (Commentary)
   ysiw" / cs"' / ds"       Surround motions (Surround)
   <C-n>                    Multi-cursor word selection (Visual Multi)
+  Alt/Option + j / k       Move line or selected block up/down (auto-indented)
+  <  or  > (visual)        Continuous indentation (keeps visual selection active)
+  p (visual)               Safe paste over selection (preserves clipboard!)
   <Space> u                Visual undo branch tree (Undotree)
   <Space> w / q            Save file / Quit
 
 ==============================================================================
-7. WINDOWS & SPLITS
+7. WINDOWS, SPLITS & BUFFERS
 ==============================================================================
+  TOP BUFFER TAB BAR       Shows all open files across top of screen (1: file.py)
+  <Space> z  or  <Space>vz Toggle Zoom active split (maximize window / restore)
   <Ctrl-h/j/k/l>           Move to left / down / up / right window
   <Space> v s / v v        Split horizontally / vertically
   <Space> v c              Close current window
-  Shift-L or ]b            Next buffer
-  Shift-H or [b            Previous buffer
+  <Space> b s              Open instant disposable scratchpad (:Scratch)
+  Shift-L or ]b            Next buffer tab
+  Shift-H or [b            Previous buffer tab
   <Space> b d              Close current buffer
+  <Space> g w              Search word under cursor across project (Ripgrep)
+  <Space> c o / c s        Search code outline / symbols in current file (:BTags)
 
 ==============================================================================
 8. BACKPROPAGATION: REVERTING STATE, UNDO & EXITING

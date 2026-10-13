@@ -123,20 +123,28 @@ Never worry about making mistakes or getting lost:
 | **Terminal Drawer**| `<Space> t` | Toggle bottom terminal drawer |
 | **Files & Search** | `<Space> f` / `<C-p>` | Fuzzy find files (`fzf`) |
 | | `<Space> g` | Ripgrep project text |
+| | `<Space> g w` / `<Space> f w` | **Search word under cursor across project (`:RgWord`)** |
+| | `<Space> c o` / `<Space> c s` | **Code outline / symbol search in file (`:BTags`)** |
 | | `<Space> e` | Toggle file explorer sidebar (`NERDTree`) |
 | **Motions** | `s{char}{char}` | Jump to 2 characters on screen (`vim-sneak`) |
 | | `<C-d>` / `<C-u>` | Smooth animated scrolling (`vim-smoothie`) |
-| **Editing** | `gcc` / `gc` | Toggle comments (`vim-commentary`) |
+| **Editing** | `Alt/Option + j / k` | **Move line or selected block up/down (auto-indented)** |
+| | `<` / `>` (visual) | **Continuous indenting (selection stays active)** |
+| | `p` (visual) | **Safe paste (preserves clipboard contents!)** |
+| | `gcc` / `gc` | Toggle comments (`vim-commentary`) |
 | | `ysiw"` / `cs"'` / `ds"` | Surround motions (`vim-surround`) |
 | | `<C-n>` | Multi-cursor word selection |
 | | `<Space> u` | Visual undo tree (`undotree`) |
 | | `<Space> r w` | Search & replace word under cursor |
 | | `<Space> c f` | Format code via LSP or auto-indent |
 | | `<Space> y p` / `y r` / `y n` | Copy full path / relative path / file name |
-| **Splits & Windows**| `<Ctrl-h/j/k/l>` | Move to left / down / up / right window |
+| **Splits & Windows**| `<Space> z` | **Toggle Zoom active split (maximize window / restore)** |
+| | `<Ctrl-h/j/k/l>` | Move to left / down / up / right window |
 | | `<Space> v s` / `v v` | Split horizontally / vertically |
 | | `<Space> v c` | Close active window |
-| **Buffers** | `Shift-L` / `Shift-H` | Next / previous buffer |
+| **Buffers & Tabs** | Top Tab Bar | **Shows all open files across top of screen** |
+| | `Shift-L` / `Shift-H` | Next / previous buffer tab |
+| | `<Space> b s` | **Open disposable scratchpad (`:Scratch`)** |
 | | `<Space> b d` | Close active buffer |
 | **Git** | `<Space> g s` | Interactive Git dashboard (`:Git`) |
 | | `]c` / `[c` | Jump to next / previous diff hunk |

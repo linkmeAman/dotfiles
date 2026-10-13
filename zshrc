@@ -4892,7 +4892,8 @@ if "exp" in payload:
                 time_str = f"{hrs}h {mins}m"
             print(f"• Expiration (exp): {exp_d} \033[1;31m[🔴 EXPIRED - expired {time_str} ago]\033[0m")
     except Exception as e:
-        print(f"• Expiration (exp): {payload[\"exp\"]} (parse error: {e})")
+        exp_raw = payload.get("exp")
+        print(f"• Expiration (exp): {exp_raw} (parse error: {e})")
 else:
     print("• Expiration (exp): \033[33mNo exp claim present (token never expires)\033[0m")
 

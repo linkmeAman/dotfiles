@@ -5,13 +5,35 @@
 ==============================================================================
 
   LEADER KEY: <Space>
-  TIP: Press <Space> and pause for 0.5s to see the interactive Which-Key menu!
-  Press 'q' or <Esc> in this window to close this guide.
+  TIP: Look at your bottom status bar for permanent hints!
+       Press <Space> for the interactive Which-Key popup menu.
+       Press <Space> <Space> or <Space> p for the VS Code-style Command Palette!
+       Press <F1> or <Space> ? to open this guide anytime. Press 'q' to close.
 
 ==============================================================================
-1. AI AGENTS & HARNESSES LAUNCHPAD (NEW!)
+1. SUGGESTIONS, HINTS & COMMAND DISCOVERY (NEW!)
 ==============================================================================
-  All major AI coding agents are installed and accessible right inside Vim:
+  <Space> p   or   <Space><Space>
+    --> COMMAND PALETTE (Fuzzy search ANY command or tool)
+        Type words like "format", "git", "tree", "terminal", "ai", "save"
+        to discover and run commands without memorizing their exact names!
+
+  POPUP MENU ON ':' COMMAND LINE (wildoptions=pum)
+    --> When you type ':' and start typing any letters (e.g. :w, :set, :Lsp)
+        or press <Tab>, an interactive popup dropdown appears showing all
+        matching command suggestions! Cycle with <Tab>, <S-Tab>, or Arrows.
+
+  AUTOMATIC CODE COMPLETION IN INSERT MODE
+    --> As you type code or text in any file, an auto-completion dropdown
+        appears with matching words, symbols, and file paths.
+        Press <Tab> or <C-n> / <C-p> to select a suggestion.
+
+  PERMANENT BOTTOM HINT BAR
+    --> The bottom status bar shows: ⌨ <Space>:Menu <Space>p:Commands <F1>:Help
+
+==============================================================================
+2. AI AGENTS & HARNESSES LAUNCHPAD
+==============================================================================
   <Space> a g              Launch Antigravity AI Agent (:Agy)
   <Space> a c              Launch Anthropic Claude Code (:Claude)
   <Space> a d              Launch Aider AI Pair Programmer (:Aider)
@@ -25,7 +47,7 @@
     :Copilot setup         One-time GitHub account authentication
 
 ==============================================================================
-2. OPENING FOLDERS & PROJECT WORKSPACES
+3. OPENING FOLDERS & PROJECT WORKSPACES
 ==============================================================================
   v .                      Open current directory (NERDTree opens automatically!)
   v path/to/project        Open any project folder directly
@@ -36,7 +58,7 @@
   <Space> b                Switch between open buffers
 
 ==============================================================================
-3. VS CODE INTEGRATION & EXTENSIONS
+4. VS CODE INTEGRATION & EXTENSIONS
 ==============================================================================
   INSTALLED VS CODE EXTENSIONS:
     - vscodevim.vim        Full modal Vim editing inside VS Code
@@ -50,7 +72,7 @@
     code .                 Open folder in VS Code from terminal
 
 ==============================================================================
-4. PRODUCTIVITY HELPERS & UTILITIES
+5. PRODUCTIVITY HELPERS & UTILITIES
 ==============================================================================
   <Space> t                Toggle integrated bottom terminal drawer (:terminal)
   <Space> c f              Format code via active LSP (:Format)
@@ -67,7 +89,7 @@
   <Space> s v              Reload ~/.vimrc configuration (:ReloadConfig)
 
 ==============================================================================
-5. MOTIONS & EDITING POWER TOOLS
+6. MOTIONS & EDITING POWER TOOLS
 ==============================================================================
   s{char}{char}            Jump directly to any 2 characters on screen (Sneak)
   S{char}{char}            Jump backwards to any 2 characters on screen
@@ -79,7 +101,7 @@
   <Space> w / q            Save file / Quit
 
 ==============================================================================
-6. WINDOWS & SPLITS
+7. WINDOWS & SPLITS
 ==============================================================================
   <Ctrl-h/j/k/l>           Move to left / down / up / right window
   <Space> v s / v v        Split horizontally / vertically
@@ -89,5 +111,13 @@
   <Space> b d              Close current buffer
 
 ==============================================================================
-  To re-open this guide anytime in Vim:  <Space>?  or  :Guide  or  :HelpMe
+8. TROUBLESHOOTING & GETTING UNSTUCK
+==============================================================================
+  Stuck in FZF / Rg search :  Press <Esc> or type :close<Enter> to dismiss
+  Stuck in Terminal / AI   :  Press <Esc> to exit insert, then :close or <Space>vc
+  Reset / Close all splits :  Type :only (<Space>vo) to keep only current file
+  Force quit without save  :  Type :qa! (<Space>Q)
+
+==============================================================================
+  To re-open this guide anytime in Vim:  <F1>  or  <Space>?  or  :Guide
 ==============================================================================

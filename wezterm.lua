@@ -631,34 +631,54 @@ local shells = {
   login = true,
 }
 
-local tui_apps = {
+local interactive_apps = {
+  -- Editors & Viewers
   nvim = '',
   vim = '',
   vi = '',
   nano = '󰈙',
-  yazi = '󰇥',
-  ranger = '󰇥',
-  lazygit = '󰊢',
-  lazydocker = '󰡨',
-  lazysql = '󰆼',
-  btop = '󰓅',
-  htop = '󰓅',
-  top = '󰓅',
-  w3m = '󰖟',
-  lynx = '󰖟',
   less = '󰈙',
   more = '󰈙',
   man = '󰈙',
-}
+  bat = '󰈙',
 
-local ai_tools = {
-  agy = '󱚣',
+  -- File Managers & Navigators
+  yazi = '󰇥',
+  ranger = '󰇥',
+
+  -- Git, DB & Container TUI
+  lazygit = '󰊢',
+  lazydocker = '󰡨',
+  lazysql = '󰆼',
+
+  -- System Monitors
+  btop = '󰓅',
+  htop = '󰓅',
+  top = '󰓅',
+
+  -- Web & Remote
+  w3m = '󰖟',
+  lynx = '󰖟',
+  ssh = '󰣀',
+  tmux = '',
+
+  -- AI Assistants (Interactive agent REPLs)
   claude = '󰚩',
+  agy = '󱚣',
   copilot = '󰚩',
   gemini = '󰚩',
   aider = '󰚩',
   cursor = '󰚩',
   ollama = '󰚩',
+  cline = '󰚩',
+
+  -- Interactive Language REPLs
+  python = '󰌠',
+  python3 = '󰌠',
+  ipython = '󰌠',
+  node = '󰌞',
+  ruby = '',
+  irb = '',
 }
 
 -- Per-tab state tracking for loading spinners & completion alerts
@@ -673,11 +693,11 @@ local function get_pane_proc_info(pane)
   end
 
   -- Clean up version-named binaries (e.g. Claude Code stores executables as ~/.local/share/claude/versions/2.1.296)
-  if full_name:find('/claude/') or full_name:find('/claude$') or full_name:find('claude') then
+  if full_name:find('/claude/') or full_name:find('/claude$') or raw_proc:lower() == 'claude' then
     raw_proc = 'claude'
-  elseif full_name:find('/agy/') or full_name:find('/agy$') then
+  elseif full_name:find('/agy/') or full_name:find('/agy$') or raw_proc:lower() == 'agy' then
     raw_proc = 'agy'
-  elseif full_name:find('/cline/') or full_name:find('/cline$') then
+  elseif full_name:find('/cline/') or full_name:find('/cline$') or raw_proc:lower() == 'cline' then
     raw_proc = 'cline'
   elseif raw_proc:match('^v?%d+%.%d+') then
     -- Fallback: If executable name is purely numbers (e.g. 2.1.296), extract tool name from parent folder
@@ -698,11 +718,10 @@ local function get_pane_proc_info(pane)
 
   local detected_proc = raw_proc:lower()
 
-  -- Check if title identifies an AI tool or specific CLI command
-  if ai_tools[title_first_word:lower()] then
-    detected_proc = title_first_word:lower()
-  elseif (detected_proc == 'node' or detected_proc == 'python' or detected_proc == 'python3' or detected_proc == 'sh' or detected_proc == 'zsh' or detected_proc == '') and title_first_word ~= '' then
-    if not shells[title_first_word:lower()] then
+  -- If the foreground process is a shell (zsh, bash), it is literally the shell prompt!
+  -- Never override shell status with leftover window titles.
+  if not shells[detected_proc] then
+    if interactive_apps[title_first_word:lower()] and (detected_proc == 'node' or detected_proc == 'python' or detected_proc == 'python3' or detected_proc == '') then
       detected_proc = title_first_word:lower()
     end
   end
@@ -725,7 +744,7 @@ local function get_tab_proc_info(tab)
     for _, p in ipairs(tab.panes) do
       if p.pane_id ~= tab.active_pane.pane_id then
         local other_proc, other_title = get_pane_proc_info(p)
-        if not shells[other_proc] and not tui_apps[other_proc] then
+        if not shells[other_proc] and not interactive_apps[other_proc] then
           return other_proc, other_title
         end
       end
@@ -735,30 +754,52 @@ local function get_tab_proc_info(tab)
   return proc, title
 end
 
-local function clean_tab_title(tab, custom_title)
+local function clean_tab_title(tab, proc)
   local pane = tab.active_pane
-  local title = custom_title or pane.title or ''
+  local raw_title = pane.title or ''
+  raw_title = raw_title:match('^%s*(.-)%s*$') or ''
 
-  if title == '' and pane.foreground_process_name then
-    title = pane.foreground_process_name:match('([^/\\]+)$') or 'shell'
+  -- Extract folder name from CWD as smart context
+  local folder = ''
+  local cwd = pane.current_working_dir
+  if cwd then
+    local path = type(cwd) == 'table' and (cwd.file_path or '') or tostring(cwd)
+    path = path:gsub('^file://[^/]*', ''):gsub('[/\\]+$', '')
+    folder = path:match('([^/\\]+)$') or ''
   end
 
-  -- If title is a path (e.g. ~/Documents/UEM), extract only the folder basename
-  if title:find('/') or title:find('\\') then
-    title = title:gsub('[/\\]+$', '')
-    local basename = title:match('([^/\\]+)$')
-    if basename and basename ~= '' then
-      title = basename
+  local title = ''
+  if raw_title:sub(1, 3) == '✳' then
+    title = raw_title:sub(4):match('^%s*(.-)$') or ''
+  elseif raw_title:sub(1, 1) == '*' then
+    title = raw_title:sub(2):match('^%s*(.-)$') or ''
+  elseif raw_title:find('/') or raw_title:find('\\') then
+    local cleaned = raw_title:gsub('[/\\]+$', '')
+    title = cleaned:match('([^/\\]+)$') or ''
+  else
+    title = raw_title
+  end
+
+  local lower_title = title:lower()
+  local user = (os.getenv('USER') or ''):lower()
+  if title == '' or lower_title == 'zsh' or lower_title == 'bash' or lower_title == 'sh' or lower_title == '~' or lower_title == user then
+    if folder ~= '' and folder:lower() ~= user then
+      title = folder
+    elseif proc and proc ~= 'shell' and not shells[proc] then
+      title = proc
+    else
+      title = '~'
+    end
+  elseif lower_title == 'claude' or lower_title == 'agy' then
+    -- When tabs run Claude or AGY, show the project directory so multiple tabs are easily distinguishable!
+    if folder ~= '' and folder:lower() ~= user then
+      title = folder
     end
   end
 
-  -- Clean up home directory or empty title
-  if title == '' or title == os.getenv('USER') then
-    title = '~'
-  end
-
-  -- Truncate to maximum 14 characters with ellipsis so tabs never crowd the tab bar
-  if #title > 14 then
+  if wezterm and wezterm.truncate_right then
+    title = wezterm.truncate_right(title, 14)
+  elseif #title > 14 then
     title = title:sub(1, 13) .. '…'
   end
 
@@ -794,15 +835,15 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max
 
   local proc, raw_title = get_tab_proc_info(tab)
   local is_shell = shells[proc] == true
-  local is_tui = tui_apps[proc] ~= nil
+  local is_interactive = interactive_apps[proc] ~= nil
 
   -- State machine transition
-  if is_tui then
-    state.status = 'tui'
+  if is_interactive then
+    state.status = 'interactive'
     state.running_proc = nil
     state.completed_proc = nil
   elseif not is_shell then
-    -- A task/agent/command is actively running!
+    -- A transient task/command (cargo, npm, pytest, git) is actively running!
     if state.status ~= 'running' or state.running_proc ~= proc then
       state.status = 'running'
       state.running_proc = proc
@@ -861,7 +902,7 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max
     local comp_name = clean_tab_title(tab, state.completed_proc or 'Done')
     text = string.format(' ✔ %d: %s (Done) ', index, comp_name)
   elseif state.status == 'running' then
-    -- Animated spinner & loading indicator
+    -- Animated spinner & loading indicator ONLY for real active background tasks
     local spinner_char = SPINNER[spinner_idx]
     local run_name = clean_tab_title(tab, state.running_proc or proc)
     text = string.format(' %s %d: %s ', spinner_char, index, run_name)
@@ -874,9 +915,9 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max
       fg = '#e0af68' -- Warm amber for background running tab
       intensity = 'Bold'
     end
-  elseif is_tui then
-    -- Interactive editor/TUI app icon
-    local icon = tui_apps[proc] or '󰇥'
+  elseif is_interactive then
+    -- Interactive editor, AI assistant, or TUI app with dedicated icon and clean title
+    local icon = interactive_apps[proc] or '󰇥'
     local title = clean_tab_title(tab, proc)
     text = string.format(' %s %d: %s ', icon, index, title)
     if tab.is_active then
@@ -886,6 +927,9 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max
     elseif hover then
       bg = '#1f2335'
       fg = '#c0caf5'
+    else
+      bg = '#16161e'
+      fg = '#89b4fa' -- Clear accent for background interactive tools
     end
   else
     -- Normal idle shell
@@ -898,6 +942,9 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max
     elseif hover then
       bg = '#1f2335'
       fg = '#c0caf5'
+    else
+      bg = '#16161e'
+      fg = '#565f89'
     end
   end
 
@@ -924,8 +971,7 @@ wezterm.on('update-right-status', function(window, pane)
     table.insert(cells, { Text = ' ' .. string.upper(mode) .. ' ' })
   end
 
-  -- 2. Scan tabs for completed alerts and running tasks
-  local running_tasks = {}
+  -- 2. Scan tabs for completed task notifications
   local completed_alerts = {}
   local now = os.time()
 
@@ -935,53 +981,35 @@ wezterm.on('update-right-status', function(window, pane)
     for _, item in ipairs(tabs) do
       local tid = item.tab:tab_id()
       local s = tab_states[tid]
-      if s then
-        if s.status == 'completed' then
-          -- If not yet viewed or recently viewed within 6 seconds
-          if not s.user_viewed or (now - (s.viewed_at or now)) < 6 then
-            table.insert(completed_alerts, {
-              index = item.index + 1,
-              proc = s.completed_proc or 'task',
-            })
-          end
-          -- Send desktop notification if completed in the background
-          if not s.notified and not item.is_active then
-            s.notified = true
-            window:toast_notification(
-              'Task Completed ✔',
-              string.format('Tab %d: "%s" has finished!', item.index + 1, s.completed_proc or 'task'),
-              nil,
-              4000
-            )
-          end
-        elseif s.status == 'running' and s.running_proc then
-          table.insert(running_tasks, {
+      if s and s.status == 'completed' then
+        -- If not yet viewed or recently viewed within 6 seconds
+        if not s.user_viewed or (now - (s.viewed_at or now)) < 6 then
+          table.insert(completed_alerts, {
             index = item.index + 1,
-            proc = s.running_proc,
-            is_active = item.is_active,
+            proc = s.completed_proc or 'task',
           })
+        end
+        -- Send desktop notification if completed in the background
+        if not s.notified and not item.is_active then
+          s.notified = true
+          window:toast_notification(
+            'Task Completed ✔',
+            string.format('Tab %d: "%s" has finished!', item.index + 1, s.completed_proc or 'task'),
+            nil,
+            4000
+          )
         end
       end
     end
   end
 
-  -- 3. High-Priority Alert Badges
+  -- 3. High-Priority Alert Badges (transient completed task toast)
   if #completed_alerts > 0 then
     local alert = completed_alerts[1]
     table.insert(cells, { Background = { Color = '#1f382b' } })
     table.insert(cells, { Foreground = { Color = '#9ece6a' } })
     table.insert(cells, { Attribute = { Intensity = 'Bold' } })
     table.insert(cells, { Text = string.format(' ✔ Tab %d: %s (Done) ', alert.index, alert.proc) })
-  elseif #running_tasks > 0 then
-    local task = running_tasks[1]
-    local spinner_char = SPINNER[spinner_idx]
-    table.insert(cells, { Foreground = { Color = '#7dcfff' } })
-    table.insert(cells, { Attribute = { Intensity = 'Bold' } })
-    if task.is_active then
-      table.insert(cells, { Text = string.format(' %s Running: %s ', spinner_char, task.proc) })
-    else
-      table.insert(cells, { Text = string.format(' %s Tab %d: %s ', spinner_char, task.index, task.proc) })
-    end
   end
 
   -- 4. Rotating Command Hint (concise, updates every 12s)

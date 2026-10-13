@@ -145,6 +145,9 @@ Your terminal is your complete development home. Here is how to navigate everyth
 | | `<Space> o f` | Open active file at cursor in VS Code |
 | | `<Space> o t` | **Public webhook tunnel for localhost:3000 (`:Tunnel`)** |
 | | `<Space> o C` | **Inspect color swatch & WCAG contrast (`:Color`)** |
+| | `<Space> o j` | **Decode JWT token under cursor / prompt (`:JWT`)** |
+| | `<Space> o q` | **Generate QR code for URL under cursor (`:QR`)** |
+| | `<Space> o s` | **Run static HTTP file server for directory (`:Serve`)** |
 | **Terminal Drawer**| `<Space> t` | Toggle bottom terminal drawer |
 | **Files & Search** | `<Space> f` / `<C-p>` | Fuzzy find files (`fzf`) |
 | | `<Space> g` | Ripgrep project text |
@@ -192,6 +195,7 @@ Your terminal is your complete development home. Here is how to navigate everyth
 | | `]x` / `[x` | **Jump to next / previous merge conflict marker** |
 | | `<Space> g x` | **Jump to next merge conflict (`:NextConflict`)** |
 | | `<Space> g p` | Preview diff hunk at cursor |
+| | `<Space> g C` | **Interactive Git cherry-pick wizard (`:GitCherryPick`)** |
 | **Workspace** | `<Space> s s` / `s r` | Save / restore session |
 | | `<Space> s v` | Reload `~/.vimrc` |
 | | `<Space> w` / `q` | Save file / Quit |
@@ -206,6 +210,11 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 | :--- | :--- | :--- |
 | `hud` / `<F1>` | `hud` | Interactive search menu of all terminal tools; pastes command onto prompt. |
 | `hint` / `<F2>`| `hint`, `hint git`, `hint vim` | Interactive developer hints & recommendations explorer with live cheat sheet. |
+| `jwt [token]` | `jwt`, `jwt eyJ...` | Zero-browser JWT inspector & expiration auditor; decodes header/payload & expiry countdown. |
+| `qr [text\|url]` | `qr https://...`, `qr` | Terminal QR code generator for instant mobile testing; copies URL to clipboard. |
+| `serve [port]` | `serve`, `serve 3000` | Zero-config local HTTP static file server with local & LAN network IP cards. |
+| `fpick [branch]` | `fpick`, `fpick main` | Interactive Git cherry-pick wizard with side-by-side Delta diff preview. |
+| `batt` / `battery` | `batt`, `battery` | Terminal hardware power status, battery %, charging state, health % & cycle count. |
 | `pomo [mins]` | `pomo 25 'Feature'`, `timer 10` | In-terminal Pomodoro timer with progress bar, chime & desktop notification. |
 | `tunnel [port]` | `tunnel`, `tunnel 8080` | Zero-config public webhook tunnel for localhost:3000 via localhost.run. |
 | `color <hex>` | `color #38bdf8`, `color ff5733` | Truecolor terminal swatch viewer, RGB/HSL values & WCAG contrast compliance. |

@@ -472,6 +472,7 @@ let g:which_key_map.g = {
       \ 'S': [':GitSearch',            'Search git history by code symbol (:GitSearch)'],
       \ 'g': [':Gist',                 'Share buffer/selection as Gist (:Gist)'],
       \ 'e': [':EnvCheck',             'Audit .env vs .env.example (:EnvCheck)'],
+      \ 'C': [':GitCherryPick',        'Interactive Git cherry-pick wizard (:GitCherryPick)'],
       \ }
 
 " Buffers
@@ -574,6 +575,9 @@ let g:which_key_map.o = {
       \ 'r': [':call <SID>ReadUrlUnderCursor()', 'Read URL in terminal Reader'],
       \ 't': [':Tunnel',                         'Expose localhost to public tunnel (:Tunnel)'],
       \ 'C': [':Color',                          'Inspect color swatch & WCAG contrast (:Color)'],
+      \ 'j': [':JWT',                            'Decode JWT token under cursor / prompt (:JWT)'],
+      \ 'q': [':QR',                             'Generate QR code for URL under cursor (:QR)'],
+      \ 's': [':Serve',                          'Run static HTTP file server for directory (:Serve)'],
       \ 'c': [':OpenInCode',                     'Open project in Visual Studio Code'],
       \ 'f': [':OpenInCodeFile',                 'Open file at cursor in VS Code'],
       \ }
@@ -1143,6 +1147,34 @@ function! s:RunColor(hex) abort
 endfunction
 command! -nargs=? Color call <SID>RunColor(<q-args>)
 
+function! s:RunJWT(token) abort
+  let l:tok = empty(a:token) ? expand('<cWORD>') : a:token
+  let l:cmd = empty(l:tok) ? 'jwt' : 'jwt ' . shellescape(l:tok)
+  call s:ExecuteInTerminalDrawer(l:cmd)
+endfunction
+command! -nargs=? JWT call <SID>RunJWT(<q-args>)
+
+function! s:RunQR(text) abort
+  let l:val = empty(a:text) ? expand('<cWORD>') : a:text
+  let l:cmd = empty(l:val) ? 'qr' : 'qr ' . shellescape(l:val)
+  call s:ExecuteInTerminalDrawer(l:cmd)
+endfunction
+command! -nargs=? QR call <SID>RunQR(<q-args>)
+
+function! s:RunServe(port) abort
+  let l:p = empty(a:port) ? '8000' : a:port
+  let l:dir = expand('%:p:h')
+  if empty(l:dir) | let l:dir = getcwd() | endif
+  call s:ExecuteInTerminalDrawer('serve ' . l:p . ' ' . shellescape(l:dir))
+endfunction
+command! -nargs=? -complete=dir Serve call <SID>RunServe(<q-args>)
+
+function! s:RunCherryPick(branch) abort
+  let l:cmd = empty(a:branch) ? 'fpick' : 'fpick ' . a:branch
+  call s:ExecuteInTerminalDrawer(l:cmd)
+endfunction
+command! -nargs=? GitCherryPick call <SID>RunCherryPick(<q-args>)
+
 " 18. Project Bookmarks Jumping (:Bookmarks / :Bm)
 function! s:FzfBookmarks() abort
   let l:bm_file = expand('~/.bookmarks')
@@ -1240,6 +1272,7 @@ function! s:OpenHints() abort
         \ '    <Space> g e      Audit .env against .env.example for drift (:EnvCheck)',
         \ '    <Space> g i      Interactive GitHub CI runs & logs (:GitCI)',
         \ '    <Space> g P      Create GitHub Pull Request wizard (:GitCreatePR)',
+        \ '    <Space> g C      Interactive Git cherry-pick wizard (:GitCherryPick)',
         \ '    fcommit / gc     Conventional commit wizard with type/scope picker',
         \ '    gsync / gprune   Sync with remote & prune deleted [gone] branches',
         \ '    ]x / [x          Jump directly to next / previous merge conflict marker',
@@ -1251,6 +1284,10 @@ function! s:OpenHints() abort
         \ '  ⚡ SHELL & TERMINAL (OUTSIDE VIM):',
         \ '    hud / <F1>       Terminal Cockpit HUD (search and paste all 50+ commands)',
         \ '    hint / <F2>      Interactive Shell Hints & cheat sheet explorer',
+        \ '    jwt [token]      Zero-browser JWT inspector & expiration countdown (:JWT)',
+        \ '    qr [text|url]    Terminal QR code generator for mobile testing (:QR)',
+        \ '    serve [port]     Zero-config local HTTP static file server (:Serve)',
+        \ '    batt / battery   Hardware power, battery %, state, health & cycle count',
         \ '    pomo [mins]      Pomodoro focus timer with progress bar & chime (:Pomo)',
         \ '    tunnel [port]    Expose localhost to public SSH tunnel (:Tunnel)',
         \ '    color <hex>      Truecolor swatch & WCAG accessibility checker (:Color)',

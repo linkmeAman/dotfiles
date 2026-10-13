@@ -1742,6 +1742,11 @@ cl() {
 hud() {
   local entries=(
     "hint [topic] / <F2>      --> Interactive developer hints & cheatsheet explorer"
+    "jwt [token]              --> Zero-browser JWT token inspector & expiration auditor"
+    "qr [text|url]            --> Terminal QR code generator for mobile hand-off (auto-copied)"
+    "serve [port] [dir]       --> Zero-config local HTTP static file server (auto-copied)"
+    "fpick [branch]           --> Interactive Git cherry-pick wizard with Delta diff preview"
+    "batt / battery           --> Hardware power, battery %, state, health & cycle count"
     "dev / up                 --> Universal project dev server & stack runner"
     "fci / factions           --> Interactive GitHub CI / Actions run watcher & logs"
     "fcreatepr / gpr          --> Zero-mouse GitHub pull request creation wizard"
@@ -2705,7 +2710,9 @@ ding() {
 
   return $exit_code
 }
-alias alert='ding'
+alert() {
+  ding "$@"
+}
 
 # ------------------------------------------------------------------------------
 # 2. Interactive Git Conflict Resolver (fconflicts)
@@ -3157,8 +3164,7 @@ scratch() {
 
   ${EDITOR:-nvim} "$note_file"
 }
-alias note='scratch'
-alias notes='scratch'
+alias sc='scratch'
 
 fnote() {
   local notes_dir="$HOME/.local/share/notes"
@@ -3176,7 +3182,7 @@ fnote() {
     ${EDITOR:-nvim} "$target"
   fi
 }
-alias fnotes='fnote'
+alias fn='fnote'
 
 # ==============================================================================
 # Interactive Hints, Recommendations & Command Advisor Engine (hint / <F2>)
@@ -3201,6 +3207,7 @@ hint() {
         echo "  gist / fgist --> Share code / diff as secret GitHub Gist (auto-copied)"
         echo "  fgitsearch   --> Git code archeology: find commits modifying symbol"
         echo "  frecent / g- --> Switch to recently active local branches (g- = prev)"
+        echo "  fpick [branch]--> Interactive Git cherry-pick wizard with Delta diff preview"
         echo "  gsync        --> Pull rebase origin & prune stale [gone] local branches"
         echo "  gcp 'msg'    --> Stage all, commit, and push upstream in 1 keystroke"
         echo "  fmod         --> Fuzzy browse dirty/modified files with Delta preview"
@@ -3227,6 +3234,10 @@ hint() {
       shell|sh|term)
         echo "⚡ Terminal Superpower Hints:"
         echo "  dash / base   --> Terminal Base of Operations Dashboard"
+        echo "  jwt [token]   --> Zero-browser JWT token inspector & expiration auditor"
+        echo "  qr [text|url] --> Terminal QR code generator for mobile testing (auto-copied)"
+        echo "  serve [port]  --> Zero-config local HTTP static file server (auto-copied)"
+        echo "  batt / battery--> Hardware power, battery %, state, health & cycle count"
         echo "  pomo [mins]   --> Pomodoro focus timer with progress bar & glass chime"
         echo "  tunnel [port] --> Public SSH webhook tunnel exposing localhost"
         echo "  outdated      --> Polyglot dependency update auditor (npm/cargo/pip/go)"
@@ -3729,7 +3740,7 @@ EOF
     echo "🧹 Ephemeral sandbox discarded cleanly."
   fi
 }
-alias play='sandbox'
+alias sbox='sandbox'
 
 # ------------------------------------------------------------------------------
 # 7. Side-by-Side Branch Review & Commits Inspector (greview [base])
@@ -4528,6 +4539,7 @@ np() {
     echo "🔇 No music playing (neither Spotify nor Apple Music running)"
   fi
 }
+unalias play pause 2>/dev/null || true
 
 play() {
   if pgrep -xq Spotify; then
@@ -4780,3 +4792,292 @@ aireview() {
   fi
 }
 alias agy-branch='aireview'
+
+# ==============================================================================
+# Zero-Browser & Zero-Mouse Developer Utilities: JWT, QR, Serve, CherryPick, Battery
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Zero-Browser JWT Token Inspector & Expiration Auditor (jwt [token])
+# ------------------------------------------------------------------------------
+jwt() {
+  local token="${1:-}"
+  if [[ -z "$token" ]]; then
+    if command -v pbpaste >/dev/null 2>&1; then
+      local clip=$(pbpaste 2>/dev/null | tr -d '[:space:]')
+      if [[ "$clip" == eyJ*.*.* ]] || [[ "$clip" == eyJ*.* ]]; then
+        token="$clip"
+        printf "\033[38;2;120;140;180m(Decoded JWT from macOS clipboard)\033[0m\n\n"
+      fi
+    fi
+  fi
+  if [[ -z "$token" ]]; then
+    echo "Usage: jwt <token>  (or copy a JWT to clipboard and run 'jwt')" >&2
+    return 1
+  fi
+
+  python3 -c '
+import sys, json, base64, time, datetime
+
+token = sys.argv[1].strip()
+parts = token.split(".")
+if len(parts) < 2:
+    print("\033[31mError:\033[0m Invalid JWT token (expected at least 2 dot-separated parts)", file=sys.stderr)
+    sys.exit(1)
+
+def decode_part(s):
+    s = s + "=" * ((4 - len(s) % 4) % 4)
+    return json.loads(base64.urlsafe_b64decode(s.encode("utf-8")).decode("utf-8", errors="replace"))
+
+try:
+    header = decode_part(parts[0])
+except Exception as e:
+    print(f"\033[31mError decoding header:\033[0m {e}", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    payload = decode_part(parts[1])
+except Exception as e:
+    print(f"\033[31mError decoding payload:\033[0m {e}", file=sys.stderr)
+    sys.exit(1)
+
+print("\033[1;36m=== JWT HEADER ===\033[0m")
+print(json.dumps(header, indent=2))
+
+print("\n\033[1;35m=== JWT PAYLOAD ===\033[0m")
+print(json.dumps(payload, indent=2))
+
+print("\n\033[1;33m=== TOKEN STATUS & DATES ===\033[0m")
+now = time.time()
+
+if "iat" in payload:
+    try:
+        iat_d = datetime.datetime.fromtimestamp(payload["iat"]).strftime("%Y-%m-%d %H:%M:%S")
+        print(f"• Issued At  (iat): {iat_d}")
+    except Exception:
+        pass
+
+if "nbf" in payload:
+    try:
+        nbf_d = datetime.datetime.fromtimestamp(payload["nbf"]).strftime("%Y-%m-%d %H:%M:%S")
+        print(f"• Not Before (nbf): {nbf_d}")
+    except Exception:
+        pass
+
+if "exp" in payload:
+    try:
+        exp_ts = payload["exp"]
+        exp_d = datetime.datetime.fromtimestamp(exp_ts).strftime("%Y-%m-%d %H:%M:%S")
+        diff = exp_ts - now
+        if diff > 0:
+            hrs = int(diff // 3600)
+            mins = int((diff % 3600) // 60)
+            secs = int(diff % 60)
+            if hrs > 24:
+                days = hrs // 24
+                rem_hrs = hrs % 24
+                time_str = f"{days}d {rem_hrs}h {mins}m"
+            elif hrs > 0:
+                time_str = f"{hrs}h {mins}m {secs}s"
+            else:
+                time_str = f"{mins}m {secs}s"
+            print(f"• Expiration (exp): {exp_d} \033[1;32m[🟢 VALID - expires in {time_str}]\033[0m")
+        else:
+            diff_abs = abs(diff)
+            hrs = int(diff_abs // 3600)
+            mins = int((diff_abs % 3600) // 60)
+            if hrs > 24:
+                time_str = f"{hrs // 24}d {hrs % 24}h"
+            else:
+                time_str = f"{hrs}h {mins}m"
+            print(f"• Expiration (exp): {exp_d} \033[1;31m[🔴 EXPIRED - expired {time_str} ago]\033[0m")
+    except Exception as e:
+        print(f"• Expiration (exp): {payload[\"exp\"]} (parse error: {e})")
+else:
+    print("• Expiration (exp): \033[33mNo exp claim present (token never expires)\033[0m")
+
+if len(parts) >= 3:
+    sig_preview = parts[2][:16] + "..." if len(parts[2]) > 16 else parts[2]
+    print(f"\n\033[38;2;120;140;180m• Signature:\033[0m {sig_preview} (verified by API backend)")
+' "$token"
+}
+
+# ------------------------------------------------------------------------------
+# 2. Terminal QR Code Generator for Mobile Testing (qr [text|url])
+# ------------------------------------------------------------------------------
+qr() {
+  local input="${*:-}"
+  if [[ -z "$input" ]]; then
+    if command -v pbpaste >/dev/null 2>&1; then
+      input=$(pbpaste 2>/dev/null | tr -d '\r\n')
+    fi
+  fi
+  if [[ -z "$input" ]]; then
+    echo "Usage: qr <text-or-url>  (or copy URL to clipboard and run 'qr')" >&2
+    return 1
+  fi
+
+  printf "\033[1;36m📱 QR Code for:\033[0m %s\n" "$input"
+  if command -v pbcopy >/dev/null 2>&1; then
+    printf "%s" "$input" | pbcopy
+  fi
+
+  if command -v qrencode >/dev/null 2>&1; then
+    qrencode -t ANSIUTF8 "$input"
+  else
+    local qr_code
+    qr_code=$(curl -s --max-time 3 "http://qrenco.de/${input}" 2>/dev/null)
+    if [[ -n "$qr_code" ]] && [[ "$qr_code" != *"404 Not Found"* ]] && [[ "$qr_code" != *"policy"* ]]; then
+      echo "$qr_code"
+    else
+      echo "\n\033[33mTip:\033[0m Install 'qrencode' for instant offline ANSI QR codes in terminal:"
+      echo "  \033[1mbrew install qrencode\033[0m"
+      printf "\033[32m✔\033[0m URL copied to macOS clipboard: \033[4m%s\033[0m\n" "$input"
+    fi
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# 3. Instant Zero-Config HTTP Static File Server (serve [port] [dir])
+# ------------------------------------------------------------------------------
+serve() {
+  local port="${1:-8000}"
+  local dir="${2:-.}"
+
+  if [[ ! -d "$dir" ]]; then
+    echo "serve: directory not found: $dir" >&2
+    return 1
+  fi
+
+  local lan_ip
+  lan_ip=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "127.0.0.1")
+  local abs_dir
+  abs_dir=$(cd "$dir" && pwd)
+
+  echo "\033[1;36m┌────────────────────────────────────────────────────────┐\033[0m"
+  echo "\033[1;36m│\033[0m  \033[1;32m⚡ Zero-Config Local HTTP File Server\033[0m                 \033[1;36m│\033[0m"
+  echo "\033[1;36m├────────────────────────────────────────────────────────┤\033[0m"
+  printf "\033[1;36m│\033[0m  \033[1;33mLocal:\033[0m   http://localhost:%-28s\033[1;36m│\033[0m\n" "$port"
+  printf "\033[1;36m│\033[0m  \033[1;33mNetwork:\033[0m http://%-15s:%-12s\033[1;36m│\033[0m\n" "$lan_ip" "$port"
+  printf "\033[1;36m│\033[0m  \033[1;34mServing:\033[0m %-42s\033[1;36m│\033[0m\n" "${abs_dir:0:42}"
+  echo "\033[1;36m└────────────────────────────────────────────────────────┘\033[0m"
+
+  if command -v pbcopy >/dev/null 2>&1; then
+    printf "http://localhost:%s" "$port" | pbcopy
+    printf "\033[38;2;120;140;180m📋 Copied http://localhost:%s to clipboard!\033[0m\n" "$port"
+  fi
+  printf "\033[38;2;150;150;150mPress Ctrl-C to stop server.\033[0m\n\n"
+  python3 -m http.server "$port" --directory "$dir"
+}
+
+# ------------------------------------------------------------------------------
+# 4. Interactive Git Cherry-Pick Wizard with Delta Preview (fpick [branch])
+# ------------------------------------------------------------------------------
+fpick() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository." >&2
+    return 1
+  fi
+
+  local target_branch="${1:-}"
+  local current_branch
+  current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+  if [[ -z "$target_branch" ]]; then
+    target_branch=$(git for-each-ref --format='%(refname:short)' refs/heads/ refs/remotes/ 2>/dev/null | \
+      grep -v "HEAD" | grep -v "^${current_branch}$" | sort -u | \
+      fzf --height 40% --reverse --prompt="Select branch to pick commit from > ")
+    [[ -z "$target_branch" ]] && return 0
+  fi
+
+  local preview_cmd="git show --color=always {1} 2>/dev/null"
+  if command -v delta >/dev/null 2>&1; then
+    preview_cmd="git show --color=always {1} 2>/dev/null | delta --paging=never"
+  fi
+
+  local commit
+  commit=$(git log "$target_branch" --oneline --color=always -n 80 2>/dev/null | \
+    fzf --ansi --reverse --height 65% \
+        --header="[Enter: Cherry-pick into $current_branch | Esc: Cancel]" \
+        --prompt="🍒 Pick commit into $current_branch > " \
+        --preview="$preview_cmd" \
+        --preview-window="right:60%:wrap")
+
+  if [[ -n "$commit" ]]; then
+    local hash
+    hash=$(echo "$commit" | awk '{print $1}')
+    echo "🍒 Cherry-picking $hash into $current_branch..."
+    git cherry-pick "$hash"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# 5. Terminal Battery, Power & Hardware Health Inspector (batt / battery)
+# ------------------------------------------------------------------------------
+batt() {
+  local pm_out
+  pm_out=$(pmset -g batt 2>/dev/null)
+  if [[ -z "$pm_out" ]]; then
+    echo "batt: unable to read power management status" >&2
+    return 1
+  fi
+
+  if [[ "$pm_out" != *"InternalBattery"* ]]; then
+    echo "\033[1;32m⚡ Power Source:\033[0m AC Power (Desktop Mac / No Internal Battery Detected)"
+    return 0
+  fi
+
+  local pct
+  pct=$(echo "$pm_out" | grep -oE '[0-9]+%' | head -1 | tr -d '%')
+  [[ -z "$pct" ]] && pct="0"
+
+  local state="Discharging"
+  if echo "$pm_out" | grep -qi "charging"; then
+    state="Charging ⚡"
+  elif echo "$pm_out" | grep -qi "charged"; then
+    state="Fully Charged 🔌"
+  elif echo "$pm_out" | grep -qi "AC Power"; then
+    state="AC Connected 🔌"
+  fi
+
+  local time_rem
+  time_rem=$(echo "$pm_out" | grep -oE '[0-9]+:[0-9]+ remaining' | head -1)
+  if [[ -z "$time_rem" ]]; then
+    time_rem=$(echo "$pm_out" | grep -oE '\([^)]+\) present' | head -1 | sed 's/ present//')
+  fi
+  [[ -z "$time_rem" ]] && time_rem="calculating..."
+
+  local width=20
+  local filled=$(( pct * width / 100 ))
+  local empty=$(( width - filled ))
+  local bar=""
+  for ((i=0; i<filled; i++)); do bar+="█"; done
+  for ((i=0; i<empty; i++)); do bar+="░"; done
+
+  local color="\033[1;32m"
+  if (( pct < 20 )); then
+    color="\033[1;31m"
+  elif (( pct < 50 )); then
+    color="\033[1;33m"
+  fi
+
+  printf "${color}🔋 Battery: %s%% [%s]\033[0m\n" "$pct" "$bar"
+  printf "• State:     %s\n" "$state"
+  printf "• Remaining: %s\n" "$time_rem"
+
+  # Quick hardware health query via ioreg
+  local cycles
+  cycles=$(ioreg -r -c AppleSmartBattery -d 1 2>/dev/null | grep '"CycleCount" =' | awk '{print $3}')
+  local raw_max
+  raw_max=$(ioreg -r -c AppleSmartBattery -d 1 2>/dev/null | grep '"AppleRawMaxCapacity" =' | awk '{print $3}')
+  local design
+  design=$(ioreg -r -c AppleSmartBattery -d 1 2>/dev/null | grep '"DesignCapacity" =' | awk '{print $3}')
+
+  if [[ -n "$raw_max" && -n "$design" && "$design" -gt 0 ]]; then
+    local health=$(( raw_max * 100 / design ))
+    printf "• Health:    %s%% maximum capacity (Cycle count: %s)\n" "$health" "${cycles:-unknown}"
+  elif [[ -n "$cycles" ]]; then
+    printf "• Cycle count: %s\n" "$cycles"
+  fi
+}
+alias battery='batt'

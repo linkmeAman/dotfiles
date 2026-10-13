@@ -150,6 +150,9 @@
   <Space> o r              Read URL under cursor in terminal Reader split
   <Space> o t              Expose localhost to public tunnel (:Tunnel / tunnel)
   <Space> o C              Inspect color swatch & WCAG contrast (:Color / color)
+  <Space> o j              Decode JWT token under cursor / prompt (:JWT / jwt)
+  <Space> o q              Display QR code for URL under cursor (:QR / qr)
+  <Space> o s              Run static HTTP server for current directory (:Serve / serve)
   <Space> w / q            Save file / Quit
 
 ==============================================================================
@@ -212,6 +215,11 @@
 ==============================================================================
   hud  /  <F1>             Interactive shell command HUD & shortcuts menu
   hint [topic] / <F2>      Interactive developer hints & cheatsheet explorer
+  jwt [token]              Zero-browser JWT inspector & expiration countdown (:JWT)
+  qr [text|url]            Terminal QR code generator for mobile testing (:QR)
+  serve [port] [dir]       Zero-config local HTTP static file server (:Serve)
+  fpick [branch]           Interactive Git cherry-pick wizard with Delta diff (:GitCherryPick)
+  batt / battery           Hardware power, battery %, state, health & cycle count
   pomo [mins] [label]      In-terminal Pomodoro timer with progress bar & chime (:Pomo)
   tunnel [port]            Zero-config public webhook tunnel for localhost:3000 (:Tunnel)
   color <hex>              Truecolor swatch viewer, RGB/HSL & WCAG contrast (:Color)

@@ -19,12 +19,18 @@ Usage:
   wz port <number> [-k]      Inspect (and optionally kill) processes on a port
   wz json [file]             Explore JSON with interactive tree viewer (jless)
   wz disk [path]             Analyze disk space usage with visual bars (dust)
+  wz pic <image>             View photo in terminal & copy absolute path
+  wz vid <video>             Play video with mpv & copy absolute path
+  wz web [url]               Browse websites inside terminal (w3m)
   wz sql                     Launch terminal database explorer (lazysql)
   wz notify <title> <body>   Trigger a desktop notification
   wz copy [file]             Copy file or piped stdin to macOS clipboard
   wz help                    Show this help message
 
 Examples:
+  wz pic logo.png            # View image in terminal and copy path
+  wz vid demo.mp4            # Play video with mpv and copy path
+  wz web github.com          # Browse web inside terminal
   wz port 3000 -k            # Kill whatever is blocking port 3000
   wz json payload.json       # Interactive JSON explorer
   wz disk ~/Projects         # Find heavy node_modules / cache
@@ -140,6 +146,37 @@ case "${1:-help}" in
     name="$(basename "$target")"
     wezterm cli spawn --cwd "$target" --workspace "$name"
     echo "Spawned workspace '$name' at $target"
+    ;;
+  pic)
+    shift
+    target="${1:-}"
+    if [ -z "$target" ]; then echo "Usage: wz pic <image_file>"; exit 1; fi
+    abs_path="$(cd "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")"
+    echo "$abs_path" | pbcopy
+    echo "📋 Copied path to clipboard: $abs_path"
+    if command -v viu >/dev/null 2>&1; then
+      viu -b "$target"
+    elif command -v chafa >/dev/null 2>&1; then
+      chafa "$target"
+    fi
+    ;;
+  vid)
+    shift
+    target="${1:-}"
+    if [ -z "$target" ]; then echo "Usage: wz vid <video_file>"; exit 1; fi
+    abs_path="$(cd "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")"
+    echo "$abs_path" | pbcopy
+    echo "📋 Copied path to clipboard: $abs_path"
+    if command -v mpv >/dev/null 2>&1; then
+      mpv --autofit=65% --geometry=50%:50% "$target"
+    else
+      open "$target"
+    fi
+    ;;
+  web|browse)
+    shift
+    url="${1:-https://duckduckgo.com}"
+    w3m "$url"
     ;;
   help|--help|-h)
     show_help

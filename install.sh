@@ -22,7 +22,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   fi
 
   echo "==> Installing core CLI tools via Homebrew..."
-  brew install fzf ripgrep fd bat eza tlrc yazi neovim lazygit lazydocker lazysql dust jless httpie zoxide
+  brew install fzf ripgrep fd bat eza tlrc yazi neovim lazygit lazydocker lazysql dust jless httpie zoxide chafa viu w3m lynx mpv
 
   if ! command -v wezterm >/dev/null 2>&1; then
     echo "==> Installing WezTerm via Homebrew Cask..."

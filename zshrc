@@ -193,7 +193,90 @@ if command -v fzf >/dev/null 2>&1; then
       ${EDITOR:-vim} "+$target_line" "$target_file"
     fi
   }
+
+  # Fuzzy Find & Preview Images (fpic)
+  fpic() {
+    local file
+    file=$(fd --type f -e png -e jpg -e jpeg -e gif -e webp -e svg -e bmp --strip-cwd-prefix 2>/dev/null | \
+      fzf --prompt="🖼 Select Image: " \
+          --preview='chafa -s 50x25 {} 2>/dev/null || viu -w 50 {}' \
+          --preview-window=right:60%)
+    if [ -n "$file" ]; then
+      pic "$file"
+    fi
+  }
+
+  # Fuzzy Find & Inspect Videos (fvid)
+  fvid() {
+    local file
+    file=$(fd --type f -e mp4 -e mov -e mkv -e avi -e webm -e flv --strip-cwd-prefix 2>/dev/null | \
+      fzf --prompt="🎬 Select Video: " \
+          --preview='ffprobe -v error -show_entries stream=width,height,codec_name -of default=noprint_wrappers=1 {} 2>/dev/null' \
+          --preview-window=right:45%)
+    if [ -n "$file" ]; then
+      vid "$file"
+    fi
+  }
 fi
+
+# ==============================================================================
+# Media Viewers (Photo & Video), Path Copier & CLI Web Browser
+# ==============================================================================
+
+# Photo Viewer & Path Copier (pic <image_file>)
+pic() {
+  if [ -z "$1" ]; then
+    echo "Usage: pic <path_to_image>"
+    return 1
+  fi
+  local target="$1"
+  local abs_path="$(cd "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")"
+  echo "$abs_path" | pbcopy
+  echo "📋 Copied path to clipboard: $abs_path"
+  if command -v viu >/dev/null 2>&1; then
+    viu -b "$target"
+  elif command -v chafa >/dev/null 2>&1; then
+    chafa "$target"
+  fi
+}
+
+# Video Player & Path Copier (vid <video_file>)
+vid() {
+  if [ -z "$1" ]; then
+    echo "Usage: vid <path_to_video>"
+    return 1
+  fi
+  local target="$1"
+  local abs_path="$(cd "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")"
+  echo "$abs_path" | pbcopy
+  echo "📋 Copied path to clipboard: $abs_path"
+  if command -v ffprobe >/dev/null 2>&1; then
+    echo "🎞 Video Metadata:"
+    ffprobe -v error -show_entries format=duration,size,bit_rate:stream=width,height,codec_name -of default=noprint_wrappers=1 "$target" 2>/dev/null | head -n 6
+  fi
+  if command -v mpv >/dev/null 2>&1; then
+    mpv --autofit=65% --geometry=50%:50% "$target"
+  else
+    open "$target"
+  fi
+}
+
+# Fast CLI Web Browser (w3m / lynx)
+alias browse='w3m'
+alias web='w3m'
+
+# Direct Web Searches inside Terminal
+google() {
+  local query="$*"
+  query="${query// /+}"
+  w3m "https://www.google.com/search?q=$query"
+}
+
+duck() {
+  local query="$*"
+  query="${query// /+}"
+  w3m "https://html.duckduckgo.com/html/?q=$query"
+}
 
 # WezTerm Shell Integration (OSC 7 Directory Tracking & OSC 133 Semantic Prompts)
 if [[ "$TERM_PROGRAM" == "WezTerm" && -f "/Applications/WezTerm.app/Contents/Resources/wezterm.sh" ]]; then

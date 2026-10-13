@@ -143,7 +143,21 @@ Connected rounded-tree prompt that displays path, git status, live timestamp, an
   - `... H` / `... T` ➔ `| head -n 20` / `| tail -n 20`
   - `... L` / `... W` ➔ `| less` / `| wc -l`
 
+### 🖼️ Media (Photo & Video) Viewers & Path Copiers
+* **`pic <image>`** — View image in high-resolution inside WezTerm (`viu`/`chafa`) and automatically copy its absolute path to clipboard.
+* **`fpic`** — Interactive fuzzy finder for all images with live terminal image rendering previews!
+* **`vid <video>`** — Play video with keyboard-driven `mpv`, inspect metadata (`ffprobe`), and copy path to clipboard.
+* **`fvid`** — Interactive fuzzy finder for all video files in current folder/project.
+
+### 🌐 Terminal CLI Web Browsers (`w3m` & `lynx`)
+* **`browse <url>` / `web <url>`** — Open and navigate websites directly in terminal (`w3m` with vim `j/k` navigation, `Tab` link jump, `B` back, `q` quit).
+* **`google <query>`** — Search Google and read results directly in the terminal without opening Chrome or Safari.
+* **`duck <query>`** — Search DuckDuckGo directly in the terminal.
+
 ### 🧰 Developer Helper Functions
+* **`kp`** — Interactive fuzzy process killer (<kbd>Tab</kbd> to multi-select, <kbd>Enter</kbd> to kill stuck port/server).
+* **`fco`** — Interactive git branch switcher.
+* **`fif <query>`** — Search text across entire codebase with live syntax preview and editor line jump.
 * **`killport <port>`** — Kill whatever process is occupying a port (e.g. `killport 3000`).
 * **`serve [port]`** — Start an instant local HTTP web server in current directory.
 * **`up [n]`** — Navigate up `n` directories at once (`up 3` = `cd ../../..`).
@@ -153,8 +167,8 @@ Connected rounded-tree prompt that displays path, git status, live timestamp, an
 * **`glog`** — Color-coded ASCII Git graph log.
 * **`gundo`** — Safely undo the last commit while keeping files staged.
 * **`nah`** — Discard all local uncommitted changes and clean untracked files.
-* **`json <string|file>`** — Format and prettify JSON.
-* **`calc '<expression>'`** — Fast terminal math calculator.
+* **`json <string|file>`** — Format and prettify JSON with interactive `jless`.
+* **`disk [path]`** — Visual disk space analyzer with `dust`.
 * **`myip`** — Show both LAN IP and public WAN IP.
 * **`help` / `zhelp`** — Interactive in-terminal cheatsheet dashboard.
 

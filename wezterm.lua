@@ -192,6 +192,7 @@ config.quick_select_patterns = {
 config.launch_menu = {
   { label = 'Yazi (Terminal File Manager)', args = { '/opt/homebrew/bin/yazi' } },
   { label = 'Neovim (Code Editor)', args = { '/opt/homebrew/bin/nvim' } },
+  { label = 'W3M (CLI Web Browser)', args = { '/opt/homebrew/bin/w3m', 'https://duckduckgo.com' } },
   { label = 'Lazygit (Git UI)', args = { '/opt/homebrew/bin/lazygit' } },
   { label = 'Lazydocker (Docker UI)', args = { '/opt/homebrew/bin/lazydocker' } },
   { label = 'Lazysql (Database UI)', args = { '/opt/homebrew/bin/lazysql' } },
@@ -211,6 +212,9 @@ local hints = {
   { key = '⌘⇧R', desc = 'Resize mode' },
   { key = '⌘⇧Y', desc = 'Yazi files' },
   { key = '⌘⇧V', desc = 'Neovim editor' },
+  { key = 'pic <file>', desc = 'View image & copy' },
+  { key = 'vid <file>', desc = 'Play video & copy' },
+  { key = 'browse <url>', desc = 'Terminal browser' },
   { key = '⌘⇧G', desc = 'Lazygit' },
   { key = '⌘⇧K', desc = 'Lazydocker' },
   { key = '⌘⇧U', desc = 'Lazysql' },

@@ -37,11 +37,16 @@
 ==============================================================================
 2. AI AGENTS & HARNESSES LAUNCHPAD
 ==============================================================================
+  <Space> a a              Launch Antigravity AI Agent (:Agy)
+  <Space> a e              Ask Antigravity to explain code on cursor (:AgyExplain)
+  <Space> a r              Ask Antigravity to review entire open file (:AgyReview)
   <Space> a g              Launch Antigravity AI Agent (:Agy)
   <Space> a c              Launch Anthropic Claude Code (:Claude)
   <Space> a d              Launch Aider AI Pair Programmer (:Aider)
   <Space> a p              Launch Pi Coding Agent (:PiAgent)
   <Space> a o              Launch Ollama / DeepSeek (:Ollama)
+  C-h / C-j / C-k / C-l    Seamlessly glide between Vim splits AND Tmux panes
+  ]q  /  [q                Jump forward / backward through Quickfix compiler errors
   GITHUB COPILOT (copilot.vim):
     <Tab>                  Accept ghost-text AI suggestion while typing
     <M-]>  /  <M-[>        Cycle to next / previous AI suggestion
@@ -110,6 +115,7 @@
   gF (in Normal mode)      Jump to file:line under cursor (stack traces / logs)
   ]d  /  [d                Jump next / previous compiler or lint error
   ]c  /  [c                Jump next / previous Git diff hunk (GitGutter)
+  ]x  /  [x                Jump next / previous Git merge conflict marker
   <Space> r f              Run current script in terminal drawer without switching
   <Space> r l              Re-run last test/script with one keystroke
   <Space> c d              Fuzzy jump between projects without quitting Vim
@@ -199,6 +205,11 @@
 11. TERMINAL & SHELL POWER TOOLS (OUTSIDE VIM)
 ==============================================================================
   hud  /  <F1>             Interactive shell command HUD & shortcuts menu
+  ding [cmd]               Smart task completion alert with audio chime & desktop banner
+  fconflicts               Interactive Git merge conflict resolver in Neovim
+  search <query>           Terminal web search with auto-copied URL
+  so <question>            Instant StackOverflow & programming answer in pager
+  watchrun [cmd]           Live auto-reloader & test runner on file save
   fpr                      Interactive GitHub PR reviewer, diff & checkout
   fissue                   Interactive GitHub issues browser & discussion viewer
   snip / fsnip             Personal code snippet manager & fuzzy prompt inserter

@@ -1664,6 +1664,11 @@ cl() {
 # ==============================================================================
 hud() {
   local entries=(
+    "ding [cmd]               --> Smart task completion alert with audio chime & banner"
+    "fconflicts               --> Interactive Git merge conflict resolver in Neovim"
+    "search <query>           --> Terminal web search with auto-copied URL"
+    "so <question>            --> Instant StackOverflow & programming answer in pager"
+    "watchrun [cmd]           --> Live auto-reloader & test runner on file save"
     "fpr                      --> Interactive GitHub PR reviewer, diff & checkout"
     "fissue                   --> Interactive GitHub issue browser & discussion viewer"
     "snip / fsnip             --> Personal code snippet manager & fuzzy prompt inserter"
@@ -2430,3 +2435,320 @@ fdocker() {
   fi
 }
 alias fdc='fdocker'
+
+# ------------------------------------------------------------------------------
+# 6. Safe .env File Inspector (envsafe) - Masks secrets during screenshare
+# ------------------------------------------------------------------------------
+envsafe() {
+  local envfile="${1:-.env}"
+  if [ ! -f "$envfile" ]; then
+    echo "❌ $envfile not found."
+    return 1
+  fi
+  echo "🔒 Safe Environment Variables ($envfile):"
+  echo "--------------------------------------------------------"
+  awk -F= '{
+    if ($0 ~ /^#/ || $0 ~ /^$/) {
+      print $0
+    } else if (NF >= 2) {
+      key = $1
+      val = substr($0, length(key) + 2)
+      if (length(val) > 6) {
+        masked = substr(val, 1, 3) "..." substr(val, length(val) - 2)
+      } else {
+        masked = "******"
+      }
+      printf "\033[36m%-32s\033[0m = \033[90m%s\033[0m\n", key, masked
+    }
+  }' "$envfile"
+  echo "--------------------------------------------------------"
+}
+
+# ------------------------------------------------------------------------------
+# 7. Interactive Git Cherry-Pick (fcherry)
+# ------------------------------------------------------------------------------
+fcherry() {
+  local commit
+  commit=$(git log --color=always --oneline --all 2>/dev/null | \
+    fzf --ansi --prompt="🍒 Cherry-pick Commit > " \
+        --header="[Enter: Cherry-pick into current branch | Esc: Cancel]" \
+        --preview="git show --color=always \$(echo {} | awk '{print \$1}') | delta --side-by-side" \
+        --preview-window=right:65%:wrap)
+  if [ -n "$commit" ]; then
+    local sha=$(echo "$commit" | awk '{print $1}')
+    echo "🍒 Cherry-picking $sha..."
+    git cherry-pick "$sha"
+  fi
+}
+alias cherry='fcherry'
+
+# ------------------------------------------------------------------------------
+# 8. Zero-Touchpad Test/Build Watcher (watchrun / loop)
+# ------------------------------------------------------------------------------
+watchrun() {
+  if [ -z "$*" ]; then
+    echo "Usage: watchrun <command_to_run_on_change>  (e.g. watchrun npm test, watchrun pytest)"
+    return 1
+  fi
+  echo "👀 Watching directory for changes... (Press Ctrl+C to stop)"
+  eval "$*"
+  local last_mtime
+  last_mtime=$(find . -maxdepth 3 -not -path '*/.*' -not -path '*/node_modules*' -type f -exec stat -f "%m" {} + 2>/dev/null | sort -n | tail -1)
+  while true; do
+    sleep 1
+    local current_mtime
+    current_mtime=$(find . -maxdepth 3 -not -path '*/.*' -not -path '*/node_modules*' -type f -exec stat -f "%m" {} + 2>/dev/null | sort -n | tail -1)
+    if [ "$current_mtime" != "$last_mtime" ]; then
+      last_mtime="$current_mtime"
+      clear
+      echo "🔄 Change detected! Re-running: $*"
+      echo "----------------------------------------"
+      eval "$*"
+      echo "----------------------------------------"
+      echo "👀 Waiting for next change..."
+    fi
+  done
+}
+alias loop='watchrun'
+
+# ------------------------------------------------------------------------------
+# 9. Unified Polyglot Package Manager (pm) - Auto-detects lockfile & runner
+# ------------------------------------------------------------------------------
+pm() {
+  if [ -f "pnpm-lock.yaml" ]; then
+    pnpm "$@"
+  elif [ -f "yarn.lock" ]; then
+    yarn "$@"
+  elif [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
+    bun "$@"
+  elif [ -f "package-lock.json" ] || [ -f "package.json" ]; then
+    npm "$@"
+  elif [ -f "poetry.lock" ]; then
+    poetry "$@"
+  elif [ -f "uv.lock" ]; then
+    uv "$@"
+  elif [ -f "Pipfile" ]; then
+    pipenv "$@"
+  elif [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
+    if [ "$1" = "install" ] || [ "$1" = "i" ]; then
+      pip install -r requirements.txt
+    else
+      python3 "$@"
+    fi
+  elif [ -f "Cargo.toml" ]; then
+    cargo "$@"
+  elif [ -f "go.mod" ]; then
+    go "$@"
+  elif [ -f "composer.json" ]; then
+    composer "$@"
+  else
+    echo "❌ No recognized project manifest (package.json, pyproject.toml, Cargo.toml, go.mod, composer.json) in current directory."
+    return 1
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# 10. One-Stroke Git Amend (gamend) - Fix typo without changing message
+# ------------------------------------------------------------------------------
+gamend() {
+  local has_changes=$(git status -s 2>/dev/null)
+  if [ -z "$has_changes" ]; then
+    echo "No modifications found to amend."
+    return 0
+  fi
+  git add -u
+  git commit --amend --no-edit
+  echo "✓ Staged changes cleanly amended into last commit:"
+  git log -1 --oneline
+}
+
+# ------------------------------------------------------------------------------
+# 11. Terminal Developer Disk & Cache Cleaner (devclean)
+# ------------------------------------------------------------------------------
+devclean() {
+  echo "🧹 Starting Developer Environment Disk Cleanup..."
+  echo "--------------------------------------------------------"
+
+  if command -v brew >/dev/null 2>&1; then
+    echo "🍺 Cleaning Homebrew cache..."
+    brew cleanup -s >/dev/null 2>&1
+    echo "✓ Homebrew cache cleared."
+  fi
+
+  if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    echo "🐳 Pruning dangling Docker images & build cache..."
+    docker system prune -f --volumes >/dev/null 2>&1
+    echo "✓ Docker caches pruned."
+  fi
+
+  if command -v npm >/dev/null 2>&1; then
+    npm cache clean --force >/dev/null 2>&1
+    echo "✓ npm cache purged."
+  fi
+
+  echo "--------------------------------------------------------"
+  local free_gb=$(df -h / | awk 'NR==2 {print $4}')
+  echo "🎉 Cleanup complete! Free disk space available: $free_gb"
+}
+
+# ==============================================================================
+# Peak Developer Workflow Pack: Alerts, Conflicts, Web & Auto-Watcher
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Smart Task Completion Notification & Audio Chime (ding [cmd])
+# ------------------------------------------------------------------------------
+ding() {
+  local start_time=$(date +%s)
+  local exit_code=0
+  local cmd_name="Task"
+
+  if [ $# -gt 0 ]; then
+    cmd_name="$*"
+    echo "🔔 Running with completion alert: $cmd_name"
+    eval "$@"
+    exit_code=$?
+  else
+    local last_cmd=$(fc -ln -1 2>/dev/null | sed 's/^[[:space:]]*//; s/;[[:space:]]*ding$//')
+    [ -n "$last_cmd" ] && cmd_name="$last_cmd"
+  fi
+
+  local end_time=$(date +%s)
+  local duration=$((end_time - start_time))
+
+  if [ $exit_code -eq 0 ]; then
+    echo "✅ [${duration}s] Finished successfully: $cmd_name"
+    afplay /System/Library/Sounds/Glass.aiff >/dev/null 2>&1 &
+    osascript -e "display notification \"Finished in ${duration}s\" with title \"✅ Command Succeeded\" subtitle \"$cmd_name\"" >/dev/null 2>&1 &
+  else
+    echo "❌ [${duration}s] Exited with error ($exit_code): $cmd_name"
+    afplay /System/Library/Sounds/Sosumi.aiff >/dev/null 2>&1 &
+    osascript -e "display notification \"Failed (exit $exit_code) in ${duration}s\" with title \"❌ Command Failed\" subtitle \"$cmd_name\"" >/dev/null 2>&1 &
+  fi
+
+  return $exit_code
+}
+alias alert='ding'
+
+# ------------------------------------------------------------------------------
+# 2. Interactive Git Conflict Resolver (fconflicts)
+# ------------------------------------------------------------------------------
+fconflicts() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+
+  local conflicts
+  conflicts=$(git diff --name-only --diff-filter=U 2>/dev/null)
+  if [ -z "$conflicts" ]; then
+    echo "✅ No merge conflicts detected in this repository."
+    return 0
+  fi
+
+  local file
+  file=$(echo "$conflicts" | \
+    fzf --header="[Enter: Open in Neovim at conflict | Ctrl-O: Keep Ours | Ctrl-T: Keep Theirs | Esc: Cancel]" \
+        --bind="ctrl-o:execute(git checkout --ours {} && git add {} && echo 'Resolved (ours)')+reload(git diff --name-only --diff-filter=U)" \
+        --bind="ctrl-t:execute(git checkout --theirs {} && git add {} && echo 'Resolved (theirs)')+reload(git diff --name-only --diff-filter=U)" \
+        --preview='git diff --color=always {} 2>/dev/null | delta --side-by-side || cat {}' \
+        --preview-window=right:65%:wrap \
+        --prompt="⚔️ Git Conflicts > ")
+
+  if [ -n "$file" ]; then
+    ${EDITOR:-nvim} "+/<<<<<<<" "$file"
+  fi
+}
+alias fconflict='fconflicts'
+
+# ------------------------------------------------------------------------------
+# 3. Terminal Web Search & StackOverflow Docs (search, so)
+# ------------------------------------------------------------------------------
+search() {
+  if [ -z "$*" ]; then
+    echo "Usage: search <query>  (searches DuckDuckGo without leaving terminal)"
+    return 1
+  fi
+  local query="$*"
+  echo "🔍 Searching web for: $query"
+  local encoded
+  encoded=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$query" 2>/dev/null || echo "$query")
+  local url="https://duckduckgo.com/?q=$encoded"
+  echo -n "$url" | pbcopy
+  _clip_record "$url"
+  echo "📋 Copied search URL to clipboard: $url"
+  if command -v open >/dev/null 2>&1; then
+    open "$url"
+  fi
+}
+
+so() {
+  if [ -z "$*" ]; then
+    echo "Usage: so <programming question or error message>"
+    echo "Example: so python list comprehension"
+    echo "         so react useEffect dependency array"
+    return 1
+  fi
+  local query="$*"
+  echo "📖 Querying developer answers for: $query"
+  local formatted="${query// /+}"
+  local res
+  res=$(curl -s --connect-timeout 5 "https://cht.sh/~${formatted}" 2>/dev/null)
+  if [ -n "$res" ] && [[ "$res" != *"404 NOT FOUND"* ]]; then
+    echo "$res" | ${PAGER:-less -R}
+  else
+    echo "ℹ️ Querying language reference for: $1..."
+    curl -s --connect-timeout 5 "https://cht.sh/$1/${query#* }" 2>/dev/null | ${PAGER:-less -R}
+  fi
+}
+alias askso='so'
+
+# ------------------------------------------------------------------------------
+# 4. Live File Watcher & Auto-Test Runner (watchrun [cmd])
+# ------------------------------------------------------------------------------
+watchrun() {
+  local cmd="$*"
+  if [ -z "$cmd" ]; then
+    if [ -f "package.json" ]; then
+      cmd="npm test"
+    elif [ -f "Cargo.toml" ]; then
+      cmd="cargo test"
+    elif [ -f "pytest.ini" ] || [ -d "tests" ]; then
+      cmd="pytest"
+    elif [ -f "Makefile" ] || [ -f "makefile" ]; then
+      cmd="make test"
+    elif [ -f "go.mod" ]; then
+      cmd="go test ./..."
+    else
+      cmd="git status --short"
+    fi
+  fi
+
+  echo "👀 Watching directory for changes..."
+  echo "⚡ Auto-run command: $cmd"
+  echo "Press Ctrl-C to stop."
+  echo ""
+
+  clear
+  echo "🚀 [$(date '+%H:%M:%S')] Executing: $cmd"
+  eval "$cmd"
+
+  local last_mtime
+  last_mtime=$(find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path '*/target/*' -not -path '*/dist/*' -exec stat -f "%m" {} + 2>/dev/null | sort -nr | head -n 1)
+
+  while true; do
+    sleep 1
+    local current_mtime
+    current_mtime=$(find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path '*/target/*' -not -path '*/dist/*' -exec stat -f "%m" {} + 2>/dev/null | sort -nr | head -n 1)
+    if [ -n "$current_mtime" ] && [ "$current_mtime" != "$last_mtime" ]; then
+      last_mtime="$current_mtime"
+      clear
+      echo "🔄 [$(date '+%H:%M:%S')] Changes detected! Re-running: $cmd"
+      echo "--------------------------------------------------------"
+      eval "$cmd"
+      echo ""
+      echo "👀 Watching for changes... (Ctrl-C to stop)"
+    fi
+  done
+}
+alias fwatch='watchrun'

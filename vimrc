@@ -465,6 +465,7 @@ let g:which_key_map.g = {
       \ 'p': [':GitGutterPreviewHunk', 'Preview git hunk at cursor'],
       \ 'u': [':GitGutterUndoHunk',    'Undo git hunk at cursor'],
       \ 'a': [':GitGutterStageHunk',   'Stage git hunk at cursor'],
+      \ 'x': [':NextConflict',         'Jump to next merge conflict (]x)'],
       \ 'w': [':RgWord',               'Search word under cursor in project (Rg)'],
       \ }
 
@@ -1116,19 +1117,23 @@ nnoremap <silent> <C-p> :Files<CR>
 " Clear search highlight with double Escape or <leader>/
 nnoremap <silent> <Esc><Esc> :nohlsearch<CR>
 
-" Seamless window navigation across Vim splits AND Tmux panes (Ctrl + h/j/k/l)
-function! s:TmuxOrSplitSwitch(wincmd, tmuxdir) abort
+" Seamless window navigation across Vim splits, WezTerm panes, and Tmux panes
+function! g:SmartSplitSwitch(wincmd, wezdir, tmuxdir) abort
   let l:prev_winnr = winnr()
   execute 'wincmd ' . a:wincmd
-  if l:prev_winnr == winnr() && !empty($TMUX)
-    call system('tmux select-pane -' . a:tmuxdir)
+  if l:prev_winnr == winnr()
+    if !empty($TMUX)
+      call system('tmux select-pane -' . a:tmuxdir)
+    elseif !empty($WEZTERM_PANE)
+      call system('wezterm cli activate-pane-direction ' . a:wezdir)
+    endif
   endif
 endfunction
 
-nnoremap <silent> <C-h> :call <SID>TmuxOrSplitSwitch('h', 'L')<CR>
-nnoremap <silent> <C-j> :call <SID>TmuxOrSplitSwitch('j', 'D')<CR>
-nnoremap <silent> <C-k> :call <SID>TmuxOrSplitSwitch('k', 'U')<CR>
-nnoremap <silent> <C-l> :call <SID>TmuxOrSplitSwitch('l', 'R')<CR>
+nnoremap <silent> <C-h> :call SmartSplitSwitch('h', 'Left', 'L')<CR>
+nnoremap <silent> <C-j> :call SmartSplitSwitch('j', 'Down', 'D')<CR>
+nnoremap <silent> <C-k> :call SmartSplitSwitch('k', 'Up', 'U')<CR>
+nnoremap <silent> <C-l> :call SmartSplitSwitch('l', 'Right', 'R')<CR>
 
 " Resize windows easily with Alt/Option or Ctrl + Arrows
 nnoremap <silent> <C-Up>    :resize +2<CR>
@@ -1155,6 +1160,18 @@ command! -bar LspDiagnostic LspDocumentDiagnostics
 " Quickfix list navigation: ]q and [q (Jump next/previous build or grep error)
 nnoremap <silent> ]q :cnext<CR>
 nnoremap <silent> [q :cprevious<CR>
+
+" Merge conflict navigation: ]x and [x (Jump next/previous conflict marker)
+function! s:NextConflict() abort
+  call search('^[<=\|]\{7\}', 'W')
+endfunction
+function! s:PrevConflict() abort
+  call search('^[<=\|]\{7\}', 'bW')
+endfunction
+command! -bar NextConflict call <SID>NextConflict()
+command! -bar PrevConflict call <SID>PrevConflict()
+nnoremap <silent> ]x :NextConflict<CR>
+nnoremap <silent> [x :PrevConflict<CR>
 
 " Move lines up and down (Alt/Option + j/k in Normal and Visual modes, auto-indented)
 nnoremap <silent> <M-j> :m .+1<CR>==

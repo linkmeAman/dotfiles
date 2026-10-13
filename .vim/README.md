@@ -182,6 +182,8 @@ Your terminal is your complete development home. Here is how to navigate everyth
 | | `<Space> b d` | Close active buffer |
 | **Git** | `<Space> g s` | Interactive Git dashboard (`:Git`) |
 | | `]c` / `[c` | Jump to next / previous diff hunk |
+| | `]x` / `[x` | **Jump to next / previous merge conflict marker** |
+| | `<Space> g x` | **Jump to next merge conflict (`:NextConflict`)** |
 | | `<Space> g p` | Preview diff hunk at cursor |
 | **Workspace** | `<Space> s s` / `s r` | Save / restore session |
 | | `<Space> s v` | Reload `~/.vimrc` |
@@ -196,6 +198,11 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 | Command | Usage | Description |
 | :--- | :--- | :--- |
 | `hud` / `<F1>` | `hud` | Interactive search menu of all terminal tools; pastes command onto prompt. |
+| `ding [cmd]` | `ding npm test`, `sleep 5; ding` | Smart task completion alert with audio chime & desktop notification. |
+| `fconflicts` | `fconflicts` | Interactive Git merge conflict resolver with diff preview & auto-jump in Neovim. |
+| `search <query>` | `search docker multi-stage` | Fast terminal web search; auto-copies URL to clipboard without mouse. |
+| `so <question>` | `so python read json` | Instant StackOverflow / developer answer in terminal pager. |
+| `watchrun [cmd]` | `watchrun`, `watchrun pytest` | Live file watcher; auto-reloads tests/linter on every file save. |
 | `fpr` | `fpr` | Interactive GitHub PR reviewer, diff & checkout without browser! |
 | `fissue` | `fissue` | Interactive GitHub issues list, comments viewer & link copier. |
 | `snip` / `fsnip` | `snip add [name]`, `fsnip` | Personal snippet manager; pastes boilerplate straight onto prompt. |

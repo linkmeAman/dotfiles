@@ -253,6 +253,30 @@ augroup CleanWhitespace
   autocmd BufWritePre * call s:TrimWhitespace()
 augroup END
 
+" Smart File:Line:Column Opener (e.g. `vim file.py:42` or `nvim file.py:42:10`)
+function! s:OpenFileWithLine() abort
+  let l:file = expand('%')
+  if empty(l:file) || filereadable(l:file)
+    return
+  endif
+  let l:parts = matchlist(l:file, '^\(.\+\):\(\d\+\)\%(:\(\d\+\)\)\?$')
+  if !empty(l:parts) && filereadable(l:parts[1])
+    let l:target_file = l:parts[1]
+    let l:target_line = l:parts[2]
+    let l:target_col  = empty(l:parts[3]) ? 1 : l:parts[3]
+    let l:old_buf = bufnr('%')
+    execute 'edit ' . fnameescape(l:target_file)
+    execute l:target_line
+    execute 'normal! ' . l:target_col . '|'
+    execute 'bdelete! ' . l:old_buf
+  endif
+endfunction
+
+augroup FileWithLine
+  autocmd!
+  autocmd BufNewFile *:* call s:OpenFileWithLine()
+augroup END
+
 " ------------------------------------------------------------------------------
 " 5. PLUGIN CONFIGURATIONS
 " ------------------------------------------------------------------------------
@@ -415,6 +439,7 @@ let g:which_key_map.e = {
       \ 'e': [':NERDTreeToggle',       'Toggle file tree'],
       \ 'f': [':NERDTreeFind',         'Find current file in tree'],
       \ 'r': [':NERDTreeRefreshRoot',  'Refresh tree'],
+      \ 'p': [':CdProject',            'Jump to project / folder (zoxide)'],
       \ }
 
 " Fuzzy Finder (fzf)
@@ -493,9 +518,11 @@ let g:which_key_map.x = {
       \ 'p': [':cprev',          'Jump to previous quickfix error'],
       \ }
 
-" Refactor / Replace
+" Run & Refactor
 let g:which_key_map.r = {
-      \ 'name': '+refactor',
+      \ 'name': '+run/refactor',
+      \ 'f': [':RunFile',     'Run current file in terminal drawer'],
+      \ 'l': [':RunLast',     'Re-run last command in terminal drawer'],
       \ 'w': [':ReplaceWord', 'Search & replace word under cursor'],
       \ }
 
@@ -784,6 +811,85 @@ function! s:OpenScratchpad() abort
 endfunction
 command! -bar Scratch call <SID>OpenScratchpad()
 
+" 14. In-Vim Code & Test Runner (Execute in bottom terminal drawer)
+let s:last_run_cmd = ''
+function! s:RunCurrentFile() abort
+  let l:file = expand('%:p')
+  let l:ext  = expand('%:e')
+  if empty(l:file)
+    echo "No file to run"
+    return
+  endif
+  write
+  let l:cmd = ''
+  if l:ext ==# 'py'
+    let l:cmd = 'python3 ' . shellescape(l:file)
+  elseif l:ext ==# 'js'
+    let l:cmd = 'node ' . shellescape(l:file)
+  elseif l:ext ==# 'ts'
+    let l:cmd = 'npx tsx ' . shellescape(l:file)
+  elseif l:ext ==# 'sh' || l:ext ==# 'zsh'
+    let l:cmd = 'zsh ' . shellescape(l:file)
+  elseif l:ext ==# 'lua'
+    let l:cmd = 'lua ' . shellescape(l:file)
+  elseif l:ext ==# 'go'
+    let l:cmd = 'go run ' . shellescape(l:file)
+  elseif l:ext ==# 'rs'
+    let l:cmd = 'cargo run'
+  else
+    let l:cmd = input('Command to execute: ')
+  endif
+  if empty(l:cmd)
+    return
+  endif
+  let s:last_run_cmd = l:cmd
+  call s:ExecuteInTerminalDrawer(l:cmd)
+endfunction
+
+function! s:RunLastCommand() abort
+  if empty(s:last_run_cmd)
+    call s:RunCurrentFile()
+    return
+  endif
+  call s:ExecuteInTerminalDrawer(s:last_run_cmd)
+endfunction
+
+function! s:ExecuteInTerminalDrawer(cmd) abort
+  botright 12split
+  execute 'terminal ' . a:cmd
+  startinsert
+endfunction
+
+command! -bar RunFile call <SID>RunCurrentFile()
+command! -bar RunLast call <SID>RunLastCommand()
+
+" 15. Fuzzy Project & Directory Switcher (Zoxide + FZF)
+function! s:FzfChangeDirectory() abort
+  let l:cmd = 'find . -maxdepth 3 -type d 2>/dev/null'
+  if executable('zoxide')
+    let l:ztest = system('zoxide query --list 2>/dev/null')
+    if !empty(l:ztest) && v:shell_error == 0
+      let l:cmd = 'zoxide query --list'
+    endif
+  endif
+  call fzf#run(fzf#wrap({
+        \ 'source': l:cmd,
+        \ 'sink': function('s:ChangeDirAndRefresh'),
+        \ 'options': '--prompt="Jump Project / Directory > "'
+        \ }))
+endfunction
+
+function! s:ChangeDirAndRefresh(dir) abort
+  if empty(a:dir) | return | endif
+  execute 'cd ' . fnameescape(a:dir)
+  if exists(':NERDTree') && g:NERDTree.IsOpen()
+    NERDTreeCWD
+  endif
+  echo "Working directory changed to: " . a:dir
+endfunction
+
+command! -bar CdProject call <SID>FzfChangeDirectory()
+
 " ------------------------------------------------------------------------------
 " 8. ERGONOMIC KEY MAPPINGS
 " ------------------------------------------------------------------------------
@@ -796,6 +902,9 @@ nnoremap <silent> <leader>b  :Buffers<CR>
 nnoremap <silent> <leader>bs :Scratch<CR>
 nnoremap <silent> <leader>w  :w<CR>
 nnoremap <silent> <leader>z  :ToggleZoom<CR>
+nnoremap <silent> <leader>rf :RunFile<CR>
+nnoremap <silent> <leader>rl :RunLast<CR>
+nnoremap <silent> <leader>cd :CdProject<CR>
 nnoremap <silent> <leader>co :BTags<CR>
 nnoremap <silent> <leader>cs :BTags<CR>
 nnoremap <silent> <leader>?  :Guide<CR>

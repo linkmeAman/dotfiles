@@ -193,43 +193,90 @@ if command -v fzf >/dev/null 2>&1; then
     fi
   }
 
-  # Fuzzy Find & Preview Images (fpic [dir])
+  # Fuzzy Find & Preview Images (fpic [dir|file|query])
   fpic() {
+    # If passed an existing file directly, immediately view it
+    if [ -n "$1" ] && [ -f "$1" ]; then
+      pic "$1"
+      return
+    fi
+
     local search_dirs=()
+    local initial_query=""
+
+    # Check if argument is a directory or a search query
     if [ -n "$1" ]; then
-      search_dirs=("$@")
+      if [ -d "$1" ]; then
+        search_dirs=("$@")
+      else
+        initial_query="$*"
+        local has_local
+        has_local=$(fd -u --type f -e png -e jpg -e jpeg -e gif -e webp -e svg -e bmp -E ".git" -E "node_modules" --max-results 1 . 2>/dev/null)
+        if [ -n "$has_local" ]; then
+          search_dirs=(".")
+        else
+          search_dirs=("$HOME/Documents/ScreenShots" "$HOME/Pictures" "$HOME/Downloads" "$HOME/Desktop" "$HOME/Documents" ".")
+        fi
+      fi
     else
       local has_local
-      has_local=$(fd --type f -e png -e jpg -e jpeg -e gif -e webp -e svg -e bmp -E ".git" -E "node_modules" --max-results 1 . 2>/dev/null)
+      has_local=$(fd -u --type f -e png -e jpg -e jpeg -e gif -e webp -e svg -e bmp -E ".git" -E "node_modules" --max-results 1 . 2>/dev/null)
       if [ -n "$has_local" ]; then
         search_dirs=(".")
       else
-        search_dirs=("$HOME/Pictures" "$HOME/Downloads" "$HOME/Desktop" "$HOME/Documents" ".")
+        search_dirs=("$HOME/Documents/ScreenShots" "$HOME/Pictures" "$HOME/Downloads" "$HOME/Desktop" "$HOME/Documents" ".")
       fi
     fi
 
+    local fzf_args=(
+      --prompt="🖼 Select Image: "
+      --header="Enter: View & Copy Path | Ctrl-O: QuickLook | Esc: Cancel"
+      --bind="ctrl-o:execute(qlmanage -p {} >/dev/null 2>&1 &)"
+      --preview='chafa --format=symbols -s 50x25 "{}" 2>/dev/null || viu -w 50 "{}" 2>/dev/null'
+      --preview-window=right:60%
+    )
+    if [ -n "$initial_query" ]; then
+      fzf_args+=(-q "$initial_query")
+    fi
+
     local file
-    file=$(fd --type f -e png -e jpg -e jpeg -e gif -e webp -e svg -e bmp \
+    file=$(fd -u --type f -e png -e jpg -e jpeg -e gif -e webp -e svg -e bmp \
               -E "Library/Caches" -E ".git" -E "node_modules" -E ".cache" \
-              "" "${search_dirs[@]}" 2>/dev/null | \
-      fzf --prompt="🖼 Select Image: " \
-          --header="Enter: View & Copy Path | Ctrl-O: QuickLook | Esc: Cancel" \
-          --bind="ctrl-o:execute(qlmanage -p {} >/dev/null 2>&1 &)" \
-          --preview='chafa --format=symbols -s 50x25 "{}" 2>/dev/null || viu -w 50 "{}" 2>/dev/null' \
-          --preview-window=right:60%)
+              . "${search_dirs[@]}" 2>/dev/null | \
+      fzf "${fzf_args[@]}")
+
     if [ -n "$file" ]; then
       pic "$file"
     fi
   }
 
-  # Fuzzy Find & Inspect Videos (fvid [dir])
+  # Fuzzy Find & Inspect Videos (fvid [dir|file|query])
   fvid() {
+    # If passed an existing video file directly, immediately play it
+    if [ -n "$1" ] && [ -f "$1" ]; then
+      vid "$1"
+      return
+    fi
+
     local search_dirs=()
+    local initial_query=""
+
     if [ -n "$1" ]; then
-      search_dirs=("$@")
+      if [ -d "$1" ]; then
+        search_dirs=("$@")
+      else
+        initial_query="$*"
+        local has_local
+        has_local=$(fd -u --type f -e mp4 -e mov -e mkv -e avi -e webm -e flv -E ".git" -E "node_modules" --max-results 1 . 2>/dev/null)
+        if [ -n "$has_local" ]; then
+          search_dirs=(".")
+        else
+          search_dirs=("$HOME/Movies" "$HOME/Downloads" "$HOME/Desktop" "$HOME/Documents" "$HOME" ".")
+        fi
+      fi
     else
       local has_local
-      has_local=$(fd --type f -e mp4 -e mov -e mkv -e avi -e webm -e flv -E ".git" -E "node_modules" --max-results 1 . 2>/dev/null)
+      has_local=$(fd -u --type f -e mp4 -e mov -e mkv -e avi -e webm -e flv -E ".git" -E "node_modules" --max-results 1 . 2>/dev/null)
       if [ -n "$has_local" ]; then
         search_dirs=(".")
       else
@@ -237,15 +284,23 @@ if command -v fzf >/dev/null 2>&1; then
       fi
     fi
 
+    local fzf_args=(
+      --prompt="🎬 Select Video: "
+      --header="Enter: Play & Copy Path | Ctrl-O: QuickLook | Esc: Cancel"
+      --bind="ctrl-o:execute(qlmanage -p {} >/dev/null 2>&1 &)"
+      --preview='ffprobe -v error -show_entries stream=width,height,codec_name:format=duration,size -of default=noprint_wrappers=1 "{}" 2>/dev/null'
+      --preview-window=right:50%
+    )
+    if [ -n "$initial_query" ]; then
+      fzf_args+=(-q "$initial_query")
+    fi
+
     local file
-    file=$(fd --type f -e mp4 -e mov -e mkv -e avi -e webm -e flv \
+    file=$(fd -u --type f -e mp4 -e mov -e mkv -e avi -e webm -e flv \
               -E "Library/Caches" -E ".git" -E "node_modules" -E ".cache" \
-              "" "${search_dirs[@]}" 2>/dev/null | \
-      fzf --prompt="🎬 Select Video: " \
-          --header="Enter: Play & Copy Path | Ctrl-O: QuickLook | Esc: Cancel" \
-          --bind="ctrl-o:execute(qlmanage -p {} >/dev/null 2>&1 &)" \
-          --preview='ffprobe -v error -show_entries stream=width,height,codec_name:format=duration,size -of default=noprint_wrappers=1 "{}" 2>/dev/null' \
-          --preview-window=right:50%)
+              . "${search_dirs[@]}" 2>/dev/null | \
+      fzf "${fzf_args[@]}")
+
     if [ -n "$file" ]; then
       vid "$file"
     fi

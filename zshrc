@@ -90,6 +90,9 @@ plugins=(
 
 source $ZSH/oh-my-zsh.sh
 
+# Unalias conflicting Oh-My-Zsh plugin aliases so enhanced functions define cleanly
+unalias ports gwt gclean gcp myip fgb hud fnote 2>/dev/null || true
+
 # User configuration
 
 # export MANPATH="/usr/local/man:$MANPATH"
@@ -946,6 +949,7 @@ fissue() {
 # ==============================================================================
 # Git Worktree Parallel Workspace Manager (gwt)
 # ==============================================================================
+unalias gwt 2>/dev/null || true
 gwt() {
   case "$1" in
     add|a)
@@ -1045,6 +1049,7 @@ httpstat() {
 # ==============================================================================
 # Git Local Merged Branch Pruner (gclean / gprune)
 # ==============================================================================
+unalias gclean 2>/dev/null || true
 gclean() {
   local target_branches
   target_branches=$(git branch --merged | grep -Ev "(\*|master|main|dev|development|staging)")
@@ -2047,21 +2052,6 @@ bd() {
   [ -n "$dest" ] && builtin cd "$dest"
 }
 
-# Quick Git Commit & Push (gcp "message")
-gcp() {
-  if [ -z "$*" ]; then
-    echo "Usage: gcp <commit message>"
-    return 1
-  fi
-  git add -A
-  git commit -m "$*"
-  local branch
-  branch=$(git branch --show-current)
-  if [ -n "$branch" ]; then
-    git push origin "$branch"
-  fi
-}
-
 # Interactive History Search (fh [query])
 fh() {
   local cmd
@@ -2424,6 +2414,7 @@ unwip() {
   fi
 }
 
+unalias gcp 2>/dev/null || true
 gcp() {
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     echo "❌ Not inside a Git repository."
@@ -2512,33 +2503,7 @@ fcherry() {
 alias cherry='fcherry'
 
 # ------------------------------------------------------------------------------
-# 8. Zero-Touchpad Test/Build Watcher (watchrun / loop)
-# ------------------------------------------------------------------------------
-watchrun() {
-  if [ -z "$*" ]; then
-    echo "Usage: watchrun <command_to_run_on_change>  (e.g. watchrun npm test, watchrun pytest)"
-    return 1
-  fi
-  echo "👀 Watching directory for changes... (Press Ctrl+C to stop)"
-  eval "$*"
-  local last_mtime
-  last_mtime=$(find . -maxdepth 3 -not -path '*/.*' -not -path '*/node_modules*' -type f -exec stat -f "%m" {} + 2>/dev/null | sort -n | tail -1)
-  while true; do
-    sleep 1
-    local current_mtime
-    current_mtime=$(find . -maxdepth 3 -not -path '*/.*' -not -path '*/node_modules*' -type f -exec stat -f "%m" {} + 2>/dev/null | sort -n | tail -1)
-    if [ "$current_mtime" != "$last_mtime" ]; then
-      last_mtime="$current_mtime"
-      clear
-      echo "🔄 Change detected! Re-running: $*"
-      echo "----------------------------------------"
-      eval "$*"
-      echo "----------------------------------------"
-      echo "👀 Waiting for next change..."
-    fi
-  done
-}
-alias loop='watchrun'
+# 8. Zero-Touchpad Test/Build Watcher — see full definition below (Section: Live File Watcher)
 
 # ------------------------------------------------------------------------------
 # 9. Unified Polyglot Package Manager (pm) - Auto-detects lockfile & runner

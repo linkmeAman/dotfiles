@@ -87,6 +87,9 @@ alt-comma = 'layout accordion horizontal vertical'
 alt-shift-minus = 'resize smart -50'
 alt-shift-equal = 'resize smart +50'
 
+# Resize mode entry (Alt+R → then h/j/k/l resize, Esc to exit)
+alt-r = 'mode resize'
+
 # Reload AeroSpace configuration
 alt-shift-r = 'reload-config'
 
@@ -109,3 +112,57 @@ run = 'layout floating'
 [[on-window-detected]]
 if.app-id = 'com.apple.Calculator'
 run = 'layout floating'
+
+# WezTerm always lives in workspace 1 (terminal home base)
+[[on-window-detected]]
+if.app-id = 'com.github.wez.wezterm'
+run = ['move-node-to-workspace 1']
+
+# Browser goes to workspace 2
+[[on-window-detected]]
+if.app-id = 'org.mozilla.firefox'
+run = ['move-node-to-workspace 2']
+
+[[on-window-detected]]
+if.app-id = 'com.google.Chrome'
+run = ['move-node-to-workspace 2']
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Safari'
+run = ['move-node-to-workspace 2']
+
+# Slack / Discord / Mail on workspace 5 (comms)
+[[on-window-detected]]
+if.app-id = 'com.tinyspeck.slackmacgap'
+run = ['move-node-to-workspace 5']
+
+[[on-window-detected]]
+if.app-id = 'com.hnc.Discord'
+run = ['move-node-to-workspace 5']
+
+# Zoom / meetings float (they're terrible tiles)
+[[on-window-detected]]
+if.app-id = 'us.zoom.xos'
+run = 'layout floating'
+
+# Raycast / Spotlight float
+[[on-window-detected]]
+if.app-id = 'com.raycast.macos'
+run = 'layout floating'
+
+# 1Password floats over everything
+[[on-window-detected]]
+if.app-id = 'com.1password.1password'
+run = 'layout floating'
+
+# ------------------------------------------------------------------------------
+# 6. Resize Mode (Alt+R to enter, Esc to exit)
+# ------------------------------------------------------------------------------
+[mode.resize.binding]
+h = 'resize width -50'
+l = 'resize width +50'
+j = 'resize height +50'
+k = 'resize height -50'
+b = 'balance-sizes'
+esc = ['reload-config', 'mode main']
+enter = 'mode main'

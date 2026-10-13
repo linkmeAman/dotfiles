@@ -1,0 +1,111 @@
+# ==============================================================================
+#                 AEROSPACE TILING WINDOW MANAGER CONFIGURATION
+# ==============================================================================
+# Tuned for 100% keyboard-first navigation on macOS (i3 / sway ergonomics).
+# No mouse or trackpad required to organize, switch, or resize windows.
+# ==============================================================================
+
+# Start AeroSpace at login
+start-at-login = true
+
+# Normalizations
+after-login-command = []
+after-startup-command = []
+
+# Notification on workspace switch
+notify-exec = []
+
+# Gaps around tiled windows (clean aesthetics)
+[gaps]
+inner.horizontal = 8
+inner.vertical   = 8
+outer.left       = 10
+outer.bottom     = 10
+outer.top        = 10
+outer.right      = 10
+
+# Default layout for workspaces
+[mode.main.binding]
+
+# ------------------------------------------------------------------------------
+# 1. Focus Navigation (Alt + H / J / K / L)
+# ------------------------------------------------------------------------------
+alt-h = 'focus left'
+alt-j = 'focus down'
+alt-k = 'focus up'
+alt-l = 'focus right'
+
+# ------------------------------------------------------------------------------
+# 2. Window Movement (Alt + Shift + H / J / K / L)
+# ------------------------------------------------------------------------------
+alt-shift-h = 'move left'
+alt-shift-j = 'move down'
+alt-shift-k = 'move up'
+alt-shift-l = 'move right'
+
+# ------------------------------------------------------------------------------
+# 3. Workspace Navigation (Alt + 1..9)
+# ------------------------------------------------------------------------------
+alt-1 = 'workspace 1'
+alt-2 = 'workspace 2'
+alt-3 = 'workspace 3'
+alt-4 = 'workspace 4'
+alt-5 = 'workspace 5'
+alt-6 = 'workspace 6'
+alt-7 = 'workspace 7'
+alt-8 = 'workspace 8'
+alt-9 = 'workspace 9'
+
+# Workspace Back and Forth (Alt + Tab)
+alt-tab = 'workspace-back-and-forth'
+
+# Move active window to workspace (Alt + Shift + 1..9)
+alt-shift-1 = 'move-node-to-workspace 1'
+alt-shift-2 = 'move-node-to-workspace 2'
+alt-shift-3 = 'move-node-to-workspace 3'
+alt-shift-4 = 'move-node-to-workspace 4'
+alt-shift-5 = 'move-node-to-workspace 5'
+alt-shift-6 = 'move-node-to-workspace 6'
+alt-shift-7 = 'move-node-to-workspace 7'
+alt-shift-8 = 'move-node-to-workspace 8'
+alt-shift-9 = 'move-node-to-workspace 9'
+
+# ------------------------------------------------------------------------------
+# 4. Layout & Window States
+# ------------------------------------------------------------------------------
+# Toggle Fullscreen / Maximize
+alt-f = 'fullscreen'
+
+# Toggle Floating / Tiling for the active window
+alt-shift-space = 'layout floating tiling'
+
+# Split Orientations (Horizontal / Vertical)
+alt-slash = 'layout tiles horizontal vertical'
+alt-comma = 'layout accordion horizontal vertical'
+
+# Smart Window Resizing
+alt-shift-minus = 'resize smart -50'
+alt-shift-equal = 'resize smart +50'
+
+# Reload AeroSpace configuration
+alt-shift-r = 'reload-config'
+
+# ------------------------------------------------------------------------------
+# 5. App Window Rules & Floating Dialogs
+# ------------------------------------------------------------------------------
+# Keep macOS utility windows floating so they don't break the tiling grid
+[[on-window-detected]]
+if.app-id = 'com.apple.systempreferences'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.finder'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.archiveutility'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = 'com.apple.Calculator'
+run = 'layout floating'

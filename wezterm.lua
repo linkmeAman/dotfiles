@@ -156,24 +156,38 @@ config.mouse_bindings = {
 }
 
 -- ====================================================================
--- 4. Developer Hyperlinks & VS Code Direct Opener
+-- 4. Developer Hyperlinks & Terminal Neovim Direct Opener (Zero GUI)
 -- ====================================================================
 config.hyperlink_rules = wezterm.default_hyperlink_rules()
 
--- Match file paths with line & column numbers and route to VS Code
+-- Match file paths with line & column numbers and route to terminal Neovim
 table.insert(config.hyperlink_rules, {
   regex = [[([\w\.\-/]+\.[a-zA-Z0-9_]+):(\d+)(?::(\d+))?]],
-  format = 'vscode://file$PWD/$1:$2:$3',
+  format = 'nvim://file$PWD/$1:$2',
 })
 
--- Intercept and open directly in VS Code
+-- Intercept and open directly in Neovim within WezTerm (100% keyboard & terminal base)
 wezterm.on('open-uri', function(window, pane, uri)
-  local start = uri:find('vscode://file$PWD', 1, true)
-  if start then
+  local nvim_start = uri:find('nvim://file', 1, true)
+  if nvim_start then
     local cwd_uri = pane:get_current_working_dir()
-    if cwd_uri and cwd_uri.file_path then
-      local final_uri = uri:gsub('$PWD', cwd_uri.file_path)
-      wezterm.open_with(final_uri)
+    local base_cwd = (cwd_uri and cwd_uri.file_path) or os.getenv('HOME') or '/Users/tr'
+    local path_part = uri:gsub('^nvim://file$PWD/', ''):gsub('^nvim://file/', '')
+    local file, line = path_part:match('([^:]+):?(%d*)')
+    if file then
+      local full_path = file:match('^/') and file or (base_cwd .. '/' .. file)
+      local args = { '/opt/homebrew/bin/nvim' }
+      if line and line ~= '' then
+        table.insert(args, '+' .. line)
+      end
+      table.insert(args, full_path)
+      window:perform_action(
+        act.SpawnCommandInNewTab {
+          args = args,
+          cwd = base_cwd,
+        },
+        pane
+      )
       return false
     end
   end
@@ -195,6 +209,7 @@ config.quick_select_patterns = {
 -- 5. Developer Launch Menu & Dynamic Hints
 -- ====================================================================
 config.launch_menu = {
+  { label = '⚡ Terminal Dashboard (Home Base)', args = { '/Users/tr/dotfiles/bin/term-dash' } },
   { label = 'Antigravity CLI (Agent)', args = { '/Users/tr/.local/bin/agy' } },
   { label = 'Yazi (Terminal File Manager)', args = { '/opt/homebrew/bin/yazi' } },
   { label = 'Neovim (Code Editor)', args = { '/opt/homebrew/bin/nvim' } },
@@ -211,6 +226,8 @@ config.launch_menu = {
 
 -- Rotating Hints & Command Suggestions (cycles periodically in the status bar)
 local hints = {
+  { key = '⌘⌥D', desc = 'Terminal Base Dashboard' },
+  { key = 'dash', desc = 'Interactive dev dashboard' },
   { key = '⌘D', desc = 'Split right' },
   { key = '⌘⇧D', desc = 'Split down' },
   { key = '⌘⇧I', desc = 'Scratchpad drawer' },
@@ -270,6 +287,28 @@ for _, h in ipairs(hints) do
   })
 end
 
+-- Helper to detect if the foreground process running in the pane is Neovim / Vim
+local function is_vim_process(pane)
+  local process_name = pane:get_foreground_process_name()
+  if not process_name then
+    return false
+  end
+  local name = process_name:match('([^/\\]+)$') or ''
+  return name == 'nvim' or name == 'vim' or name == 'vi'
+end
+
+-- Smart navigation: Seamlessly traversable across WezTerm panes and Neovim window splits
+local function smart_navigate(window, pane, key, direction)
+  if is_vim_process(pane) then
+    -- Forward Ctrl+key to Neovim so Neovim moves its own split first.
+    -- When Neovim hits the window split border, its s:SmartSplitSwitch invokes
+    -- 'wezterm cli activate-pane-direction' to jump into the adjacent WezTerm pane.
+    window:perform_action(act.SendKey { key = key, mods = 'CTRL' }, pane)
+  else
+    window:perform_action(act.ActivatePaneDirection(direction), pane)
+  end
+end
+
 -- ====================================================================
 -- 6. Keybindings (Multiplexing, Workspaces, Resizing & Navigation)
 -- ====================================================================
@@ -314,15 +353,15 @@ config.keys = {
   { key = 'w', mods = 'CMD|SHIFT', action = act.PaneSelect { alphabet = '1234567890abcdefghijklmnopqrstuvwxyz' } },
   { key = 'w', mods = 'CMD|ALT', action = act.PaneSelect { mode = 'SwapWithActive', alphabet = '1234567890abcdefghijklmnopqrstuvwxyz' } },
   { key = 'o', mods = 'CMD|ALT', action = act.RotatePanes 'Clockwise' },
-  -- Arrow & Vim (H/J/K/L) Pane Navigation
-  { key = 'LeftArrow', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Left' },
-  { key = 'RightArrow', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Right' },
-  { key = 'UpArrow', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Up' },
-  { key = 'DownArrow', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Down' },
-  { key = 'h', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Left' },
-  { key = 'l', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Right' },
-  { key = 'k', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Up' },
-  { key = 'j', mods = 'CMD|ALT', action = act.ActivatePaneDirection 'Down' },
+  -- Seamless Arrow & Vim (H/J/K/L) Navigation Across WezTerm Panes and Neovim Splits
+  { key = 'LeftArrow', mods = 'CMD|ALT', action = wezterm.action_callback(function(win, pane) smart_navigate(win, pane, 'h', 'Left') end) },
+  { key = 'RightArrow', mods = 'CMD|ALT', action = wezterm.action_callback(function(win, pane) smart_navigate(win, pane, 'l', 'Right') end) },
+  { key = 'UpArrow', mods = 'CMD|ALT', action = wezterm.action_callback(function(win, pane) smart_navigate(win, pane, 'k', 'Up') end) },
+  { key = 'DownArrow', mods = 'CMD|ALT', action = wezterm.action_callback(function(win, pane) smart_navigate(win, pane, 'j', 'Down') end) },
+  { key = 'h', mods = 'CMD|ALT', action = wezterm.action_callback(function(win, pane) smart_navigate(win, pane, 'h', 'Left') end) },
+  { key = 'l', mods = 'CMD|ALT', action = wezterm.action_callback(function(win, pane) smart_navigate(win, pane, 'l', 'Right') end) },
+  { key = 'k', mods = 'CMD|ALT', action = wezterm.action_callback(function(win, pane) smart_navigate(win, pane, 'k', 'Up') end) },
+  { key = 'j', mods = 'CMD|ALT', action = wezterm.action_callback(function(win, pane) smart_navigate(win, pane, 'j', 'Down') end) },
 
   -- Interactive Pane Resize Mode (Cmd+Shift+R)
   { key = 'r', mods = 'CMD|SHIFT', action = act.ActivateKeyTable { name = 'resize_pane', one_shot = false } },
@@ -376,6 +415,7 @@ config.keys = {
   { key = 'p', mods = 'CMD|SHIFT', action = act.ActivateCommandPalette },
   { key = 'a', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/Users/tr/.local/bin/agy' } } },
   { key = 'a', mods = 'CMD|ALT', action = act.SplitPane { direction = 'Right', size = { Percent = 40 }, command = { args = { '/Users/tr/.local/bin/agy' } } } },
+  { key = 'd', mods = 'CMD|ALT', action = act.SpawnCommandInNewTab { args = { '/Users/tr/dotfiles/bin/term-dash' } } },
   { key = 'y', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/opt/homebrew/bin/yazi' } } },
   { key = 'v', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/opt/homebrew/bin/nvim' } } },
   { key = 'g', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/opt/homebrew/bin/lazygit' } } },

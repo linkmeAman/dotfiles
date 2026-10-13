@@ -132,6 +132,7 @@ Your terminal is your complete development home. Here is how to navigate everyth
 | :--- | :--- | :--- |
 | **Discovery & Help** | `<Space> p` / `<Space><Space>` | **Command Palette (Search any command)** |
 | | `<F1>` or `<Space> ?` | Open in-editor guide (`:Guide`) |
+| | `<F2>` or `<Space> h h`| **Instant Hints & Recommendations card (`:Hints`)** |
 | | `<Space>` *(pause 0.3s)* | Interactive Which-Key menu |
 | | `<Space> s h` | Run system health check (`:VimHealth`) |
 | **AI Harnesses** | `<Space> a g` | Launch Antigravity Agent (`:Agy`) |
@@ -198,6 +199,8 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 | Command | Usage | Description |
 | :--- | :--- | :--- |
 | `hud` / `<F1>` | `hud` | Interactive search menu of all terminal tools; pastes command onto prompt. |
+| `hint` / `<F2>`| `hint`, `hint git`, `hint vim` | Interactive developer hints & recommendations explorer with live cheat sheet. |
+| `fman <cmd>` | `fman tar`, `fman curl`, `fman git` | Fuzzy search man page command flags & descriptions; copies flag to prompt. |
 | `reader [url]` | `reader https://docs...`, `reader` | Terminal web reader & markdown article viewer; reads clipboard URL. |
 | `fps` / `fkill` | `fps`, `fkill` | Interactive process & RAM assassin; live CPU% table & instant kill. |
 | `newproj <name>`| `newproj my-api ts`, `newproj app py` | Zero-friction project scaffolder with Git, template & bookmarks. |

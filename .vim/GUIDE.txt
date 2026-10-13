@@ -32,7 +32,7 @@
     --> In Visual mode: 'y' or <C-c> copies directly to macOS clipboard.
 
   PERMANENT BOTTOM HINT BAR
-    --> The bottom status bar shows: ⌨ <Space>:Menu  <Space>p:Commands  <F1>:Help
+    --> The bottom status bar shows: ⌨ <Space>:Menu  <Space>p:Commands  <F1>:Help  <F2>:Hints
 
 ==============================================================================
 2. AI AGENTS & HARNESSES LAUNCHPAD
@@ -205,6 +205,8 @@
 11. TERMINAL & SHELL POWER TOOLS (OUTSIDE VIM)
 ==============================================================================
   hud  /  <F1>             Interactive shell command HUD & shortcuts menu
+  hint [topic] / <F2>      Interactive developer hints & cheatsheet explorer
+  fman <cmd>               Fuzzy search man page command flags & descriptions
   reader [url]             Terminal web reader & markdown article viewer
   fps  /  fkill            Process & RAM assassin with CPU% live inspector
   newproj <name> [type]    Instant project scaffolder with Git & bookmarks

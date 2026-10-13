@@ -1664,6 +1664,8 @@ cl() {
 # ==============================================================================
 hud() {
   local entries=(
+    "hint [topic] / <F2>      --> Interactive developer hints & cheatsheet explorer"
+    "fman <cmd>               --> Fuzzy search man page command flags & descriptions"
     "reader [url]             --> Terminal web reader & markdown article viewer"
     "fps / fkill              --> Process & RAM assassin with CPU% live inspector"
     "newproj <name> [type]    --> Instant project scaffolder with Git & bookmarks"
@@ -3007,3 +3009,188 @@ frebase() {
   fi
 }
 alias fsq='frebase'
+
+# ==============================================================================
+# Interactive Hints, Recommendations & Command Advisor Engine (hint / <F2>)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Interactive Developer Hints & Cheatsheet Explorer (hint [topic] / <F2>)
+# ------------------------------------------------------------------------------
+hint() {
+  local category="$1"
+
+  if [ -n "$category" ]; then
+    case "$category" in
+      git|g)
+        echo "🌿 Git Workflow & Checkpoint Hints:"
+        echo "  wip          --> 1-second instant safety checkpoint commit"
+        echo "  unwip        --> Safe rollback of last WIP commit to working tree"
+        echo "  gcp 'msg'    --> Stage all, commit, and push upstream in 1 keystroke"
+        echo "  fmod         --> Fuzzy browse dirty/modified files with Delta preview"
+        echo "  fb / fgb     --> Interactive branch switcher, preview and deleter"
+        echo "  fconflicts   --> Interactive merge conflict resolver with diffs"
+        echo "  fpr          --> Browse GitHub pull requests with live diff & checkout"
+        echo "  frebase [N]  --> Interactive git rebase & commit history squasher"
+        echo "  fwt          --> Git worktree switcher for parallel branches"
+        ;;
+      vim|nvim|v)
+        echo "📝 Vim / Neovim Peak Hints:"
+        echo "  <Space> 1..4  --> Harpoon: jump to core pinned files instantly"
+        echo "  <Space> m 1..4--> Pin current file to Harpoon slot 1..4"
+        echo "  s{c}{c}       --> Vim-Sneak: jump to 2 letters anywhere on screen"
+        echo "  ]d / [d       --> LSP: jump next / previous compiler or lint error"
+        echo "  ]x / [x       --> Jump next / previous merge conflict marker"
+        echo "  <Space> z     --> Zoom active split to full screen / restore"
+        echo "  <Space> c p   --> Insert reusable code snippet from ~/.snippets/"
+        echo "  <Space> r f   --> Run active script in terminal drawer"
+        echo "  <F2> / :Hints --> Instant floating hints card inside Vim"
+        ;;
+      shell|sh|term)
+        echo "⚡ Terminal Superpower Hints:"
+        echo "  cl            --> Copy output of previous command to clipboard"
+        echo "  fclip         --> Fuzzy search terminal clipboard ring & re-yank"
+        echo "  calc <expr>   --> Terminal math & epoch converter (auto-copied)"
+        echo "  ports / fport --> List active listening ports and kill PIDs"
+        echo "  fps / fkill   --> Interactive CPU% and RAM process assassin"
+        echo "  fdocker / fdc --> Interactive Docker container cockpit & live logs"
+        echo "  ding <cmd>    --> Command completion alert with macOS chime & banner"
+        echo "  watchrun      --> Auto-re-execute tests on every file save"
+        echo "  reader [url]  --> Read web articles & docs directly in terminal"
+        echo "  fman <cmd>    --> Fuzzy search man page command flags & descriptions"
+        ;;
+      *)
+        echo "💡 Querying cheat sheet for: $category..."
+        so "$category"
+        ;;
+    esac
+    return 0
+  fi
+
+  local topics=(
+    "🌿 Git Workflows & Checkpoints         (wip, unwip, fb, fmod, fconflicts, fpr, frebase)"
+    "📝 Vim / Neovim Home-Row Mastery       (Harpoon, Snippets, Sneak, Diagnostics, Zoom)"
+    "⚡ Shell Superpowers & Clipboard Ring   (cl, fclip, calc, ports, fdocker, watchrun)"
+    "🖥️ WezTerm Keyboard Splits & Selection (Visual pane jump, QuickSelect, Vi copy mode)"
+    "🌐 Web Docs, Answers & Reader          (reader, so, search, cheat, ftldr)"
+  )
+
+  local selected
+  selected=$(printf "%s\n" "${topics[@]}" | \
+    fzf --header="[Enter: View topic hints | Esc: Cancel]" \
+        --prompt="💡 Developer Hints > ")
+
+  if [ -n "$selected" ]; then
+    case "$selected" in
+      *"Git"*)      hint git ;;
+      *"Vim"*)      hint vim ;;
+      *"Shell"*)    hint shell ;;
+      *"WezTerm"*)
+        echo "🖥️ WezTerm Keyboard Superpowers:"
+        echo "  Cmd + Shift + W      --> Visual Pane Jump: type badge letter to jump"
+        echo "  Cmd + Opt + W        --> Visual Pane Swap: swap active split with another"
+        echo "  Cmd + Shift + Space  --> QuickSelect: letter badges over URLs/hashes/IPs to copy"
+        echo "  Cmd + Shift + E      --> Link Selector: open links without mouse"
+        echo "  Cmd + Shift + X      --> Vi Copy Mode: h/j/k/l scrollback navigation & yank"
+        echo "  Cmd + Opt + H/J/K/L  --> Move between splits using Vim home-row"
+        echo "  Cmd + Shift + I      --> Bottom terminal scratchpad drawer"
+        ;;
+      *"Web"*)
+        echo "🌐 Web, Docs & Reader Hints:"
+        echo "  reader [url]  --> Formats URL or clipboard link into clean terminal text"
+        echo "  so <question> --> Instant StackOverflow answer in your pager"
+        echo "  search <q>    --> DuckDuckGo search: auto-copies URL to clipboard"
+        echo "  ftldr <cmd>   --> Interactive fuzzy tldr guide with color preview"
+        echo "  cheat <topic> --> Instant programming cheat sheet (cht.sh)"
+        ;;
+    esac
+  fi
+}
+alias hints='hint'
+
+_hint_widget() {
+  BUFFER="hint"
+  zle accept-line
+}
+zle -N _hint_widget
+bindkey '^[[12~' _hint_widget 2>/dev/null || true
+bindkey '^[OQ' _hint_widget 2>/dev/null || true
+
+# ------------------------------------------------------------------------------
+# 2. Fuzzy Man Page & Flag Inspector (fman <cmd>)
+# ------------------------------------------------------------------------------
+fman() {
+  local cmd="$1"
+  if [ -z "$cmd" ]; then
+    echo "Usage: fman <command>  (e.g. fman tar, fman git, fman find, fman curl)"
+    return 1
+  fi
+  if ! man -w "$cmd" >/dev/null 2>&1; then
+    echo "❌ No manual entry found for '$cmd'."
+    return 1
+  fi
+  local flags
+  flags=$(man "$cmd" 2>/dev/null | col -b | awk '/^[ ]{4,10}-[a-zA-Z0-9-]/ {print substr($0, 5)}' | grep -v '^[ ]*$' | sort -u)
+  if [ -z "$flags" ]; then
+    man "$cmd"
+    return
+  fi
+  local selected
+  selected=$(echo "$flags" | fzf \
+    --prompt="📖 $cmd flags > " \
+    --header="[Enter: Copy flag to prompt | Esc: Full man page]" \
+    --preview="man $cmd | col -b | grep -A 8 -B 1 -F \"{}\"" \
+    --preview-window=right:65%:wrap)
+  if [ -n "$selected" ]; then
+    local flag=$(echo "$selected" | awk '{print $1}' | tr -d ',')
+    echo -n "$flag" | pbcopy
+    _clip_record "$cmd $flag"
+    print -z "$cmd $flag"
+    echo "📋 Copied '$flag' to prompt and clipboard!"
+  else
+    man "$cmd"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# 3. Smart Command Error & Recommendation Advisor
+# ------------------------------------------------------------------------------
+command_not_found_handler() {
+  local cmd="$1"
+  echo "❌ zsh: command not found: $cmd"
+
+  case "$cmd" in
+    *branch*|*brnach*|*checkout*)
+      echo "💡 Hint: Use 'fb' to fuzzy switch/manage Git branches."
+      ;;
+    *commit*|*save*|*checkpoint*)
+      echo "💡 Hint: Use 'wip' to save an instant checkpoint, or 'gcp \"msg\"' to commit & push."
+      ;;
+    *diff*|*differ*)
+      echo "💡 Hint: Use 'fmod' to inspect dirty files or 'fdiff' to compare with branch."
+      ;;
+    *conflict*)
+      echo "💡 Hint: Use 'fconflicts' to interactively resolve merge conflicts."
+      ;;
+    *port*|*killport*)
+      echo "💡 Hint: Use 'fport' or 'killport <port>' to kill listening processes."
+      ;;
+    *docker*|*cont*)
+      echo "💡 Hint: Use 'fdocker' or 'fdc' to inspect containers and live logs."
+      ;;
+    *clip*|*paste*|*copy*)
+      echo "💡 Hint: Use 'fclip' to search clipboard history or 'cl' to copy previous output."
+      ;;
+    *read*|*article*|*url*)
+      echo "💡 Hint: Use 'reader [url]' to read clean articles/docs in terminal."
+      ;;
+    *snip*|*snippet*|*template*)
+      echo "💡 Hint: Use 'fsnip' to fuzzy-insert code snippets."
+      ;;
+    *)
+      echo "💡 Hint: Press F1 or type 'hud' for all 35+ terminal tools."
+      echo "         Press F2 or type 'hint' for the developer quick-reference guide."
+      ;;
+  esac
+  return 127
+}

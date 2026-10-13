@@ -564,6 +564,13 @@ let g:which_key_map.o = {
       \ 'f': [':OpenInCodeFile',        'Open file at cursor in VS Code'],
       \ }
 
+" Hints & Quick Reference (+hints)
+let g:which_key_map.h = {
+      \ 'name': '+hints',
+      \ 'h': [':Hints',        'Show instant keyboard hints card (<F2>)'],
+      \ 'g': [':Guide',        'Show comprehensive manual (<F1>)'],
+      \ }
+
 " Harpoon / File Pins (<Space>m and <Space>1..4)
 let g:which_key_map.m = {
       \ 'name': '+marks/pins',
@@ -1070,6 +1077,79 @@ function! s:InsertSnippet(name) abort
 endfunction
 
 command! -bar Snippets call <SID>FzfSnippets()
+
+" 20. Contextual Hints & Recommendations Card (:Hints / <F2>)
+function! s:OpenHints() abort
+  let l:bufname = '__HINTS__'
+  let l:win = bufwinnr(l:bufname)
+  if l:win != -1
+    execute l:win . 'wincmd w'
+    close
+    return
+  endif
+
+  botright 18new
+  setlocal buftype=nofile
+  setlocal bufhidden=wipe
+  setlocal nobuflisted
+  setlocal noswapfile
+  setlocal nowrap
+  file __HINTS__
+
+  let l:content = [
+        \ '========================================================================================',
+        \ '  💡 TERMINAL WORKSTATION PEAK HINTS & RECOMMENDATIONS (Press q or <Esc> to close)',
+        \ '========================================================================================',
+        \ '',
+        \ '  🎯 CODE NAVIGATION & MOTIONS:',
+        \ '    <Space> 1..4     Jump directly to Harpoon pinned files (slot 1, 2, 3, 4)',
+        \ '    <Space> m 1..4   Pin active file to Harpoon slot (:PinFile 1..4)',
+        \ '    s{char}{char}    Vim-Sneak: Jump anywhere on visible screen instantly',
+        \ '    ]d / [d          Jump next / previous compiler or LSP error',
+        \ '    <Ctrl-o> / <C-i> Jump to older / newer cursor location or file',
+        \ '    gF               Jump to file:line under cursor (from error traces / logs)',
+        \ '    <Space> z        Zoom active window split to full screen (toggle)',
+        \ '',
+        \ '  ✂️ SNIPPETS & CODE INSERTION:',
+        \ '    <Space> c p      Fuzzy search & insert code snippet from ~/.snippets/ (:Snippets)',
+        \ '    <Space> c b      Fuzzy browse & warp to project bookmarks (:Bookmarks)',
+        \ '    <Space> c d      Fuzzy jump project folder via Zoxide (:CdProject)',
+        \ '    <Space> r f      Run active file in bottom terminal split drawer (:RunFile)',
+        \ '    <Space> r l      Re-run last command in terminal drawer (:RunLast)',
+        \ '',
+        \ '  ⚔️ GIT, DIFFS & MERGE CONFLICTS:',
+        \ '    ]x / [x          Jump directly to next / previous merge conflict marker',
+        \ '    <Space> g s      Interactive Git status & staging dashboard (:Git)',
+        \ '    <Space> g D      Side-by-side vertical diff with any file (:DiffWith)',
+        \ '    ]c / [c          Jump next / previous Git diff hunk',
+        \ '    <Space> g p      Preview Git diff hunk at cursor',
+        \ '',
+        \ '  ⚡ SHELL & TERMINAL (OUTSIDE VIM):',
+        \ '    hud / <F1>       Terminal Cockpit HUD (search and paste all 35+ commands)',
+        \ '    hint / <F2>      Interactive Shell Hints & cheat sheet explorer',
+        \ '    wip / unwip      1-second safety checkpoint commit / rollback',
+        \ '    reader [url]     Distraction-free terminal article & docs reader (reads clipboard!)',
+        \ '    watchrun [cmd]   Live file watcher: auto-re-executes tests on every :w save',
+        \ '    fps / fkill      Interactive CPU% / RAM process assassin',
+        \ '    fconflicts       Interactive merge conflict resolver with Delta diffs',
+        \ '',
+        \ '  ↩️ RECOVERY & UNDO:',
+        \ '    u / <Ctrl-r>     Undo / Redo',
+        \ '    <Space> u t      Visual branching time-travel undo tree (:UndotreeToggle)',
+        \ '    :RevertFile      Discard all changes and reload file from disk (:edit!)',
+        \ '    :QuitWindow      Close active window split safely (:close)',
+        \ '========================================================================================'
+        \ ]
+
+  call setline(1, l:content)
+  setlocal nomodifiable
+  nnoremap <buffer> <silent> q :close<CR>
+  nnoremap <buffer> <silent> <Esc> :close<CR>
+endfunction
+
+command! -bar Hints call <SID>OpenHints()
+nnoremap <silent> <F2> :Hints<CR>
+nnoremap <silent> <leader>hh :Hints<CR>
 
 " ------------------------------------------------------------------------------
 " 8. ERGONOMIC KEY MAPPINGS

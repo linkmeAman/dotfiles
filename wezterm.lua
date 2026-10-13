@@ -73,9 +73,10 @@ config.visual_bell = {
 config.use_fancy_tab_bar = false
 config.tab_bar_at_bottom = false
 config.hide_tab_bar_if_only_one_tab = false
-config.tab_max_width = 25
+config.tab_max_width = 28
 config.enable_scroll_bar = false
 config.scrollback_lines = 10000
+config.status_update_interval = 250
 
 -- Tab Bar Colors matching Tokyo Night
 config.colors = {
@@ -190,6 +191,7 @@ config.quick_select_patterns = {
 -- 5. Developer Launch Menu & Dynamic Hints
 -- ====================================================================
 config.launch_menu = {
+  { label = 'Antigravity CLI (Agent)', args = { '/Users/tr/.local/bin/agy' } },
   { label = 'Yazi (Terminal File Manager)', args = { '/opt/homebrew/bin/yazi' } },
   { label = 'Neovim (Code Editor)', args = { '/opt/homebrew/bin/nvim' } },
   { label = 'W3M (CLI Web Browser)', args = { '/opt/homebrew/bin/w3m', 'https://duckduckgo.com' } },
@@ -215,6 +217,8 @@ local hints = {
   { key = 'pic <file>', desc = 'View image & copy' },
   { key = 'vid <file>', desc = 'Play video & copy' },
   { key = 'browse <url>', desc = 'Terminal browser' },
+  { key = '⌘⇧A', desc = 'Antigravity agent' },
+  { key = '⌘⌥A', desc = 'AGY split right' },
   { key = '⌘⇧G', desc = 'Lazygit' },
   { key = '⌘⇧K', desc = 'Lazydocker' },
   { key = '⌘⇧U', desc = 'Lazysql' },
@@ -347,6 +351,8 @@ config.keys = {
   -- Launch Menu, Tools & Command Palette
   { key = 'l', mods = 'CMD|SHIFT', action = act.ShowLauncherArgs { flags = 'FUZZY|LAUNCH_MENU_ITEMS|DOMAINS' } },
   { key = 'p', mods = 'CMD|SHIFT', action = act.ActivateCommandPalette },
+  { key = 'a', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/Users/tr/.local/bin/agy' } } },
+  { key = 'a', mods = 'CMD|ALT', action = act.SplitPane { direction = 'Right', size = { Percent = 40 }, command = { args = { '/Users/tr/.local/bin/agy' } } } },
   { key = 'y', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/opt/homebrew/bin/yazi' } } },
   { key = 'v', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/opt/homebrew/bin/nvim' } } },
   { key = 'g', mods = 'CMD|SHIFT', action = act.SpawnCommandInNewTab { args = { '/opt/homebrew/bin/lazygit' } } },
@@ -464,11 +470,113 @@ config.key_tables = {
 }
 
 -- ====================================================================
--- 7. Clean Tab Titles & Dynamic Status Bar (Hints, Battery & Time)
+-- 7. Task Activity, Loading Spinners & Completion Highlighting
 -- ====================================================================
-local function clean_tab_title(tab)
-  local pane = tab.active_pane
+local SPINNER = { '⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏' }
+local spinner_idx = 1
+
+local shells = {
+  zsh = true,
+  bash = true,
+  sh = true,
+  fish = true,
+  csh = true,
+  tcsh = true,
+  dash = true,
+  login = true,
+}
+
+local tui_apps = {
+  nvim = '',
+  vim = '',
+  vi = '',
+  nano = '󰈙',
+  yazi = '󰇥',
+  ranger = '󰇥',
+  lazygit = '󰊢',
+  lazydocker = '󰡨',
+  lazysql = '󰆼',
+  btop = '󰓅',
+  htop = '󰓅',
+  top = '󰓅',
+  w3m = '󰖟',
+  lynx = '󰖟',
+  less = '󰈙',
+  more = '󰈙',
+  man = '󰈙',
+}
+
+local ai_tools = {
+  agy = '󱚣',
+  claude = '󰚩',
+  copilot = '󰚩',
+  gemini = '󰚩',
+  aider = '󰚩',
+  cursor = '󰚩',
+  ollama = '󰚩',
+}
+
+-- Per-tab state tracking for loading spinners & completion alerts
+local tab_states = {}
+
+local function get_pane_proc_info(pane)
+  local raw_proc = ''
+  if pane.foreground_process_name and pane.foreground_process_name ~= '' then
+    raw_proc = pane.foreground_process_name:match('([^/\\]+)$') or pane.foreground_process_name
+    raw_proc = raw_proc:gsub('%.exe$', '')
+  end
+
   local title = pane.title or ''
+  title = title:match('^%s*(.-)%s*$') or ''
+
+  local title_first_word = ''
+  if not title:find('/') and not title:find('\\') and not title:find('^~') then
+    title_first_word = title:match('^(%S+)') or ''
+    title_first_word = title_first_word:match('([^/\\]+)$') or title_first_word
+  end
+
+  local detected_proc = raw_proc:lower()
+
+  -- Check if title identifies an AI tool or specific CLI command
+  if ai_tools[title_first_word:lower()] then
+    detected_proc = title_first_word:lower()
+  elseif (detected_proc == 'node' or detected_proc == 'python' or detected_proc == 'python3' or detected_proc == 'sh' or detected_proc == 'zsh' or detected_proc == '') and title_first_word ~= '' then
+    if not shells[title_first_word:lower()] then
+      detected_proc = title_first_word:lower()
+    end
+  end
+
+  if detected_proc == '' then
+    detected_proc = 'shell'
+  end
+
+  return detected_proc, title
+end
+
+local function get_tab_proc_info(tab)
+  local proc, title = get_pane_proc_info(tab.active_pane)
+  if not shells[proc] then
+    return proc, title
+  end
+
+  -- If active split is idle, check if any sibling split in the same tab is running
+  if tab.panes then
+    for _, p in ipairs(tab.panes) do
+      if p.pane_id ~= tab.active_pane.pane_id then
+        local other_proc, other_title = get_pane_proc_info(p)
+        if not shells[other_proc] and not tui_apps[other_proc] then
+          return other_proc, other_title
+        end
+      end
+    end
+  end
+
+  return proc, title
+end
+
+local function clean_tab_title(tab, custom_title)
+  local pane = tab.active_pane
+  local title = custom_title or pane.title or ''
 
   if title == '' and pane.foreground_process_name then
     title = pane.foreground_process_name:match('([^/\\]+)$') or 'shell'
@@ -497,31 +605,153 @@ local function clean_tab_title(tab)
 end
 
 wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max_width)
-  local title = clean_tab_title(tab)
-  local index = tab.tab_index + 1
+  -- Garbage collect closed tabs from tab_states
+  local active_ids = {}
+  for _, t in ipairs(tabs) do
+    active_ids[t.tab_id] = true
+  end
+  for id in pairs(tab_states) do
+    if not active_ids[id] then
+      tab_states[id] = nil
+    end
+  end
 
+  local tid = tab.tab_id
+  local state = tab_states[tid]
+  if not state then
+    state = {
+      status = 'idle',
+      running_proc = nil,
+      completed_proc = nil,
+      completed_at = 0,
+      user_viewed = false,
+      viewed_at = 0,
+      notified = false,
+    }
+    tab_states[tid] = state
+  end
+
+  local proc, raw_title = get_tab_proc_info(tab)
+  local is_shell = shells[proc] == true
+  local is_tui = tui_apps[proc] ~= nil
+
+  -- State machine transition
+  if is_tui then
+    state.status = 'tui'
+    state.running_proc = nil
+    state.completed_proc = nil
+  elseif not is_shell then
+    -- A task/agent/command is actively running!
+    if state.status ~= 'running' or state.running_proc ~= proc then
+      state.status = 'running'
+      state.running_proc = proc
+      state.completed_proc = nil
+      state.completed_at = 0
+      state.user_viewed = false
+      state.notified = false
+    end
+  else
+    -- Shell prompt is idle
+    if state.status == 'running' and state.running_proc then
+      -- Transitioned from running -> shell prompt = Task Completed!
+      state.status = 'completed'
+      state.completed_proc = state.running_proc
+      state.running_proc = nil
+      state.completed_at = os.time()
+      state.user_viewed = tab.is_active
+      state.viewed_at = tab.is_active and os.time() or 0
+      state.notified = false
+    end
+  end
+
+  -- Completion highlight expiration logic
+  local now = os.time()
+  if state.status == 'completed' then
+    if tab.is_active then
+      if not state.user_viewed then
+        state.user_viewed = true
+        state.viewed_at = now
+      end
+      -- User has viewed the completed tab for 6 seconds; reset to idle
+      if (now - (state.viewed_at or now)) >= 6 then
+        state.status = 'idle'
+        state.completed_proc = nil
+      end
+    else
+      -- If in background, stay highlighted until user activates it (or 10min safety timeout)
+      if (now - state.completed_at) >= 600 then
+        state.status = 'idle'
+        state.completed_proc = nil
+      end
+    end
+  end
+
+  local index = tab.tab_index + 1
   local bg = '#16161e'
   local fg = '#565f89'
   local intensity = 'Normal'
+  local text = ''
 
-  if tab.is_active then
-    bg = '#24283b'
-    fg = '#7aa2f7'
+  if state.status == 'completed' then
+    -- Prominent emerald highlight: Task Finished!
+    bg = '#1f382b'
+    fg = '#9ece6a'
     intensity = 'Bold'
-  elseif hover then
-    bg = '#1f2335'
-    fg = '#c0caf5'
+    local comp_name = clean_tab_title(tab, state.completed_proc or 'Done')
+    text = string.format(' ✔ %d: %s (Done) ', index, comp_name)
+  elseif state.status == 'running' then
+    -- Animated spinner & loading indicator
+    local spinner_char = SPINNER[spinner_idx]
+    local run_name = clean_tab_title(tab, state.running_proc or proc)
+    text = string.format(' %s %d: %s ', spinner_char, index, run_name)
+    if tab.is_active then
+      bg = '#1f2335'
+      fg = '#7dcfff' -- Electric cyan for active running tab
+      intensity = 'Bold'
+    else
+      bg = '#1c2030'
+      fg = '#e0af68' -- Warm amber for background running tab
+      intensity = 'Bold'
+    end
+  elseif is_tui then
+    -- Interactive editor/TUI app icon
+    local icon = tui_apps[proc] or '󰇥'
+    local title = clean_tab_title(tab, proc)
+    text = string.format(' %s %d: %s ', icon, index, title)
+    if tab.is_active then
+      bg = '#24283b'
+      fg = '#7aa2f7'
+      intensity = 'Bold'
+    elseif hover then
+      bg = '#1f2335'
+      fg = '#c0caf5'
+    end
+  else
+    -- Normal idle shell
+    local title = clean_tab_title(tab)
+    text = string.format(' %d: %s ', index, title)
+    if tab.is_active then
+      bg = '#24283b'
+      fg = '#7aa2f7'
+      intensity = 'Bold'
+    elseif hover then
+      bg = '#1f2335'
+      fg = '#c0caf5'
+    end
   end
 
   return {
     { Background = { Color = bg } },
     { Foreground = { Color = fg } },
     { Attribute = { Intensity = intensity } },
-    { Text = string.format(' %d: %s ', index, title) },
+    { Text = text },
   }
 end)
 
 wezterm.on('update-right-status', function(window, pane)
+  -- Advance the spinner animation frame on every periodic tick
+  spinner_idx = (spinner_idx % #SPINNER) + 1
+
   local cells = {}
 
   -- 1. Modal key table indicator (e.g. RESIZE_PANE)
@@ -533,21 +763,80 @@ wezterm.on('update-right-status', function(window, pane)
     table.insert(cells, { Text = ' ' .. string.upper(mode) .. ' ' })
   end
 
-  -- 2. Rotating Command Hint (concise, updates every 12s)
+  -- 2. Scan tabs for completed alerts and running tasks
+  local running_tasks = {}
+  local completed_alerts = {}
   local now = os.time()
+
+  local mux_win = window:mux_window()
+  if mux_win then
+    local tabs = mux_win:tabs_with_info()
+    for _, item in ipairs(tabs) do
+      local tid = item.tab:tab_id()
+      local s = tab_states[tid]
+      if s then
+        if s.status == 'completed' then
+          -- If not yet viewed or recently viewed within 6 seconds
+          if not s.user_viewed or (now - (s.viewed_at or now)) < 6 then
+            table.insert(completed_alerts, {
+              index = item.index + 1,
+              proc = s.completed_proc or 'task',
+            })
+          end
+          -- Send desktop notification if completed in the background
+          if not s.notified and not item.is_active then
+            s.notified = true
+            window:toast_notification(
+              'Task Completed ✔',
+              string.format('Tab %d: "%s" has finished!', item.index + 1, s.completed_proc or 'task'),
+              nil,
+              4000
+            )
+          end
+        elseif s.status == 'running' and s.running_proc then
+          table.insert(running_tasks, {
+            index = item.index + 1,
+            proc = s.running_proc,
+            is_active = item.is_active,
+          })
+        end
+      end
+    end
+  end
+
+  -- 3. High-Priority Alert Badges
+  if #completed_alerts > 0 then
+    local alert = completed_alerts[1]
+    table.insert(cells, { Background = { Color = '#1f382b' } })
+    table.insert(cells, { Foreground = { Color = '#9ece6a' } })
+    table.insert(cells, { Attribute = { Intensity = 'Bold' } })
+    table.insert(cells, { Text = string.format(' ✔ Tab %d: %s (Done) ', alert.index, alert.proc) })
+  elseif #running_tasks > 0 then
+    local task = running_tasks[1]
+    local spinner_char = SPINNER[spinner_idx]
+    table.insert(cells, { Foreground = { Color = '#7dcfff' } })
+    table.insert(cells, { Attribute = { Intensity = 'Bold' } })
+    if task.is_active then
+      table.insert(cells, { Text = string.format(' %s Running: %s ', spinner_char, task.proc) })
+    else
+      table.insert(cells, { Text = string.format(' %s Tab %d: %s ', spinner_char, task.index, task.proc) })
+    end
+  end
+
+  -- 4. Rotating Command Hint (concise, updates every 12s)
   local hint_idx = (math.floor(now / 12) % #hints) + 1
   local hint = hints[hint_idx]
   table.insert(cells, { Foreground = { Color = '#e0af68' } })
   table.insert(cells, { Text = ' 💡 ' .. hint.key .. ': ' .. hint.desc .. ' ' })
 
-  -- 3. Workspace badge (shown only when inside a named workspace)
+  -- 5. Workspace badge (shown only when inside a named workspace)
   local workspace = window:active_workspace()
   if workspace and workspace ~= 'default' then
     table.insert(cells, { Foreground = { Color = '#bb9af7' } })
     table.insert(cells, { Text = '  ' .. workspace .. ' ' })
   end
 
-  -- 4. Battery Indicator (for MacBooks)
+  -- 6. Battery Indicator (for MacBooks)
   for _, b in ipairs(wezterm.battery_info()) do
     local charge = b.state_of_charge * 100
     local icon = '󰁹'
@@ -564,7 +853,7 @@ wezterm.on('update-right-status', function(window, pane)
     table.insert(cells, { Text = ' ' .. icon .. string.format(' %.0f%% ', charge) })
   end
 
-  -- 5. Current Time
+  -- 7. Current Time
   local time = wezterm.strftime('%I:%M %p')
   table.insert(cells, { Foreground = { Color = '#7aa2f7' } })
   table.insert(cells, { Text = ' ' .. time .. ' ' })

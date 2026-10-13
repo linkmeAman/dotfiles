@@ -262,21 +262,24 @@ vid() {
 }
 
 # Fast CLI Web Browser (w3m / lynx)
-alias browse='w3m'
-alias web='w3m'
-
-# Direct Web Searches inside Terminal
-google() {
-  local query="$*"
-  query="${query// /+}"
-  w3m "https://www.google.com/search?q=$query"
+web() {
+  local url="${1:-https://html.duckduckgo.com}"
+  w3m "$url"
 }
+alias browse='web'
 
-duck() {
+# In-Terminal Web Search via w3m (leaves GUI search aliases from omz web-search intact)
+search() {
+  if [ -z "$*" ]; then
+    echo "Usage: search <query>"
+    return 1
+  fi
   local query="$*"
   query="${query// /+}"
   w3m "https://html.duckduckgo.com/html/?q=$query"
 }
+alias tsearch='search'
+alias duck='search'
 
 # WezTerm Shell Integration (OSC 7 Directory Tracking & OSC 133 Semantic Prompts)
 if [[ "$TERM_PROGRAM" == "WezTerm" && -f "/Applications/WezTerm.app/Contents/Resources/wezterm.sh" ]]; then

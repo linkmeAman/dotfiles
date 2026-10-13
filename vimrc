@@ -261,7 +261,7 @@ let g:lightline = {
       \              [ 'hint' ] ]
       \ },
       \ 'component': {
-      \   'hint': '⌨ <Space>:Menu  <Space>p:Commands  <F1>:Help'
+      \   'hint': '⌨ <Space>:Menu  u:Undo  <C-o>:Back  :q:Quit  <F1>:Help'
       \ },
       \ 'component_function': {
       \   'gitbranch': 'FugitiveHead'
@@ -362,11 +362,32 @@ let g:which_key_map['p'] = [ ':Commands',         'Command Palette (Search all c
 let g:which_key_map['<Space>'] = [ ':Commands',   'Command Palette (Search all commands)' ]
 let g:which_key_map[':'] = [ ':Commands',         'Command Palette' ]
 let g:which_key_map['w'] = [ ':w',                'Save file' ]
-let g:which_key_map['q'] = [ ':q',                'Quit' ]
-let g:which_key_map['Q'] = [ ':qa!',              'Force quit all' ]
-let g:which_key_map['u'] = [ ':UndotreeToggle',   'Toggle undo history tree' ]
 let g:which_key_map['/'] = [ ':nohlsearch',       'Clear search highlight' ]
 let g:which_key_map['t'] = [ ':ToggleTerminal',   'Toggle terminal drawer' ]
+let g:which_key_map['Q'] = [ ':ForceQuit',        'Force quit all (:qa!)' ]
+
+" Undo, History & Backpropagation (Revert to old state)
+let g:which_key_map.u = {
+      \ 'name': '+undo/revert/backprop',
+      \ 'u': [':Undo',             'Undo last edit (u)'],
+      \ 'r': [':Redo',             'Redo last edit (<C-r>)'],
+      \ 't': [':UndotreeToggle',   'Visual Undo Tree (Time travel)'],
+      \ 'e': [':RevertFile',       'Revert file to disk (discard unsaved edits)'],
+      \ 'o': [':JumpBack',         'Jump back to older position / file (<C-o>)'],
+      \ 'i': [':JumpForward',      'Jump forward to newer position (<C-i>)'],
+      \ }
+
+" Quit, Close & Exit (Leave window / abort)
+let g:which_key_map.q = {
+      \ 'name': '+quit/close/exit',
+      \ 'q': [':q',                'Quit current window (:q)'],
+      \ 'w': [':QuitWindow',       'Close current split / window (:close)'],
+      \ 'f': [':q!',               'Force quit window - discard edits (:q!)'],
+      \ 'a': [':qa',               'Quit all windows (:qa)'],
+      \ 'A': [':ForceQuit',        'Force quit all - discard all edits (:qa!)'],
+      \ 'b': [':bdelete!',         'Force delete / close current buffer (:bd!)'],
+      \ 'o': [':CloseAllOthers',   'Close all other splits (:only)'],
+      \ }
 
 " File & Explorer
 let g:which_key_map.e = {
@@ -684,6 +705,17 @@ command! -bar Code call <SID>OpenInCode()
 nnoremap <silent> <leader>oc :OpenInCode<CR>
 nnoremap <silent> <leader>of :OpenInCodeFile<CR>
 
+" 10. Backpropagation, Revert & Window Helpers
+command! -bar Undo normal! u
+command! -bar Redo execute "normal! \<lt>C-r\>"
+command! -bar RevertFile edit!
+command! -bar RevertAll bufdo! edit!
+command! -bar JumpBack execute "normal! \<lt>C-o\>"
+command! -bar JumpForward execute "normal! \<lt>C-i\>"
+command! -bar QuitWindow close
+command! -bar ForceQuit qa!
+command! -bar CloseAllOthers only
+
 " ------------------------------------------------------------------------------
 " 8. ERGONOMIC KEY MAPPINGS
 " ------------------------------------------------------------------------------
@@ -693,8 +725,6 @@ nnoremap <silent> <leader>f  :Files<CR>
 nnoremap <silent> <leader>g  :Rg<CR>
 nnoremap <silent> <leader>b  :Buffers<CR>
 nnoremap <silent> <leader>w  :w<CR>
-nnoremap <silent> <leader>q  :q<CR>
-nnoremap <silent> <leader>u  :UndotreeToggle<CR>
 nnoremap <silent> <leader>?  :Guide<CR>
 nnoremap <silent> <F1>        :Guide<CR>
 

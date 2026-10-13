@@ -150,9 +150,9 @@ Connected rounded-tree prompt that displays path, git status, live timestamp, an
 * **`fvid`** — Interactive fuzzy finder for all video files in current folder/project.
 
 ### 🌐 Terminal CLI Web Browsers (`w3m` & `lynx`)
-* **`browse <url>` / `web <url>`** — Open and navigate websites directly in terminal (`w3m` with vim `j/k` navigation, `Tab` link jump, `B` back, `q` quit).
-* **`google <query>`** — Search Google and read results directly in the terminal without opening Chrome or Safari.
-* **`duck <query>`** — Search DuckDuckGo directly in the terminal.
+* **`browse <url>` / `web [url]`** — Open and navigate websites directly in terminal (`w3m` with vim `j/k` navigation, `Tab` link jump, `B` back, `q` quit).
+* **`search <query>` / `duck <query>`** — Search web directly inside terminal (`w3m`) without opening GUI browser.
+* **`google <query>`** — Search Google in default GUI browser (via Oh My Zsh `web-search`).
 
 ### 🧰 Developer Helper Functions
 * **`kp`** — Interactive fuzzy process killer (<kbd>Tab</kbd> to multi-select, <kbd>Enter</kbd> to kill stuck port/server).

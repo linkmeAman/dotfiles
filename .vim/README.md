@@ -193,6 +193,10 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 
 | Command | Usage | Description |
 | :--- | :--- | :--- |
+| `hud` / `<F1>` | `hud` | Interactive search menu of all terminal tools; pastes command onto prompt. |
+| `cl [cmd]` | `cl`, `cl uuidgen` | Copies previous command's output directly to clipboard without mouse dragging! |
+| `fmod` | `fmod` | Fuzzy browse modified Git files with Delta preview; Enter opens in Neovim. |
+| `fb` / `fgb` | `fb` | Interactive Git branch switcher & manager; preview commits or delete branches. |
 | `note [topic]` | `note`, `note auth-refactor` | Daily markdown developer journal & notes in Neovim (`~/notes/`). |
 | `fnotes` | `fnotes` | Fuzzy search and open past notes with live `bat` syntax preview. |
 | `todo [add\|done\|clean]` | `todo`, `todo add "task"`, `todo done 1` | Instant zero-dependency terminal action checklist and task manager. |

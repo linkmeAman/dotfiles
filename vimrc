@@ -461,6 +461,7 @@ let g:which_key_map.g = {
       \ 's': [':Git',                  'Git status dashboard'],
       \ 'b': [':Git blame',            'Git blame'],
       \ 'd': [':Gdiffsplit',           'Git side-by-side diff'],
+      \ 'D': [':DiffWith',             'Side-by-side vertical diff with file'],
       \ 'p': [':GitGutterPreviewHunk', 'Preview git hunk at cursor'],
       \ 'u': [':GitGutterUndoHunk',    'Undo git hunk at cursor'],
       \ 'a': [':GitGutterStageHunk',   'Stage git hunk at cursor'],
@@ -799,6 +800,7 @@ command! -bar JumpForward execute "normal! \<lt>C-i\>"
 command! -bar QuitWindow close
 command! -bar ForceQuit qa!
 command! -bar CloseAllOthers only
+command! -nargs=1 -complete=file DiffWith vert diffsplit <args>
 
 " 11. Window Zoom Toggle (Maximize active split / Restore layout)
 let s:is_zoomed = 0
@@ -1045,11 +1047,19 @@ nnoremap <silent> <C-p> :Files<CR>
 " Clear search highlight with double Escape or <leader>/
 nnoremap <silent> <Esc><Esc> :nohlsearch<CR>
 
-" Seamless window navigation with Ctrl + h/j/k/l
-nnoremap <C-h> <C-w>h
-nnoremap <C-j> <C-w>j
-nnoremap <C-k> <C-w>k
-nnoremap <C-l> <C-w>l
+" Seamless window navigation across Vim splits AND Tmux panes (Ctrl + h/j/k/l)
+function! s:TmuxOrSplitSwitch(wincmd, tmuxdir) abort
+  let l:prev_winnr = winnr()
+  execute 'wincmd ' . a:wincmd
+  if l:prev_winnr == winnr() && !empty($TMUX)
+    call system('tmux select-pane -' . a:tmuxdir)
+  endif
+endfunction
+
+nnoremap <silent> <C-h> :call <SID>TmuxOrSplitSwitch('h', 'L')<CR>
+nnoremap <silent> <C-j> :call <SID>TmuxOrSplitSwitch('j', 'D')<CR>
+nnoremap <silent> <C-k> :call <SID>TmuxOrSplitSwitch('k', 'U')<CR>
+nnoremap <silent> <C-l> :call <SID>TmuxOrSplitSwitch('l', 'R')<CR>
 
 " Resize windows easily with Alt/Option or Ctrl + Arrows
 nnoremap <silent> <C-Up>    :resize +2<CR>

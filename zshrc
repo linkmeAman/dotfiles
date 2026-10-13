@@ -293,6 +293,48 @@ if command -v fzf >/dev/null 2>&1; then
     [ -n "$file" ] && ${EDITOR:-nvim} "$file"
   }
 
+  # Interactive Git Branch Manager & Switcher (fb / fgb)
+  fb() {
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      echo "❌ Not inside a Git repository."
+      return 1
+    fi
+    local branch
+    branch=$(git for-each-ref --sort=-committerdate refs/heads/ --format='%(refname:short) | %(committerdate:relative) | %(subject)' 2>/dev/null | \
+      fzf --ansi --no-sort \
+          --header="[Enter: Checkout | Ctrl-D: Delete branch | Ctrl-Y: Copy name | Esc: Cancel]" \
+          --bind="ctrl-d:execute(git branch -d \$(echo {} | cut -d' ' -f1) && echo Deleted)+abort" \
+          --bind="ctrl-y:execute(echo -n \$(echo {} | cut -d' ' -f1) | pbcopy && echo Copied branch name)+abort" \
+          --preview='git log -n 15 --color=always --graph --oneline $(echo {} | cut -d" " -f1) 2>/dev/null' \
+          --preview-window=right:60%:wrap \
+          --prompt="🌿 Git Branch > ")
+    if [ -n "$branch" ]; then
+      local target_branch=$(echo "$branch" | cut -d' ' -f1)
+      git checkout "$target_branch"
+    fi
+  }
+  alias fgb='fb'
+
+  # Git Modified Files Quick-Opener (fmod)
+  fmod() {
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      echo "❌ Not inside a Git repository."
+      return 1
+    fi
+    local selected
+    selected=$(git status --short 2>/dev/null | \
+      fzf -m \
+          --header="[Enter: Open in $EDITOR | Tab: Multi-select | Ctrl-A: Stage | Esc: Cancel]" \
+          --bind="ctrl-a:execute(echo {+2} | xargs git add && echo Staged)+abort" \
+          --preview='git diff --color=always {2} 2>/dev/null | delta --side-by-side' \
+          --preview-window=right:65%:wrap \
+          --prompt="📝 Modified Files > ")
+    if [ -n "$selected" ]; then
+      local files=$(echo "$selected" | awk '{print $2}')
+      echo "$files" | xargs ${EDITOR:-nvim}
+    fi
+  }
+
   # Universal Project Script & Task Runner (frun [task])
   # Auto-detects package.json scripts, Makefile targets, Cargo, and Docker tasks
   frun() {
@@ -1033,7 +1075,90 @@ keys() {
 EOF
 }
 alias cheatsheet='keys'
-alias hud='keys'
+
+# ==============================================================================
+# Copy Output of Last Command to Clipboard (cl [cmd])
+# Zero-Touchpad: never highlight terminal text to copy output!
+# ==============================================================================
+cl() {
+  local last_cmd
+  if [ -n "$*" ]; then
+    last_cmd="$*"
+  else
+    last_cmd=$(fc -ln -1 | sed 's/^[ ]*//')
+  fi
+  if [ -z "$last_cmd" ] || [ "$last_cmd" = "cl" ]; then
+    echo "ℹ️ No previous command found to copy output from."
+    return 1
+  fi
+  echo "📋 Capturing output of: $last_cmd"
+  local output
+  output=$(eval "$last_cmd" 2>&1)
+  if [ -n "$output" ]; then
+    echo -n "$output" | pbcopy
+    local count=$(echo "$output" | wc -l | tr -d ' ')
+    echo "✓ Copied output ($count lines) to macOS clipboard!"
+  else
+    echo "ℹ️ Command produced no output."
+  fi
+}
+
+# ==============================================================================
+# Interactive Terminal Cockpit HUD & Command Discovery (hud / <F1>)
+# ==============================================================================
+hud() {
+  local entries=(
+    "note [topic]             --> Daily dev journal & markdown notes in Neovim"
+    "fnotes                   --> Fuzzy search past notes with syntax preview"
+    "todo [add|done|clean]    --> Instant terminal action checklist tracker"
+    "cl [cmd]                 --> Copy output of previous command to clipboard"
+    "fmod                     --> Fuzzy browse modified Git files & open in Neovim"
+    "fb                       --> Interactive Git branch switcher & manager"
+    "vdiff <f1> [f2]          --> Side-by-side Neovim visual file differ"
+    "cdiff <f1> <f2>          --> Fast side-by-side terminal Delta diff"
+    "fh [query]               --> Fuzzy command history search & edit on prompt"
+    "fenv [query]             --> Environment variables & secrets inspector"
+    "ports                    --> List all active listening TCP ports & PIDs"
+    "fport / killport <port>  --> Port & process killer (free port 3000/8000)"
+    "frun [task]              --> Universal project task runner (npm/make/cargo)"
+    "fstash                   --> Interactive Git stash browser with Delta diff"
+    "fdiff [branch]           --> Interactive Git diff browser against branch"
+    "ftldr [cmd]              --> Interactive fuzzy tldr manual with color preview"
+    "api [method] <url>       --> REST API test runner in jless"
+    "?? <question>            --> Instant shell AI command assistant"
+    "sandbox [lang]           --> Disposable Git-backed coding playground"
+    "fo [query]               --> Fuzzy find file with bat preview & open"
+    "fcd [query]              --> Fuzzy directory changer with eza tree preview"
+    "fgl                      --> Interactive Git log graph with Delta diff"
+    "fpic / fvid              --> Inline terminal image & video previewer"
+    "cheat [topic]            --> Instant programming cheat sheet (cht.sh)"
+    "dev                      --> 1-second 3-pane dev session launcher"
+    "p / proj                 --> Fuzzy project switcher (tmux-sessionizer)"
+    "lg                       --> Launch Lazygit TUI dashboard"
+    "y                        --> Launch Yazi terminal file manager"
+    "top                      --> Launch Btop system monitor"
+  )
+
+  local selected
+  selected=$(printf "%s\n" "${entries[@]}" | \
+    fzf --header="[Enter: Paste command onto prompt | Esc: Cancel]" \
+        --prompt="⚡ Terminal Cockpit HUD > ")
+
+  if [ -n "$selected" ]; then
+    local cmd=$(echo "$selected" | awk '{print $1}')
+    print -z "$cmd"
+  fi
+}
+alias helpme='hud'
+
+# Bind F1 in interactive shell to open HUD
+_hud_widget() {
+  BUFFER="hud"
+  zle accept-line
+}
+zle -N _hud_widget
+bindkey '^[[11~' _hud_widget 2>/dev/null || true
+bindkey '^[OP' _hud_widget 2>/dev/null || true
 
 # ==============================================================================
 # REST API Explorer & Interactive JSON Viewer (HTTPie + jless)

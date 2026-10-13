@@ -196,6 +196,10 @@
 ==============================================================================
 11. TERMINAL & SHELL POWER TOOLS (OUTSIDE VIM)
 ==============================================================================
+  hud  /  <F1>             Interactive shell command HUD & shortcuts menu
+  cl [cmd]                 Copy output of last command to clipboard (no mouse drag)
+  fmod                     Fuzzy browse modified Git files & open in Neovim
+  fb  /  fgb               Interactive Git branch switcher, preview & deleter
   note [topic] / fnotes    Daily markdown dev journal & notes in Neovim
   todo [add|done|clean]    Instant terminal action checklist & tracker
   vdiff file1 [file2]      Side-by-side synchronized Neovim visual file differ

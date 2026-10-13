@@ -13,23 +13,26 @@
 ==============================================================================
 1. SUGGESTIONS, HINTS & COMMAND DISCOVERY (NEW!)
 ==============================================================================
-  <Space> p   or   <Space><Space>
-    --> COMMAND PALETTE (Fuzzy search ANY command or tool)
-        Type words like "format", "git", "tree", "terminal", "ai", "save"
-        to discover and run commands without memorizing their exact names!
+  WHICH-KEY MENU (<Space>)
+    --> Press <Space> to display the interactive key suggestions menu.
+    --> Press <BS> (Backspace) to GO BACK to the previous menu level.
+    --> Press <Esc>, <C-c>, or 'q' to CLOSE / DISMISS without executing anything.
+
+  COMMAND PALETTE (<Space>p or <Space><Space>)
+    --> Fuzzy search ANY Vim command, tool, or action.
+    --> Press <Esc> or <C-c> to CLOSE / CANCEL immediately.
 
   POPUP MENU ON ':' COMMAND LINE (wildoptions=pum)
-    --> When you type ':' and start typing any letters (e.g. :w, :set, :Lsp)
-        or press <Tab>, an interactive popup dropdown appears showing all
-        matching command suggestions! Cycle with <Tab>, <S-Tab>, or Arrows.
+    --> When typing ':' commands, press <Tab> or Arrows to cycle suggestions.
+    --> Press <C-e> to dismiss suggestions, or <Esc> to cancel.
 
-  AUTOMATIC CODE COMPLETION IN INSERT MODE
-    --> As you type code or text in any file, an auto-completion dropdown
-        appears with matching words, symbols, and file paths.
-        Press <Tab> or <C-n> / <C-p> to select a suggestion.
+  COPY & PASTE (MACOS SYSTEM CLIPBOARD)
+    --> Highlighting text with mouse automatically copies to clipboard on release!
+    --> Press <C-v> to paste from macOS clipboard in Normal, Insert, or Command mode.
+    --> In Visual mode: 'y' or <C-c> copies directly to macOS clipboard.
 
   PERMANENT BOTTOM HINT BAR
-    --> The bottom status bar shows: ⌨ <Space>:Menu <Space>p:Commands <F1>:Help
+    --> The bottom status bar shows: ⌨ <Space>:Menu  <Space>p:Commands  <F1>:Help
 
 ==============================================================================
 2. AI AGENTS & HARNESSES LAUNCHPAD

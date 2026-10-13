@@ -254,7 +254,7 @@ fi
 # Media Viewers (Photo & Video), Path Copier & CLI Web Browser
 # ==============================================================================
 
-# Photo Viewer & Path Copier (pic <image_file>)
+# Photo Viewer & Path Copier (pic <image_file>) - High-DPI Native Graphics
 pic() {
   if [ -z "$1" ]; then
     echo "Usage: pic <path_to_image>"
@@ -269,14 +269,20 @@ pic() {
   abs_path="$(cd "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")"
   echo -n "$abs_path" | pbcopy
   echo "📋 Copied path to clipboard: $abs_path"
-  if command -v viu >/dev/null 2>&1; then
-    viu -b "$target"
+
+  # 1. Native WezTerm GPU image rendering (crisp Retina resolution)
+  if command -v wezterm >/dev/null 2>&1 && [ -n "$WEZTERM_PANE" ]; then
+    wezterm imgcat "$target"
+  # 2. Chafa with Kitty or iTerm2 high-res protocol
   elif command -v chafa >/dev/null 2>&1; then
-    chafa "$target"
+    chafa --format=kitty "$target" 2>/dev/null || chafa --format=iterm "$target" 2>/dev/null || chafa "$target"
+  # 3. Viu without -b (enables native graphics protocol instead of low-res blocks)
+  elif command -v viu >/dev/null 2>&1; then
+    viu "$target"
   fi
 }
 
-# Video Player & Path Copier (vid <video_file>)
+# Video Player & Path Copier (vid <video_file>) - High-Fidelity Retina Playback
 vid() {
   if [ -z "$1" ]; then
     echo "Usage: vid <path_to_video>"
@@ -296,7 +302,16 @@ vid() {
     ffprobe -v error -show_entries format=duration,size,bit_rate:stream=width,height,codec_name -of default=noprint_wrappers=1 "$target" 2>/dev/null | head -n 6
   fi
   if command -v mpv >/dev/null 2>&1; then
-    mpv --autofit=65% --geometry=50%:50% "$target"
+    mpv \
+      --profile=high-quality \
+      --vo=gpu-next \
+      --hwdec=auto-safe \
+      --hidpi-window-scale=yes \
+      --scale=ewa_lanczossharp \
+      --cscale=ewa_lanczossharp \
+      --autofit=75% \
+      --geometry=50%:50% \
+      "$target"
   else
     open "$target"
   fi

@@ -157,24 +157,28 @@ case "${1:-help}" in
     shift
     target="${1:-}"
     if [ -z "$target" ]; then echo "Usage: wz pic <image_file>"; exit 1; fi
+    if [ ! -f "$target" ]; then echo "❌ File not found: $target"; exit 1; fi
     abs_path="$(cd "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")"
-    echo "$abs_path" | pbcopy
+    echo -n "$abs_path" | pbcopy
     echo "📋 Copied path to clipboard: $abs_path"
-    if command -v viu >/dev/null 2>&1; then
-      viu -b "$target"
+    if command -v wezterm >/dev/null 2>&1 && [ -n "${WEZTERM_PANE:-}" ]; then
+      wezterm imgcat "$target"
     elif command -v chafa >/dev/null 2>&1; then
-      chafa "$target"
+      chafa --format=kitty "$target" 2>/dev/null || chafa --format=iterm "$target" 2>/dev/null || chafa "$target"
+    elif command -v viu >/dev/null 2>&1; then
+      viu "$target"
     fi
     ;;
   vid)
     shift
     target="${1:-}"
     if [ -z "$target" ]; then echo "Usage: wz vid <video_file>"; exit 1; fi
+    if [ ! -f "$target" ]; then echo "❌ File not found: $target"; exit 1; fi
     abs_path="$(cd "$(dirname "$target")" 2>/dev/null && pwd)/$(basename "$target")"
-    echo "$abs_path" | pbcopy
+    echo -n "$abs_path" | pbcopy
     echo "📋 Copied path to clipboard: $abs_path"
     if command -v mpv >/dev/null 2>&1; then
-      mpv --autofit=65% --geometry=50%:50% "$target"
+      mpv --profile=high-quality --vo=gpu-next --hwdec=auto-safe --hidpi-window-scale=yes --scale=ewa_lanczossharp --autofit=75% --geometry=50%:50% "$target"
     else
       open "$target"
     fi

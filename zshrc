@@ -1542,11 +1542,24 @@ keys() {
 =============================================================================
               TERMINAL COCKPIT KEYBOARD CHEATSHEET (ZERO TOUCHPAD)
 =============================================================================
-  PROJECT & LAUNCH:
-    p / proj        Fuzzy search any project repository & launch 3-pane dev
+  PROJECT & SESSION NAVIGATION:
+    Ctrl + F        Fuzzy search any project repository & launch 3-pane dev
+    p / proj        Fuzzy project launcher (tmux-sessionizer)
     dev             Open 3-pane layout in current directory (Nvim | AGY | Terminal)
-    note            Open quick terminal scratchpad buffer
-    killport <port> Free port instantly (e.g., killport 3000)
+    Ctrl + h/j/k/l  Seamless navigation across Vim splits AND Tmux panes
+    bm / warp       Directory bookmarks (bm add <name> / bm <name>)
+    fwt             Interactive Git worktrees manager
+
+  GIT WORKFLOWS:
+    fga             Interactive Git add with multi-select (Tab to pick, Enter to stage)
+    gpush-ai        Auto-stage, generate commit message with Antigravity & push
+    fpr             Browse GitHub PRs (Enter to checkout, Ctrl-D for Delta diff)
+    fissue          Browse GitHub Issues (Enter to view details)
+    conflicts       Interactive merge conflict resolver (opens in Neovim)
+    guncommit       Undo last commit safely (preserves staged files)
+    gclean          Prune all merged Git branches in batch
+    gcompare        Compare current branch commits against main with Delta diff
+    grebase <n>     Interactive Git rebase last N commits
 
   ANTIGRAVITY CLI:
     a               Launch Antigravity CLI (agy)
@@ -1554,32 +1567,70 @@ keys() {
     agy-review      Feed unstaged git diff into Antigravity for review
     agy-cm          Generate conventional git commit message from staged changes
     agy-last        Send last command error directly to Antigravity to fix
+    <Space> a a     In-Vim: Launch Antigravity in bottom drawer
+    <Space> a e     In-Vim: Ask Antigravity about code on current line
+    <Space> a r     In-Vim: Review open file with Antigravity
 
-  WEZTERM SHORTCUTS:
-    ⌘ ⌥ A           Split pane right (40%) and launch Antigravity CLI
-    ⌘ ⇧ A           Open Antigravity CLI in new tab
-    ⌘ D / ⌘ ⇧ D     Split horizontally / vertically
-    ⌘ ⌥ H/J/K/L     Jump between panes (Vim keys)
-    ⌘ ⇧ E           Fuzzy open any URL with keyboard letter hints
-    ⌘ ⇧ Space       QuickSelect copy mode (hashes, paths, IPs)
+  DEVELOPER PRODUCTIVITY & UTILITIES:
+    ftodo           Scan codebase for TODO/FIXME and jump to line in Neovim
+    fssh            Interactive SSH host picker (from ~/.ssh/config)
+    fdb [file.db]   Interactive SQLite database & table inspector
+    httpstat <url>  Inspect HTTP status, TTFB, DNS, and TLS latency
+    dotsync         One-stroke backup: commit and push all dotfiles to GitHub
+    killport <port> Free port instantly (e.g. killport 3000)
+    calc <expr>     Terminal math, epoch, and hex converter (copies to clipboard)
+    cl [cmd]        Copy output of last command to macOS clipboard
+    <cmd>; alert    Play chime & desktop notification when long command finishes
+    note / fnotes   Developer daily journal & fuzzy notes finder
+    todo            CLI task checklist (todo add / todo done / todo list)
+    dark            Toggle macOS Dark / Light mode
 
-  TMUX FLOATING POPUPS (Press Ctrl+B then key):
-    Prefix + a      Instant floating Antigravity CLI popup
-    Prefix + g      Instant floating Lazygit popup
-    Prefix + y      Instant floating Yazi file manager popup
-    Prefix + b      Instant floating Btop system monitor popup
-    Prefix + [      Vi copy mode (v = select, y = copy to macOS clipboard)
-
-  NVIM / VIM SHORTCUTS:
-    <Space> a a     Launch Antigravity CLI in terminal drawer
-    <Space> a r     Review current file with Antigravity
-    <Space> e       Toggle NERDTree file tree
-    <Space> f       Fuzzy find files (fzf)
-    <Space> g       Live grep search (ripgrep)
+  WEZTERM & TMUX POPUPS:
+    ⌘ ⌥ A           WezTerm: Split pane right (40%) and launch Antigravity CLI
+    ⌘ ⇧ A           WezTerm: Open Antigravity CLI in new tab
+    ⌘ ⇧ E           WezTerm: Fuzzy open any URL with keyboard letter hints
+    ⌘ ⇧ Space       WezTerm: QuickSelect copy mode (hashes, paths, IPs)
+    Prefix + a      Tmux: Floating Antigravity CLI popup
+    Prefix + g      Tmux: Floating Lazygit popup
+    Prefix + y      Tmux: Floating Yazi file manager popup
+    Prefix + b      Tmux: Floating Btop system monitor popup
+    Prefix + [      Tmux: Vi copy mode (v = select, y = copy to macOS clipboard)
 =============================================================================
 EOF
 }
 alias cheatsheet='keys'
+alias hud='keys'
+
+# ==============================================================================
+# Auto Python Virtual Environment Activation upon cd (_auto_venv)
+# ==============================================================================
+autoload -U add-zsh-hook
+_auto_venv() {
+  if [ -d ".venv" ]; then
+    if [ -z "$VIRTUAL_ENV" ] || [ "$VIRTUAL_ENV" != "$PWD/.venv" ]; then
+      source .venv/bin/activate 2>/dev/null
+      echo "🐍 Activated .venv"
+    fi
+  elif [ -n "$VIRTUAL_ENV" ]; then
+    deactivate 2>/dev/null || true
+  fi
+}
+add-zsh-hook chpwd _auto_venv
+
+# ==============================================================================
+# Keyboard Application Focusing & Window Switching (focus / app)
+# ==============================================================================
+focus() {
+  if [ -z "$1" ]; then
+    echo "Usage: focus <app_name>  (e.g. focus brave, focus wezterm, focus chrome, focus antigravity)"
+    return 1
+  fi
+  open -a "$1" 2>/dev/null || open -a "$1.app" 2>/dev/null || echo "❌ App '$1' not found."
+}
+alias app='focus'
+alias chrome='open -a "Google Chrome"'
+alias brave='open -a "Brave Browser"'
+alias term='open -a "WezTerm"'
 
 # ==============================================================================
 # Copy Output of Last Command to Clipboard (cl [cmd])
@@ -1613,6 +1664,13 @@ cl() {
 # ==============================================================================
 hud() {
   local entries=(
+    "fpr                      --> Interactive GitHub PR reviewer, diff & checkout"
+    "fissue                   --> Interactive GitHub issue browser & discussion viewer"
+    "snip / fsnip             --> Personal code snippet manager & fuzzy prompt inserter"
+    "fclip                    --> Fuzzy search terminal clipboard ring & re-yank"
+    "wip / unwip              --> 1-second Git checkpoint commit & rollback"
+    "gcp [message]            --> Stage all, commit, and push upstream in 1 command"
+    "fdocker / fdc            --> Interactive Docker cockpit: live logs, exec shell, restart"
     "bm / warp                --> Fuzzy jump to bookmarked project directories"
     "mark [name]              --> Bookmark current directory for instant warp"
     "calc [expr|epoch|hex]    --> Inline terminal math, epoch & hex converter"
@@ -2116,3 +2174,259 @@ fsqlite() {
     fi
   fi
 }
+
+# ==============================================================================
+# Complete Zero-Touchpad Developer Power Suite
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Terminal Clipboard Ring & History (clip, fclip)
+# ------------------------------------------------------------------------------
+_clip_record() {
+  local text="$1"
+  [ -z "$text" ] && return 0
+  local hist_file="$HOME/.clip_history"
+  touch "$hist_file"
+  local entry
+  entry=$(printf "%s" "$text" | tr '\n' '↵' | sed 's/↵$//')
+  [ -z "$entry" ] && return 0
+  (echo "$entry"; grep -Fvx "$entry" "$hist_file" 2>/dev/null) | head -n 200 > "${hist_file}.tmp" && mv "${hist_file}.tmp" "$hist_file"
+}
+
+clip() {
+  local content
+  if [ -n "$*" ]; then
+    content="$*"
+  elif [ ! -t 0 ]; then
+    content=$(cat)
+  else
+    echo "Usage: clip <text>  or  <command> | clip"
+    return 1
+  fi
+  printf "%s" "$content" | pbcopy
+  _clip_record "$content"
+  local lines=$(printf "%s\n" "$content" | wc -l | tr -d ' ')
+  echo "📋 Copied to clipboard & history ($lines lines)"
+}
+
+fclip() {
+  local hist_file="$HOME/.clip_history"
+  touch "$hist_file"
+  if [ ! -s "$hist_file" ]; then
+    echo "ℹ️ Clipboard history is empty. Copy text using 'clip <text>' or piped commands."
+    return 0
+  fi
+  local selected
+  selected=$(fzf < "$hist_file" \
+    --header="[Enter: Paste to prompt | Ctrl-Y: Copy to clipboard only | Esc: Cancel]" \
+    --preview="echo {} | sed 's/↵/\n/g' | bat --color=always 2>/dev/null || echo {} | sed 's/↵/\n/g'" \
+    --preview-window=right:60%:wrap \
+    --prompt="📋 Clip History > ")
+  if [ -n "$selected" ]; then
+    local restored
+    restored=$(echo "$selected" | sed 's/↵/\n/g')
+    printf "%s" "$restored" | pbcopy
+    print -z "$restored"
+    echo "📋 Copied and pasted selection onto prompt!"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# 2. Personal Code Snippets & Boilerplate Engine (snip, fsnip)
+# ------------------------------------------------------------------------------
+snip() {
+  local snip_dir="$HOME/.snippets"
+  mkdir -p "$snip_dir"
+  if [ -z "$1" ]; then
+    echo "Usage: snip <name>           (print snippet and copy to clipboard)"
+    echo "       snip add <name>       (create new snippet in \$EDITOR)"
+    echo "       snip edit <name>      (edit snippet in \$EDITOR)"
+    echo "       snip list             (list all available snippets)"
+    echo "       fsnip                 (fuzzy search and paste snippet)"
+    return 0
+  fi
+  case "$1" in
+    add|edit|new)
+      shift
+      if [ -z "$1" ]; then
+        echo "Usage: snip add <name>"
+        return 1
+      fi
+      ${EDITOR:-nvim} "$snip_dir/$1"
+      ;;
+    list|ls)
+      echo "📋 Available Snippets in $snip_dir:"
+      ls -1 "$snip_dir"
+      ;;
+    *)
+      local target="$snip_dir/$1"
+      if [ ! -f "$target" ]; then
+        local match
+        match=$(find "$snip_dir" -maxdepth 1 -name "$1*" 2>/dev/null | head -n 1)
+        if [ -n "$match" ] && [ -f "$match" ]; then
+          target="$match"
+        else
+          echo "❌ Snippet not found: $1"
+          echo "Run 'fsnip' to search or 'snip add $1' to create."
+          return 1
+        fi
+      fi
+      local content
+      content=$(cat "$target")
+      printf "%s" "$content" | pbcopy
+      _clip_record "$content"
+      echo "$content"
+      echo "📋 Copied snippet to clipboard: $(basename "$target")"
+      ;;
+  esac
+}
+
+fsnip() {
+  local snip_dir="$HOME/.snippets"
+  mkdir -p "$snip_dir"
+  local selected
+  selected=$(find "$snip_dir" -type f -maxdepth 2 -exec basename {} \; 2>/dev/null | \
+    fzf --header="[Enter: Paste to prompt & copy | Ctrl-E: Edit snippet | Esc: Cancel]" \
+        --bind="ctrl-e:execute(${EDITOR:-nvim} $snip_dir/{})+abort" \
+        --preview="bat --color=always --line-range :50 $snip_dir/{} 2>/dev/null || cat $snip_dir/{}" \
+        --preview-window=right:60%:wrap \
+        --prompt="✂️ Code Snippets > ")
+  if [ -n "$selected" ]; then
+    local target="$snip_dir/$selected"
+    if [ -f "$target" ]; then
+      local content
+      content=$(cat "$target")
+      printf "%s" "$content" | pbcopy
+      _clip_record "$content"
+      print -z "$content"
+      echo "📋 Copied snippet to clipboard: $selected"
+    fi
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# 3. Interactive GitHub PR & Issue Navigator (fpr, fissue)
+# ------------------------------------------------------------------------------
+fpr() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "❌ GitHub CLI (gh) not installed."
+    return 1
+  fi
+  local pr
+  pr=$(gh pr list --limit 30 2>/dev/null | \
+    fzf --header="[Enter: Checkout PR | Ctrl-O: Open Diff | Ctrl-Y: Copy PR URL | Ctrl-W: Web | Esc: Cancel]" \
+        --bind="ctrl-o:execute(gh pr diff \$(echo {} | awk '{print \$1}') | ${PAGER:-less -R})+abort" \
+        --bind="ctrl-y:execute(gh pr view --json url -q .url \$(echo {} | awk '{print \$1}') | pbcopy && echo 'Copied PR URL')+abort" \
+        --bind="ctrl-w:execute(gh pr view --web \$(echo {} | awk '{print \$1}'))+abort" \
+        --preview="gh pr diff \$(echo {} | awk '{print \$1}') --color=always 2>/dev/null | delta --side-by-side || gh pr view \$(echo {} | awk '{print \$1}')" \
+        --preview-window=right:65%:wrap \
+        --prompt="🐙 Pull Requests > ")
+  if [ -n "$pr" ]; then
+    local pr_num=$(echo "$pr" | awk '{print $1}')
+    echo "🐙 Checking out Pull Request #$pr_num..."
+    gh pr checkout "$pr_num"
+  fi
+}
+
+fissue() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "❌ GitHub CLI (gh) not installed."
+    return 1
+  fi
+  local issue
+  issue=$(gh issue list --limit 30 2>/dev/null | \
+    fzf --header="[Enter: View Issue Comments | Ctrl-Y: Copy Issue URL | Ctrl-W: Web | Esc: Cancel]" \
+        --bind="ctrl-y:execute(gh issue view --json url -q .url \$(echo {} | awk '{print \$1}') | pbcopy && echo 'Copied Issue URL')+abort" \
+        --bind="ctrl-w:execute(gh issue view --web \$(echo {} | awk '{print \$1}'))+abort" \
+        --preview="gh issue view \$(echo {} | awk '{print \$1}') 2>/dev/null" \
+        --preview-window=right:65%:wrap \
+        --prompt="🐛 Issues > ")
+  if [ -n "$issue" ]; then
+    local issue_num=$(echo "$issue" | awk '{print $1}')
+    gh issue view --comments "$issue_num" | ${PAGER:-less -R}
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# 4. Rapid Git Checkpoints & 1-Command Push (wip, unwip, gcp)
+# ------------------------------------------------------------------------------
+wip() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+  local status=$(git status --porcelain 2>/dev/null)
+  if [ -z "$status" ]; then
+    echo "ℹ️ Working tree clean - nothing to checkpoint."
+    return 0
+  fi
+  local now=$(date '+%Y-%m-%d %H:%M:%S')
+  git add -A
+  git commit -m "wip: checkpoint $now"
+  echo "💾 Saved WIP checkpoint ($now). Roll back anytime with 'unwip'!"
+}
+
+unwip() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+  local last_msg=$(git log -1 --pretty=%s 2>/dev/null)
+  if [[ "$last_msg" == wip:* ]]; then
+    git reset HEAD~1
+    echo "↩️ Rolled back WIP checkpoint: \"$last_msg\". Edits kept in working tree!"
+  else
+    echo "⚠️ Last commit is NOT a WIP commit: \"$last_msg\""
+    echo "Refusing to reset to avoid accidental loss. Use 'git reset HEAD~1' manually if intended."
+    return 1
+  fi
+}
+
+gcp() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+  local msg="${*:-update}"
+  git add -A
+  git commit -m "$msg"
+  local branch=$(git branch --show-current 2>/dev/null)
+  git push origin "$branch" 2>/dev/null || git push -u origin "$branch"
+}
+
+# ------------------------------------------------------------------------------
+# 5. Interactive Docker Container & Log Cockpit (fdocker / fdc)
+# ------------------------------------------------------------------------------
+fdocker() {
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "❌ Docker CLI not found."
+    return 1
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    echo "❌ Docker daemon is not running."
+    return 1
+  fi
+  local container
+  container=$(docker ps -a --format '{{.ID}} | {{.Names}} | {{.Status}} | {{.Image}} | {{.Ports}}' 2>/dev/null | \
+    fzf --header="[Enter: Follow Logs | Ctrl-X: Exec Shell | Ctrl-R: Restart | Ctrl-S: Toggle Stop/Start | Esc: Cancel]" \
+        --bind="ctrl-x:execute(docker exec -it \$(echo {} | awk '{print \$1}') /bin/sh -c 'bash || sh')+abort" \
+        --bind="ctrl-r:execute(docker restart \$(echo {} | awk '{print \$1}') && echo Restarted)+reload(docker ps -a --format '{{.ID}} | {{.Names}} | {{.Status}} | {{.Image}} | {{.Ports}}')" \
+        --bind="ctrl-s:execute(id=\$(echo {} | awk '{print \$1}'); if docker inspect -f '{{.State.Running}}' \$id | grep -q true; then docker stop \$id; else docker start \$id; fi)+reload(docker ps -a --format '{{.ID}} | {{.Names}} | {{.Status}} | {{.Image}} | {{.Ports}}')" \
+        --preview="echo '=== LIVE LOGS (last 30) ==='; docker logs --tail 30 --timestamps \$(echo {} | awk '{print \$1}') 2>&1" \
+        --preview-window=right:65%:wrap \
+        --prompt="🐳 Docker Containers > ")
+  if [ -n "$container" ]; then
+    local id=$(echo "$container" | awk '{print $1}')
+    echo "🐳 Following logs for container $id (Ctrl-C to stop)..."
+    docker logs -f --tail 50 "$id"
+  fi
+}
+alias fdc='fdocker'

@@ -165,6 +165,7 @@ Your terminal is your complete development home. Here is how to navigate everyth
 | | `<Space> m l` / `m c` | **List all pinned files / Clear all pins** |
 | | `<Space> c d` | **Fuzzy jump to project / folder via Zoxide (`:CdProject`)** |
 | | `<Space> c b` | **Fuzzy browse & warp to project bookmarks (`:Bookmarks`)** |
+| | `<Space> c p` / `s n` | **Fuzzy insert code snippet from `~/.snippets` (`:Snippets`)** |
 | | `gF` | **Jump to file:line under cursor (compiler traces)** |
 | | `]d` / `[d` | **Jump to next / previous LSP error or warning** |
 | | `<Space> c e` | **Show document diagnostics (errors / warnings list)** |
@@ -195,6 +196,13 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 | Command | Usage | Description |
 | :--- | :--- | :--- |
 | `hud` / `<F1>` | `hud` | Interactive search menu of all terminal tools; pastes command onto prompt. |
+| `fpr` | `fpr` | Interactive GitHub PR reviewer, diff & checkout without browser! |
+| `fissue` | `fissue` | Interactive GitHub issues list, comments viewer & link copier. |
+| `snip` / `fsnip` | `snip add [name]`, `fsnip` | Personal snippet manager; pastes boilerplate straight onto prompt. |
+| `fclip` | `fclip`, `clip <text>` | Search clipboard ring & re-yank previous copies to prompt without mouse. |
+| `wip` / `unwip` | `wip`, `unwip` | 1-second Git checkpoint commit and clean rollback to working tree. |
+| `gcp [msg]` | `gcp "feat: login"` | Stages all files, creates commit, and pushes upstream in 1 keystroke. |
+| `fdocker` / `fdc` | `fdocker`, `fdc` | Interactive Docker cockpit: live logs, exec shell, restart, stop/start. |
 | `bm` / `warp` | `bm`, `warp dotfiles` | Fuzzy project directory bookmarks; warp anywhere in 1 keystroke. |
 | `mark [name]` | `mark dotfiles`, `unmark` | Bookmark current working directory for instant shell & Vim jumping. |
 | `calc [expr]` | `calc 256*1024`, `calc now`, `calc epoch 179171` | Terminal calculator, epoch converter & hex math (auto-copied). |

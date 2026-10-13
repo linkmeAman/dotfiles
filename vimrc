@@ -498,6 +498,7 @@ let g:which_key_map.c = {
       \ 'e': [':LspDiagnostic',         'Show diagnostic error / warning message'],
       \ 'o': [':BTags',                 'Code outline (symbols / functions in file)'],
       \ 'b': [':Bookmarks',             'Jump to bookmarked project (~/.bookmarks)'],
+      \ 'p': [':Snippets',              'Insert code snippet from ~/.snippets'],
       \ 'h': [':LspHover',              'Show hover documentation'],
       \ 'n': [':LspRename',             'Rename symbol'],
       \ 'a': [':LspCodeAction',         'Code actions'],
@@ -538,6 +539,7 @@ let g:which_key_map.s = {
       \ 's': [':SaveSession',           'Save workspace session'],
       \ 'r': [':RestoreSession',        'Restore workspace session'],
       \ 'o': [':Obsession',             'Toggle continuous session tracker'],
+      \ 'n': [':Snippets',              'Insert code snippet from ~/.snippets'],
       \ 'w': [':TrimWhitespace',        'Strip trailing whitespace'],
       \ 'h': [':VimHealth',             'Check Vim status & health'],
       \ }
@@ -1045,6 +1047,29 @@ endfunction
 command! -bar Bookmarks call <SID>FzfBookmarks()
 command! -bar Bm call <SID>FzfBookmarks()
 
+" 19. Personal Code Snippets Inserter (:Snippets)
+function! s:FzfSnippets() abort
+  let l:snip_dir = expand('~/.snippets')
+  if !isdirectory(l:snip_dir)
+    call mkdir(l:snip_dir, 'p')
+  endif
+  call fzf#run(fzf#wrap({
+        \ 'source': 'find ' . fnameescape(l:snip_dir) . ' -type f -maxdepth 2 -exec basename {} \;',
+        \ 'sink': function('s:InsertSnippet'),
+        \ 'options': '--prompt="Insert Snippet > " --preview="bat --color=always --line-range :50 ' . fnameescape(l:snip_dir) . '/{} 2>/dev/null || cat ' . fnameescape(l:snip_dir) . '/{}" --preview-window=right:60%'
+        \ }))
+endfunction
+
+function! s:InsertSnippet(name) abort
+  let l:file = expand('~/.snippets/') . a:name
+  if filereadable(l:file)
+    execute 'read ' . fnameescape(l:file)
+    echo "Inserted snippet: " . a:name
+  endif
+endfunction
+
+command! -bar Snippets call <SID>FzfSnippets()
+
 " ------------------------------------------------------------------------------
 " 8. ERGONOMIC KEY MAPPINGS
 " ------------------------------------------------------------------------------
@@ -1063,6 +1088,8 @@ nnoremap <silent> <leader>rl :RunLast<CR>
 nnoremap <silent> <leader>rt :RunTask<CR>
 nnoremap <silent> <leader>cd :CdProject<CR>
 nnoremap <silent> <leader>cb :Bookmarks<CR>
+nnoremap <silent> <leader>cp :Snippets<CR>
+nnoremap <silent> <leader>sn :Snippets<CR>
 nnoremap <silent> <leader>co :BTags<CR>
 nnoremap <silent> <leader>cs :BTags<CR>
 nnoremap <silent> <leader>1  :JumpPin 1<CR>

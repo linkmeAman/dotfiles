@@ -86,6 +86,7 @@
   <Space> m l              List all pinned files (:ListPins)
   <Space> m c              Clear all file pins (:ClearPins)
   <Space> c d              Fuzzy jump to project / folder using Zoxide (:CdProject)
+  <Space> c b              Fuzzy browse & warp to project bookmarks (:Bookmarks)
   <Space> c f              Format code via active LSP (:Format)
   <Space> c e              Show document diagnostics (errors & warnings list)
   ]d  /  [d                Jump to next / previous LSP error or warning directly
@@ -197,6 +198,11 @@
 11. TERMINAL & SHELL POWER TOOLS (OUTSIDE VIM)
 ==============================================================================
   hud  /  <F1>             Interactive shell command HUD & shortcuts menu
+  bm  /  warp              Interactive project directory bookmarks & warp jump
+  mark [name]              Bookmark current directory for instant warp
+  calc [expr|epoch|hex]    Terminal calculator, epoch converter & hex math (auto-copied)
+  fwt  /  fwt-add          Git worktree multi-branch workspace switcher
+  fdb [db]                 Interactive SQLite database schema & row explorer
   cl [cmd]                 Copy output of last command to clipboard (no mouse drag)
   fmod                     Fuzzy browse modified Git files & open in Neovim
   fb  /  fgb               Interactive Git branch switcher, preview & deleter

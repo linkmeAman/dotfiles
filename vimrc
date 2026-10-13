@@ -497,6 +497,7 @@ let g:which_key_map.c = {
       \ 'r': [':LspReferences',         'Find references'],
       \ 'e': [':LspDiagnostic',         'Show diagnostic error / warning message'],
       \ 'o': [':BTags',                 'Code outline (symbols / functions in file)'],
+      \ 'b': [':Bookmarks',             'Jump to bookmarked project (~/.bookmarks)'],
       \ 'h': [':LspHover',              'Show hover documentation'],
       \ 'n': [':LspRename',             'Rename symbol'],
       \ 'a': [':LspCodeAction',         'Code actions'],
@@ -763,6 +764,18 @@ endfunction
 command! -bar AgyReview call <SID>AgyReviewCurrentFile()
 nnoremap <silent> <leader>ar :AgyReview<CR>
 
+" Explain current line or context with Antigravity
+function! s:AgyExplainLine() abort
+  let l:file = expand('%:p')
+  let l:line = line('.')
+  let l:text = getline('.')
+  botright 14split
+  execute 'terminal /Users/tr/.local/bin/agy "In ' . l:file . ' line ' . l:line . ': ''' . escape(l:text, '"\') . ''', explain this code and point out any potential bugs or edge cases"'
+  startinsert
+endfunction
+command! -bar AgyExplain call <SID>AgyExplainLine()
+nnoremap <silent> <leader>ae :AgyExplain<CR>
+
 " 9. Open in Visual Studio Code Bridge
 function! s:OpenInCode() abort
   let l:dir = getcwd()
@@ -1004,6 +1017,34 @@ function! s:RunProjectTask() abort
 endfunction
 command! -bar RunTask call <SID>RunProjectTask()
 
+" 18. Project Bookmarks Jumping (:Bookmarks / :Bm)
+function! s:FzfBookmarks() abort
+  let l:bm_file = expand('~/.bookmarks')
+  if !filereadable(l:bm_file) || empty(readfile(l:bm_file))
+    echo "No bookmarks found in ~/.bookmarks. Add one from terminal with: mark"
+    return
+  endif
+  call fzf#run(fzf#wrap({
+        \ 'source': 'awk -F"|" "{printf \"%-20s %s\n\", \$1, \$2}" ' . fnameescape(l:bm_file),
+        \ 'sink': function('s:ChangeDirFromBookmark'),
+        \ 'options': '--prompt="Jump Bookmarked Project > "'
+        \ }))
+endfunction
+
+function! s:ChangeDirFromBookmark(line) abort
+  let l:dir = split(a:line)[-1]
+  if !empty(l:dir) && isdirectory(l:dir)
+    execute 'cd ' . fnameescape(l:dir)
+    if exists(':NERDTree') && g:NERDTree.IsOpen()
+      NERDTreeCWD
+    endif
+    echo "Warped project directory to: " . l:dir
+  endif
+endfunction
+
+command! -bar Bookmarks call <SID>FzfBookmarks()
+command! -bar Bm call <SID>FzfBookmarks()
+
 " ------------------------------------------------------------------------------
 " 8. ERGONOMIC KEY MAPPINGS
 " ------------------------------------------------------------------------------
@@ -1021,6 +1062,7 @@ nnoremap <silent> <leader>rf :RunFile<CR>
 nnoremap <silent> <leader>rl :RunLast<CR>
 nnoremap <silent> <leader>rt :RunTask<CR>
 nnoremap <silent> <leader>cd :CdProject<CR>
+nnoremap <silent> <leader>cb :Bookmarks<CR>
 nnoremap <silent> <leader>co :BTags<CR>
 nnoremap <silent> <leader>cs :BTags<CR>
 nnoremap <silent> <leader>1  :JumpPin 1<CR>
@@ -1082,6 +1124,10 @@ nnoremap <silent> ]d :LspNextDiagnostic<CR>
 nnoremap <silent> [d :LspPreviousDiagnostic<CR>
 nnoremap <silent> <leader>ce :LspDocumentDiagnostics<CR>
 command! -bar LspDiagnostic LspDocumentDiagnostics
+
+" Quickfix list navigation: ]q and [q (Jump next/previous build or grep error)
+nnoremap <silent> ]q :cnext<CR>
+nnoremap <silent> [q :cprevious<CR>
 
 " Move lines up and down (Alt/Option + j/k in Normal and Visual modes, auto-indented)
 nnoremap <silent> <M-j> :m .+1<CR>==

@@ -164,6 +164,7 @@ Your terminal is your complete development home. Here is how to navigate everyth
 | | `<Space> m 1` .. `4` | **Pin active file to slot 1, 2, 3, or 4 (`:PinFile`)** |
 | | `<Space> m l` / `m c` | **List all pinned files / Clear all pins** |
 | | `<Space> c d` | **Fuzzy jump to project / folder via Zoxide (`:CdProject`)** |
+| | `<Space> c b` | **Fuzzy browse & warp to project bookmarks (`:Bookmarks`)** |
 | | `gF` | **Jump to file:line under cursor (compiler traces)** |
 | | `]d` / `[d` | **Jump to next / previous LSP error or warning** |
 | | `<Space> c e` | **Show document diagnostics (errors / warnings list)** |
@@ -194,6 +195,11 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 | Command | Usage | Description |
 | :--- | :--- | :--- |
 | `hud` / `<F1>` | `hud` | Interactive search menu of all terminal tools; pastes command onto prompt. |
+| `bm` / `warp` | `bm`, `warp dotfiles` | Fuzzy project directory bookmarks; warp anywhere in 1 keystroke. |
+| `mark [name]` | `mark dotfiles`, `unmark` | Bookmark current working directory for instant shell & Vim jumping. |
+| `calc [expr]` | `calc 256*1024`, `calc now`, `calc epoch 179171` | Terminal calculator, epoch converter & hex math (auto-copied). |
+| `fwt` / `fwt-add` | `fwt`, `fwt-add ../fix-bug bugfix` | Git worktree multi-branch workspace switcher & manager. |
+| `fdb [db]` | `fdb`, `fdb app.db` | Interactive SQLite database schema & row explorer with live preview. |
 | `cl [cmd]` | `cl`, `cl uuidgen` | Copies previous command's output directly to clipboard without mouse dragging! |
 | `fmod` | `fmod` | Fuzzy browse modified Git files with Delta preview; Enter opens in Neovim. |
 | `fb` / `fgb` | `fb` | Interactive Git branch switcher & manager; preview commits or delete branches. |

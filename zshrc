@@ -839,6 +839,255 @@ clip() {
   echo "---------------------------"
 }
 
+# Interactive SSH Host Picker (connects without remembering IPs or usernames)
+fssh() {
+  local host
+  host=$(awk '/^Host / && !/\*/ {print $2}' ~/.ssh/config 2>/dev/null | fzf --prompt="🌐 SSH Hosts > " --header="[Enter: Connect via SSH | Esc: Cancel]")
+  if [ -n "$host" ]; then
+    echo "Connecting to $host..."
+    ssh "$host"
+  fi
+}
+
+# Interactive Merge Conflict Resolver (finds unmerged files and opens in Neovim)
+fconflicts() {
+  local files
+  files=$(git diff --name-only --diff-filter=U 2>/dev/null)
+  if [ -z "$files" ]; then
+    echo "✓ No active merge conflicts found!"
+    return 0
+  fi
+  local target
+  target=$(echo "$files" | fzf --prompt="⚔️ Conflict Files > " \
+    --header="[Enter: Open in Neovim | Esc: Cancel]" \
+    --preview="git diff --color=always {} 2>/dev/null | delta --side-by-side || cat {}" \
+    --preview-window=right:65%:wrap)
+  if [ -n "$target" ]; then
+    ${EDITOR:-nvim} "$target"
+  fi
+}
+alias conflicts='fconflicts'
+
+# Safe Git Undo: Undoes last commit while keeping changes staged
+guncommit() {
+  git reset --soft HEAD~1
+  echo "✓ Last commit undone. Modified files preserved in staging."
+  git status -s
+}
+
+# Safe Git Discard: Prompt before wiping unstaged working tree modifications
+gdiscard() {
+  read -q "REPLY?Discard all unstaged working tree changes? (y/n): "
+  echo ""
+  if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+    git restore .
+    echo "✓ All unstaged changes discarded."
+  else
+    echo "Aborted."
+  fi
+}
+
+# Audio chime & macOS notification alert for long-running commands (e.g. build; alert)
+alert() {
+  local exit_code=$?
+  local icon="✅"
+  local title="Task Finished"
+  if [ $exit_code -ne 0 ]; then
+    icon="❌"
+    title="Task Failed (Exit $exit_code)"
+  fi
+  osascript -e "display notification \"Process exited with code $exit_code\" with title \"$icon $title\"" 2>/dev/null || true
+  afplay /System/Library/Sounds/Glass.aiff 2>/dev/null || true
+}
+
+# ==============================================================================
+# GitHub Zero-Touchpad Workflow (fpr, fissue)
+# ==============================================================================
+
+# Interactive GitHub PR Viewer, Diff Inspector & Checkout
+fpr() {
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "❌ GitHub CLI (gh) not installed."
+    return 1
+  fi
+  local pr
+  pr=$(gh pr list --limit 30 2>/dev/null | \
+    fzf --prompt="🐙 Pull Requests > " \
+        --header="[Enter: Checkout | Ctrl-O: Open in Browser | Ctrl-D: Delta Diff | Esc: Cancel]" \
+        --bind="ctrl-o:execute(gh pr view --web \$(echo {} | awk '{print \$1}'))" \
+        --bind="ctrl-d:execute(gh pr diff \$(echo {} | awk '{print \$1}') | delta --side-by-side | less -R)" \
+        --preview="gh pr view \$(echo {} | awk '{print \$1}') 2>/dev/null" \
+        --preview-window=right:60%:wrap)
+  if [ -n "$pr" ]; then
+    local pr_num=$(echo "$pr" | awk '{print $1}')
+    echo "Checking out PR #$pr_num..."
+    gh pr checkout "$pr_num"
+  fi
+}
+
+# Interactive GitHub Issue Viewer
+fissue() {
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "❌ GitHub CLI (gh) not installed."
+    return 1
+  fi
+  local issue
+  issue=$(gh issue list --limit 40 2>/dev/null | \
+    fzf --prompt="🐛 Issues > " \
+        --header="[Enter: View Details | Ctrl-O: Open in Browser | Esc: Cancel]" \
+        --bind="ctrl-o:execute(gh issue view --web \$(echo {} | awk '{print \$1}'))" \
+        --preview="gh issue view \$(echo {} | awk '{print \$1}') 2>/dev/null" \
+        --preview-window=right:60%:wrap)
+  if [ -n "$issue" ]; then
+    local issue_num=$(echo "$issue" | awk '{print $1}')
+    gh issue view "$issue_num" | ${PAGER:-less -R}
+  fi
+}
+
+# ==============================================================================
+# Git Worktree Parallel Workspace Manager (gwt)
+# ==============================================================================
+gwt() {
+  case "$1" in
+    add|a)
+      shift
+      local branch="$1"
+      if [ -z "$branch" ]; then
+        echo "Usage: gwt add <branch_name>"
+        return 1
+      fi
+      local repo_name=$(basename "$PWD")
+      local wt_dir="../${repo_name}-${branch}"
+      git worktree add "$wt_dir" "$branch" 2>/dev/null || git worktree add -b "$branch" "$wt_dir"
+      echo "✓ Worktree created at: $wt_dir"
+      builtin cd "$wt_dir" && dev
+      ;;
+    list|l|"")
+      git worktree list
+      ;;
+    remove|rm)
+      shift
+      local target="$1"
+      if [ -z "$target" ]; then
+        target=$(git worktree list | fzf --prompt="Select Worktree to remove > " | awk '{print $1}')
+      fi
+      if [ -n "$target" ]; then
+        git worktree remove "$target"
+        echo "✓ Removed worktree: $target"
+      fi
+      ;;
+    *)
+      echo "Usage: gwt [add <branch> | list | remove]"
+      ;;
+  esac
+}
+
+# ==============================================================================
+# Dotfiles Version Control & One-Stroke Cloud Sync (dotsync, dot)
+# ==============================================================================
+dot() {
+  if [ -z "$1" ]; then
+    builtin cd "$HOME/dotfiles" 2>/dev/null || builtin cd "$HOME"
+    ${EDITOR:-nvim} "$HOME/.zshrc"
+  else
+    ${EDITOR:-nvim} "$HOME/dotfiles/$1"
+  fi
+}
+
+dotsync() {
+  local dotdir="$HOME/dotfiles"
+  if [ ! -d "$dotdir" ]; then
+    echo "❌ $dotdir directory not found."
+    return 1
+  fi
+  echo "📦 Copying active configurations to $dotdir..."
+  cp ~/.zshrc "$dotdir/" 2>/dev/null || true
+  cp ~/.tmux.conf "$dotdir/" 2>/dev/null || true
+  cp ~/.wezterm.lua "$dotdir/" 2>/dev/null || true
+  cp ~/.vimrc "$dotdir/" 2>/dev/null || true
+  mkdir -p "$dotdir/.gemini/config"
+  cp ~/.gemini/config/AGENTS.md "$dotdir/.gemini/config/" 2>/dev/null || true
+  cp ~/.gemini/config/hooks.json "$dotdir/.gemini/config/" 2>/dev/null || true
+
+  if [ -d "$dotdir/.git" ]; then
+    git -C "$dotdir" add .
+    git -C "$dotdir" commit -m "chore(dotfiles): sync terminal configuration updates $(date '+%Y-%m-%d %H:%M')" 2>/dev/null || true
+    echo "🚀 Pushing dotfiles to origin..."
+    git -C "$dotdir" push origin main 2>/dev/null || git -C "$dotdir" push 2>/dev/null || true
+    echo "✓ Dotfiles synced to GitHub!"
+  else
+    echo "✓ Files copied to $dotdir."
+  fi
+}
+
+# ==============================================================================
+# HTTP Network Timing & Latency Inspector (httpstat)
+# ==============================================================================
+httpstat() {
+  if [ -z "$1" ]; then
+    echo "Usage: httpstat <url>"
+    return 1
+  fi
+  curl -w "
+==================================================
+  HTTP Status:      %{http_code}
+  Remote IP:        %{remote_ip}:%{remote_port}
+--------------------------------------------------
+  DNS Lookup:       %{time_namelookup}s
+  TCP Connect:      %{time_connect}s
+  TLS Handshake:    %{time_appconnect}s
+  Time to First Byte (TTFB): %{time_starttransfer}s
+  Total Request Time: %{time_total}s
+  Download Speed:   %{speed_download} bytes/s
+==================================================
+" -o /dev/null -s "$1"
+}
+
+# ==============================================================================
+# Git Local Merged Branch Pruner (gclean / gprune)
+# ==============================================================================
+gclean() {
+  local target_branches
+  target_branches=$(git branch --merged | grep -Ev "(\*|master|main|dev|development|staging)")
+  if [ -z "$target_branches" ]; then
+    echo "✓ No stale merged branches to prune."
+    return 0
+  fi
+  echo "Found stale merged branches:"
+  echo "$target_branches"
+  read -q "REPLY?Delete these branches? (y/n): "
+  echo ""
+  if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+    echo "$target_branches" | xargs -n 1 git branch -d
+    echo "✓ Cleaned up merged branches."
+  else
+    echo "Aborted."
+  fi
+}
+alias gprune='gclean'
+
+# ==============================================================================
+# macOS System Controls from Terminal (batt, vol, dark)
+# ==============================================================================
+batt() {
+  pmset -g batt | grep -o "[0-9]*%" | head -1
+}
+
+vol() {
+  if [ -z "$1" ]; then
+    osascript -e "output volume of (get volume settings)"
+  else
+    osascript -e "set volume output volume $1"
+    echo "Volume set to $1%"
+  fi
+}
+
+toggle-theme() {
+  osascript -e 'tell app "System Events" to tell appearance preferences to set dark mode to not dark mode'
+  echo "✓ Toggled system theme."
+}
+alias dark='toggle-theme'
+
 # ==============================================================================
 # Daily Developer Journal & Markdown Notes (note, fnotes)
 # ==============================================================================
@@ -1030,6 +1279,197 @@ fenv() {
   fi
 }
 
+# ==============================================================================
+# Project Bookmarks & Fast Directory Warp (mark, warp, bm, unmark)
+# ==============================================================================
+mark() {
+  local bm_file="$HOME/.bookmarks"
+  touch "$bm_file"
+  local name="${1:-$(basename "$PWD")}"
+  sed -i '' "/^${name}|/d" "$bm_file" 2>/dev/null || true
+  echo "${name}|${PWD}" >> "$bm_file"
+  echo "📌 Bookmarked '$name' --> $PWD"
+}
+
+unmark() {
+  local bm_file="$HOME/.bookmarks"
+  [ ! -f "$bm_file" ] && return 0
+  if [ -n "$1" ]; then
+    sed -i '' "/^${1}|/d" "$bm_file"
+    echo "🗑 Removed bookmark '$1'"
+  else
+    local target
+    target=$(cat "$bm_file" | fzf --prompt="🗑 Delete Bookmark > " | cut -d'|' -f1)
+    if [ -n "$target" ]; then
+      sed -i '' "/^${target}|/d" "$bm_file"
+      echo "🗑 Removed bookmark '$target'"
+    fi
+  fi
+}
+
+bm() {
+  local bm_file="$HOME/.bookmarks"
+  touch "$bm_file"
+  if [ ! -s "$bm_file" ]; then
+    echo "ℹ️ No bookmarks saved yet. Bookmark current directory with: mark [name]"
+    return 0
+  fi
+  if [ -n "$1" ]; then
+    local path
+    path=$(awk -F'|' -v name="$1" '$1==name {print $2}' "$bm_file")
+    if [ -n "$path" ] && [ -d "$path" ]; then
+      builtin cd "$path"
+      echo "🚀 Warped to $path"
+      return 0
+    fi
+  fi
+  local selected
+  selected=$(awk -F'|' '{printf "%-20s %s\n", $1, $2}' "$bm_file" | \
+    fzf --header="[Enter: Jump to directory | Ctrl-O: Open in $EDITOR | Ctrl-D: Delete bookmark | Esc: Cancel]" \
+        --preview='eza --tree --icons -L 2 {2} 2>/dev/null || ls -la {2}' \
+        --preview-window=right:55% \
+        --prompt="📌 Project Bookmarks > ")
+  if [ -n "$selected" ]; then
+    local target_dir=$(echo "$selected" | awk '{print $2}')
+    if [ -d "$target_dir" ]; then
+      builtin cd "$target_dir"
+      echo "🚀 Warped to: $target_dir"
+    fi
+  fi
+}
+alias warp='bm'
+alias jump='bm'
+
+# ==============================================================================
+# Inline Terminal Calculator & Epoch Converter (calc [expr|epoch|hex])
+# Zero-Touchpad: calculates and immediately copies result to macOS clipboard!
+# ==============================================================================
+calc() {
+  if [ -z "$1" ]; then
+    echo "Usage: calc <expression>           (e.g. calc '1024 * 768 * 4 / 1024 / 1024')"
+    echo "       calc epoch <timestamp>     (e.g. calc epoch 1791716102)"
+    echo "       calc now                   (prints and copies current timestamp)"
+    echo "       calc hex <number>          (converts hex/dec)"
+    return 1
+  fi
+
+  case "$1" in
+    epoch|ts)
+      shift
+      local ts="${1:-$(date +%s)}"
+      local dt
+      dt=$(python3 -c "import datetime, sys; ts=float(sys.argv[1]); ts=ts/1000 if ts>1e11 else ts; print(datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S (%A)'))" "$ts" 2>/dev/null)
+      if [ -n "$dt" ]; then
+        echo -n "$dt" | pbcopy
+        echo "🕒 $ts --> $dt  (📋 Copied)"
+      fi
+      ;;
+    now)
+      local now_sec=$(date +%s)
+      local now_ms=$(python3 -c "import time; print(int(time.time()*1000))" 2>/dev/null)
+      echo -n "$now_sec" | pbcopy
+      echo "🕒 Seconds : $now_sec  (📋 Copied)"
+      echo "🕒 Millis  : $now_ms"
+      ;;
+    hex)
+      shift
+      local val="$1"
+      if [[ "$val" == "0x"* ]] || [[ "$val" == "0X"* ]]; then
+        local dec=$((val))
+        echo -n "$dec" | pbcopy
+        echo "🔢 $val = $dec  (📋 Copied)"
+      else
+        local hx=$(printf "0x%X\n" "$val")
+        echo -n "$hx" | pbcopy
+        echo "🔢 $val = $hx  (📋 Copied)"
+      fi
+      ;;
+    *)
+      local expr="$*"
+      local res
+      res=$(python3 -c "import math, sys; print(eval('$expr'))" 2>/dev/null)
+      if [ -n "$res" ]; then
+        echo -n "$res" | pbcopy
+        echo "🧮 $expr = $res  (📋 Copied)"
+      else
+        res=$(echo "scale=4; $expr" | bc -l 2>/dev/null)
+        if [ -n "$res" ]; then
+          echo -n "$res" | pbcopy
+          echo "🧮 $expr = $res  (📋 Copied)"
+        else
+          echo "❌ Invalid calculation expression: $expr"
+        fi
+      fi
+      ;;
+  esac
+}
+
+# ==============================================================================
+# Interactive Git Worktree Multi-Branch Manager (fwt, fwt-add)
+# ==============================================================================
+fwt() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+  local wt
+  wt=$(git worktree list 2>/dev/null | \
+    fzf --header="[Enter: Jump into worktree | Ctrl-D: Remove worktree | Esc: Cancel]" \
+        --preview='git -C $(echo {} | awk "{print \$1}") log -n 10 --oneline --color=always 2>/dev/null || cat {}' \
+        --preview-window=right:60%:wrap \
+        --prompt="🌲 Git Worktree > ")
+  if [ -n "$wt" ]; then
+    local target_dir=$(echo "$wt" | awk '{print $1}')
+    builtin cd "$target_dir"
+    echo "🌲 Switched to worktree: $target_dir"
+  fi
+}
+
+fwt-add() {
+  if [ -z "$1" ]; then
+    echo "Usage: fwt-add <path> [branch]"
+    return 1
+  fi
+  git worktree add "$@"
+}
+
+# ==============================================================================
+# Interactive SQLite Database Explorer (fdb [path_to_db])
+# Zero-Touchpad: inspect SQLite tables, schemas & rows directly in terminal!
+# ==============================================================================
+fdb() {
+  local db="$1"
+  if [ -z "$db" ]; then
+    local candidates
+    candidates=$(fd -e db -e sqlite -e sqlite3 2>/dev/null)
+    if [ -z "$candidates" ]; then
+      echo "❌ No SQLite databases (.db, .sqlite, .sqlite3) found in current directory."
+      echo "Usage: fdb <path_to_database.db>"
+      return 1
+    fi
+    local count=$(echo "$candidates" | wc -l | tr -d ' ')
+    if [ "$count" -eq 1 ]; then
+      db="$candidates"
+    else
+      db=$(echo "$candidates" | fzf --prompt="🗄 Select SQLite Database > ")
+    fi
+  fi
+  [ -z "$db" ] || [ ! -f "$db" ] && return 1
+
+  echo "🗄 Inspecting database: $db"
+  local table
+  table=$(sqlite3 "$db" "SELECT name FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%';" 2>/dev/null | \
+    fzf --header="[Enter: View 50 rows in pager | Esc: Cancel]" \
+        --preview="echo '=== SCHEMA ==='; sqlite3 '$db' '.schema \"{}\"' 2>/dev/null; echo ''; echo '=== SAMPLE DATA (first 15 rows) ==='; sqlite3 -header -column '$db' 'SELECT * FROM \"{}\" LIMIT 15;' 2>/dev/null" \
+        --preview-window=right:65%:wrap \
+        --prompt="📊 Tables & Views > ")
+
+  if [ -n "$table" ]; then
+    sqlite3 -header -column "$db" "SELECT * FROM \"$table\" LIMIT 50;" | ${PAGER:-less -R}
+  fi
+}
+
+
 
 # Terminal Keyboard HUD Cheatsheet
 keys() {
@@ -1108,6 +1548,11 @@ cl() {
 # ==============================================================================
 hud() {
   local entries=(
+    "bm / warp                --> Fuzzy jump to bookmarked project directories"
+    "mark [name]              --> Bookmark current directory for instant warp"
+    "calc [expr|epoch|hex]    --> Inline terminal math, epoch & hex converter"
+    "fwt / fwt-add            --> Git worktree multi-branch workspace switcher"
+    "fdb [db]                 --> Interactive SQLite database schema & row explorer"
     "note [topic]             --> Daily dev journal & markdown notes in Neovim"
     "fnotes                   --> Fuzzy search past notes with syntax preview"
     "todo [add|done|clean]    --> Instant terminal action checklist tracker"

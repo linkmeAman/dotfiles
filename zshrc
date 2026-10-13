@@ -138,6 +138,24 @@ alias ll='eza -la --icons --git --group-directories-first'
 alias tree='eza --tree --icons -L 2'
 alias cat='bat --paging=never'
 
+# GitHub CLI (Zero-Mouse PR & Issue Management)
+alias prs='gh pr status'
+alias prl='gh pr list'
+alias prc='gh pr checkout'
+alias prv='gh pr view'
+alias il='gh issue list'
+alias iv='gh issue view'
+
+# Instant Developer Cheatsheets in Terminal (cheat python list, cheat git rebase)
+cheat() {
+  if [ -z "$*" ]; then
+    echo "Usage: cheat <lang|tool> [topic]  (e.g. cheat python dict, cheat docker prune, cheat git rebase)"
+    return 1
+  fi
+  curl -s "https://cht.sh/${*// /+}" | ${PAGER:-less -R}
+}
+alias cht='cheat'
+
 # Yazi Terminal File Manager (cd on quit)
 function y() {
 	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
@@ -190,6 +208,44 @@ if command -v fzf >/dev/null 2>&1; then
       local target_file=$(echo "$file" | cut -d: -f1)
       local target_line=$(echo "$file" | cut -d: -f2)
       ${EDITOR:-vim} "+$target_line" "$target_file"
+    fi
+  }
+
+  # Fuzzy Open File in Editor with live bat preview (fo [query])
+  fo() {
+    local file
+    file=$(fd --type f --hidden --follow --exclude .git | fzf --query="$*" \
+      --header="[Enter: Open in $EDITOR | Esc: Cancel]" \
+      --preview 'bat --style=numbers --color=always --line-range :300 {} 2>/dev/null || cat {}' \
+      --preview-window=right:60%:wrap)
+    [ -n "$file" ] && ${EDITOR:-nvim} "$file"
+  }
+
+  # Fuzzy Change Directory with eza tree preview (fcd [query])
+  fcd() {
+    local dir
+    dir=$(fd --type d --hidden --follow --exclude .git | fzf --query="$*" \
+      --header="[Enter: cd into directory | Esc: Cancel]" \
+      --preview 'eza --tree --icons -L 2 {} 2>/dev/null || ls -la {}' \
+      --preview-window=right:50%)
+    [ -n "$dir" ] && builtin cd "$dir"
+  }
+
+  # Fuzzy Git Log Graph with delta commit diff preview (fgl)
+  fgl() {
+    local commit
+    commit=$(git log --graph --color=always --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" 2>/dev/null | \
+      fzf --ansi --no-sort --reverse --tiebreak=index \
+          --header="[Enter: Copy Commit Hash | Ctrl-O: Checkout | Esc: Cancel]" \
+          --bind="ctrl-o:execute(git checkout \$(echo {} | grep -o '[a-f0-9]\{7,40\}' | head -1) && echo Checked out commit)" \
+          --preview 'git show --color=always $(echo {} | grep -o "[a-f0-9]\{7,40\}" | head -1) | delta --side-by-side' \
+          --preview-window=right:60%:wrap)
+    if [ -n "$commit" ]; then
+      local hash=$(echo "$commit" | grep -o '[a-f0-9]\{7,40\}' | head -1)
+      if [ -n "$hash" ]; then
+        echo -n "$hash" | pbcopy
+        echo "📋 Copied commit hash: $hash"
+      fi
     fi
   }
 

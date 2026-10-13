@@ -132,7 +132,6 @@ alias ld='lazydocker'
 alias lsql='lazysql'
 alias json='jless'
 alias disk='dust'
-alias ports='lsof -iTCP -sTCP:LISTEN -P -n'
 alias ls='eza --icons --group-directories-first'
 alias ll='eza -la --icons --git --group-directories-first'
 alias tree='eza --tree --icons -L 2'
@@ -313,7 +312,6 @@ if command -v fzf >/dev/null 2>&1; then
       git checkout "$target_branch"
     fi
   }
-  alias fgb='fb'
 
   # Git Modified Files Quick-Opener (fmod)
   fmod() {
@@ -1207,7 +1205,6 @@ fnotes() {
     --preview-window=right:60%:wrap)
   [ -n "$file" ] && ${EDITOR:-nvim} "$file"
 }
-alias fnote='fnotes'
 
 # ==============================================================================
 # Terminal Zero-Touchpad Task & Checklist Tracker (todo)
@@ -1543,6 +1540,7 @@ keys() {
               TERMINAL COCKPIT KEYBOARD CHEATSHEET (ZERO TOUCHPAD)
 =============================================================================
   PROJECT & SESSION NAVIGATION:
+    dash / base     Terminal Base of Operations Dashboard (Vitals, Ports, Repos, Actions)
     Ctrl + F        Fuzzy search any project repository & launch 3-pane dev
     p / proj        Fuzzy project launcher (tmux-sessionizer)
     dev             Open 3-pane layout in current directory (Nvim | AGY | Terminal)
@@ -1556,10 +1554,10 @@ keys() {
     fpr             Browse GitHub PRs (Enter to checkout, Ctrl-D for Delta diff)
     fissue          Browse GitHub Issues (Enter to view details)
     conflicts       Interactive merge conflict resolver (opens in Neovim)
+    frebase / fsq   Interactive Git rebase & commit history squasher
     guncommit       Undo last commit safely (preserves staged files)
     gclean          Prune all merged Git branches in batch
     gcompare        Compare current branch commits against main with Delta diff
-    grebase <n>     Interactive Git rebase last N commits
 
   ANTIGRAVITY CLI:
     a               Launch Antigravity CLI (agy)
@@ -1572,6 +1570,12 @@ keys() {
     <Space> a r     In-Vim: Review open file with Antigravity
 
   DEVELOPER PRODUCTIVITY & UTILITIES:
+    furl / links    Fuzzy URL selector from terminal & open in browser or reader
+    reader <url>    Read web pages & docs formatted as markdown in terminal
+    fps / fkill     Interactive CPU & RAM process assassin with kill options
+    newproj <name>  Zero-friction project scaffolder (Python/Go/Rust/TS)
+    scratch / note  Terminal scratchpad and quick note taker
+    fnote           Fuzzy search and manage all scratch notes
     ftodo           Scan codebase for TODO/FIXME and jump to line in Neovim
     fssh            Interactive SSH host picker (from ~/.ssh/config)
     fdb [file.db]   Interactive SQLite database & table inspector
@@ -1581,15 +1585,18 @@ keys() {
     calc <expr>     Terminal math, epoch, and hex converter (copies to clipboard)
     cl [cmd]        Copy output of last command to macOS clipboard
     <cmd>; alert    Play chime & desktop notification when long command finishes
-    note / fnotes   Developer daily journal & fuzzy notes finder
     todo            CLI task checklist (todo add / todo done / todo list)
     dark            Toggle macOS Dark / Light mode
 
   WEZTERM & TMUX POPUPS:
+    ⌘ ⌥ D           WezTerm: Launch Terminal Base of Operations Dashboard
     ⌘ ⌥ A           WezTerm: Split pane right (40%) and launch Antigravity CLI
     ⌘ ⇧ A           WezTerm: Open Antigravity CLI in new tab
     ⌘ ⇧ E           WezTerm: Fuzzy open any URL with keyboard letter hints
     ⌘ ⇧ Space       WezTerm: QuickSelect copy mode (hashes, paths, IPs)
+    Prefix + D      Tmux: Floating Terminal Base Dashboard popup
+    Prefix + u      Tmux: Floating URL picker from pane scrollback
+    Prefix + n      Tmux: Floating Neovim scratchpad note popup
     Prefix + a      Tmux: Floating Antigravity CLI popup
     Prefix + g      Tmux: Floating Lazygit popup
     Prefix + y      Tmux: Floating Yazi file manager popup
@@ -1599,7 +1606,6 @@ keys() {
 EOF
 }
 alias cheatsheet='keys'
-alias hud='keys'
 
 # ==============================================================================
 # Auto Python Virtual Environment Activation upon cd (_auto_venv)
@@ -1670,6 +1676,9 @@ hud() {
     "fps / fkill              --> Process & RAM assassin with CPU% live inspector"
     "newproj <name> [type]    --> Instant project scaffolder with Git & bookmarks"
     "frebase / fsq [N|branch] --> Interactive Git rebase & commit history squasher"
+    "fcommit / gc             --> Conventional commit wizard with type & scope picker"
+    "gsync                    --> Pull rebase origin & prune stale [gone] local branches"
+    "fjson [file]             --> Interactive JSON/YAML key path query & inspector"
     "ding [cmd]               --> Smart task completion alert with audio chime & banner"
     "fconflicts               --> Interactive Git merge conflict resolver in Neovim"
     "search <query>           --> Terminal web search with auto-copied URL"
@@ -3010,6 +3019,98 @@ frebase() {
 }
 alias fsq='frebase'
 
+# ------------------------------------------------------------------------------
+# 5. Fuzzy URL Selector, Reader & Browser Opener (furl / links)
+# ------------------------------------------------------------------------------
+furl() {
+  local urls=()
+
+  # Extract from tmux pane history if inside tmux
+  if [ -n "$TMUX" ]; then
+    while IFS= read -r u; do
+      [[ -n "$u" ]] && urls+=("$u")
+    done < <(tmux capture-pane -J -p -S -200 2>/dev/null | grep -oE 'https?://[a-zA-Z0-9./?=_%&:#~-]+')
+  fi
+
+  # Extract from recent terminal command history
+  while IFS= read -r u; do
+    [[ -n "$u" ]] && urls+=("$u")
+  done < <(fc -ln -50 2>/dev/null | grep -oE 'https?://[a-zA-Z0-9./?=_%&:#~-]+')
+
+  # Extract from clipboard
+  local clip=$(pbpaste 2>/dev/null)
+  if [[ "$clip" =~ ^https?:// ]]; then
+    urls+=("$clip")
+  fi
+
+  # Extract from git origin
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local remote_url=$(git config --get remote.origin.url 2>/dev/null | sed -E 's|^git@github.com:|https://github.com/|' | sed -E 's|\.git$||')
+    [[ -n "$remote_url" ]] && urls+=("$remote_url")
+  fi
+
+  local unique_urls
+  unique_urls=$(printf "%s\n" "${urls[@]}" | grep -v '^[[:space:]]*$' | sort -u)
+
+  if [ -z "$unique_urls" ]; then
+    echo "🔍 No URLs detected on screen, in history, or in clipboard."
+    return 0
+  fi
+
+  local selected
+  selected=$(echo "$unique_urls" | fzf \
+    --prompt="🔗 Select URL > " \
+    --header="[Enter: Open in Browser | Ctrl-R: Terminal Reader | Ctrl-Y: Copy to Clipboard]" \
+    --bind="ctrl-y:execute(echo -n {} | pbcopy && echo '📋 Copied to clipboard')+abort" \
+    --bind="ctrl-r:execute(reader {})+abort" \
+    --preview-window=down:3:wrap \
+    --preview="echo {}")
+
+  if [ -n "$selected" ]; then
+    echo "🚀 Opening: $selected"
+    open "$selected"
+  fi
+}
+alias links='furl'
+alias urls='furl'
+
+# ------------------------------------------------------------------------------
+# 6. Terminal Quick Scratchpad & Notes Manager (scratch / fnote)
+# ------------------------------------------------------------------------------
+scratch() {
+  local notes_dir="$HOME/.local/share/notes"
+  mkdir -p "$notes_dir"
+  local note_file="$notes_dir/scratch.md"
+
+  if [ -n "$1" ]; then
+    echo "- $(date '+%Y-%m-%d %H:%M'): $*" >> "$note_file"
+    echo "📝 Appended note to $note_file"
+    return 0
+  fi
+
+  ${EDITOR:-nvim} "$note_file"
+}
+alias note='scratch'
+alias notes='scratch'
+
+fnote() {
+  local notes_dir="$HOME/.local/share/notes"
+  mkdir -p "$notes_dir"
+
+  local target
+  target=$(find "$notes_dir" -type f -name "*.md" 2>/dev/null | \
+    fzf --prompt="📝 Notes > " \
+        --header="[Enter: Open in Neovim | Ctrl-N: New Note | Ctrl-D: Delete Note]" \
+        --preview="bat --style=plain --color=always {} 2>/dev/null || cat {}" \
+        --bind="ctrl-n:execute(read -p 'Note title: ' title; touch $notes_dir/\$title.md; echo \$title)+reload(find $notes_dir -type f -name '*.md')" \
+        --bind="ctrl-d:execute(rm -f {} && echo Deleted)+reload(find $notes_dir -type f -name '*.md')")
+
+  if [ -n "$target" ]; then
+    ${EDITOR:-nvim} "$target"
+  fi
+}
+alias fnotes='fnote'
+
 # ==============================================================================
 # Interactive Hints, Recommendations & Command Advisor Engine (hint / <F2>)
 # ==============================================================================
@@ -3026,6 +3127,8 @@ hint() {
         echo "🌿 Git Workflow & Checkpoint Hints:"
         echo "  wip          --> 1-second instant safety checkpoint commit"
         echo "  unwip        --> Safe rollback of last WIP commit to working tree"
+        echo "  fcommit / gc --> Conventional commit wizard (type, scope, auto-staging)"
+        echo "  gsync        --> Pull rebase origin & prune stale [gone] local branches"
         echo "  gcp 'msg'    --> Stage all, commit, and push upstream in 1 keystroke"
         echo "  fmod         --> Fuzzy browse dirty/modified files with Delta preview"
         echo "  fb / fgb     --> Interactive branch switcher, preview and deleter"
@@ -3048,15 +3151,24 @@ hint() {
         ;;
       shell|sh|term)
         echo "⚡ Terminal Superpower Hints:"
+        echo "  dash / base   --> Terminal Base of Operations Dashboard"
+        echo "  fcommit / gc  --> Conventional commit assistant with type picker"
+        echo "  gsync         --> Sync repo and prune deleted remote branches"
+        echo "  fjson [file]  --> Interactive JSON/YAML key path query & inspector"
+        echo "  furl / links  --> Fuzzy URL picker from screen/history/clipboard"
+        echo "  reader [url]  --> Read web articles & docs formatted as markdown in terminal"
+        echo "  scratch [msg] --> Quick scratchpad note (or interactive Neovim scratch)"
+        echo "  fnote         --> Fuzzy search and manage all scratch notes"
+        echo "  fps / fkill   --> Interactive CPU% and RAM process assassin"
+        echo "  newproj <n>   --> Zero-friction project scaffolder (Python/Go/Rust/TS)"
+        echo "  frebase [N]   --> Interactive git rebase & clean squasher"
         echo "  cl            --> Copy output of previous command to clipboard"
         echo "  fclip         --> Fuzzy search terminal clipboard ring & re-yank"
         echo "  calc <expr>   --> Terminal math & epoch converter (auto-copied)"
         echo "  ports / fport --> List active listening ports and kill PIDs"
-        echo "  fps / fkill   --> Interactive CPU% and RAM process assassin"
         echo "  fdocker / fdc --> Interactive Docker container cockpit & live logs"
         echo "  ding <cmd>    --> Command completion alert with macOS chime & banner"
         echo "  watchrun      --> Auto-re-execute tests on every file save"
-        echo "  reader [url]  --> Read web articles & docs directly in terminal"
         echo "  fman <cmd>    --> Fuzzy search man page command flags & descriptions"
         ;;
       *)
@@ -3194,3 +3306,161 @@ command_not_found_handler() {
   esac
   return 127
 }
+
+# ==============================================================================
+# Workflow Perfection Suite: Commit Assistant, Sync & JSON Explorer
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Interactive Conventional Commit Assistant (fcommit / gc)
+# ------------------------------------------------------------------------------
+fcommit() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+
+  local types=(
+    "feat     ✨  A new feature or capability"
+    "fix      🐛  A bug fix or patch"
+    "refactor ♻️  Code refactoring without behavioral changes"
+    "perf     ⚡  A code change that improves performance"
+    "docs     📚  Documentation additions or updates"
+    "test     🧪  Adding or updating tests"
+    "chore    🧹  Build process, configs, or dependencies"
+    "style    🎨  Formatting, whitespace, semicolons"
+    "revert   ⏪  Reverting a previous commit"
+  )
+
+  local selected_type
+  selected_type=$(printf "%s\n" "${types[@]}" | \
+    fzf --header="[Select Commit Type | Esc: Cancel]" \
+        --prompt="🏷 Commit Type > ")
+
+  [ -z "$selected_type" ] && return 0
+  local type=$(echo "$selected_type" | awk '{print $1}')
+
+  echo -n "Scope (optional, e.g. auth, api, ui - press Enter to skip): "
+  read -r scope
+
+  echo -n "Summary: "
+  read -r summary
+
+  if [ -z "$summary" ]; then
+    echo "❌ Commit summary cannot be empty."
+    return 1
+  fi
+
+  local full_msg
+  if [ -n "$scope" ]; then
+    full_msg="${type}(${scope}): ${summary}"
+  else
+    full_msg="${type}: ${summary}"
+  fi
+
+  local dirty=$(git status --porcelain 2>/dev/null)
+  if [ -n "$dirty" ]; then
+    local unstaged=$(git diff --name-only 2>/dev/null)
+    local untracked=$(git ls-files --others --exclude-standard 2>/dev/null)
+    if [ -n "$unstaged" ] || [ -n "$untracked" ]; then
+      echo -n "Stage all modified & untracked files? [Y/n]: "
+      read -r answer
+      if [[ "$answer" =~ ^[Nn] ]]; then
+        echo "Proceeding with currently staged files only."
+      else
+        git add -A
+      fi
+    fi
+  fi
+
+  git commit -m "$full_msg"
+  _clip_record "$full_msg"
+  echo "✅ Committed: $full_msg"
+}
+alias gc='fcommit'
+
+# ------------------------------------------------------------------------------
+# 2. One-Keystroke Git Repo Sync & Gone-Branch Pruner (gsync)
+# ------------------------------------------------------------------------------
+gsync() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "❌ Not inside a Git repository."
+    return 1
+  fi
+
+  local current_branch
+  current_branch=$(git branch --show-current 2>/dev/null)
+  echo "🔄 Syncing repository with origin on branch '$current_branch'..."
+
+  git fetch --prune origin 2>/dev/null || git fetch origin
+
+  if git pull --rebase origin "$current_branch" 2>/dev/null; then
+    echo "✓ Successfully rebased '$current_branch' with origin."
+  else
+    echo "⚠️ Git pull rebase returned status $?. Check git status."
+  fi
+
+  local gone_branches
+  gone_branches=$(git for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads 2>/dev/null | awk '$2 == "[gone]" {print $1}')
+
+  if [ -n "$gone_branches" ]; then
+    echo ""
+    echo "🧹 Found merged/deleted remote branches:"
+    echo "$gone_branches" | sed 's/^/  • /'
+    for b in ${(f)gone_branches}; do
+      if [ "$b" != "$current_branch" ]; then
+        git branch -d "$b" 2>/dev/null || git branch -D "$b" 2>/dev/null
+        echo "  ✓ Pruned local branch: $b"
+      fi
+    done
+  else
+    echo "✓ No stale local branches to prune."
+  fi
+
+  echo "🎉 Repository is fully synchronized!"
+}
+alias gprune='gsync'
+
+# ------------------------------------------------------------------------------
+# 3. Interactive JSON/YAML Explorer & Query Tool (fjson [file])
+# ------------------------------------------------------------------------------
+fjson() {
+  local target="$1"
+  if [ -z "$target" ]; then
+    local candidates
+    candidates=$(fd -e json -e yaml -e yml 2>/dev/null)
+    if [ -z "$candidates" ]; then
+      echo "❌ No .json or .yaml files found in current directory."
+      echo "Usage: fjson <path_to_file.json>"
+      return 1
+    fi
+    target=$(echo "$candidates" | fzf --prompt="📄 Select JSON/YAML File > ")
+  fi
+
+  [ -z "$target" ] || [ ! -f "$target" ] && return 1
+
+  if command -v jless >/dev/null 2>&1 && [[ "$target" == *.json ]]; then
+    jless "$target"
+    return
+  fi
+
+  if command -v jq >/dev/null 2>&1 && [[ "$target" == *.json ]]; then
+    local key
+    key=$(jq -r 'paths(scalars) | map(tostring) | join(".")' "$target" 2>/dev/null | \
+      fzf --header="[Enter: Copy query & value | Esc: Cancel]" \
+          --preview="jq \".{}\" \"$target\" 2>/dev/null | bat --color=always -l json 2>/dev/null || jq \".{}\" \"$target\" 2>/dev/null" \
+          --preview-window=right:60%:wrap \
+          --prompt="🔍 JSON Key Path > ")
+
+    if [ -n "$key" ]; then
+      local val
+      val=$(jq ".${key}" "$target" 2>/dev/null)
+      echo -n "$val" | pbcopy
+      _clip_record "$val"
+      echo "📋 Copied value of .$key to clipboard: $val"
+    fi
+  else
+    ${PAGER:-less -R} "$target"
+  fi
+}
+alias fyaml='fjson'

@@ -557,11 +557,13 @@ let g:which_key_map.a = {
       \ 'm': [':Copilot panel',         'Copilot suggestion panel'],
       \ }
 
-" Open in VS Code Bridge
+" Open, Web & URL Actions (+open)
 let g:which_key_map.o = {
-      \ 'name': '+open/vscode',
-      \ 'c': [':OpenInCode',            'Open project in Visual Studio Code'],
-      \ 'f': [':OpenInCodeFile',        'Open file at cursor in VS Code'],
+      \ 'name': '+open/url',
+      \ 'u': [':call <SID>OpenUrlUnderCursor()', 'Open URL under cursor in Browser'],
+      \ 'r': [':call <SID>ReadUrlUnderCursor()', 'Read URL in terminal Reader'],
+      \ 'c': [':OpenInCode',                     'Open project in Visual Studio Code'],
+      \ 'f': [':OpenInCodeFile',                 'Open file at cursor in VS Code'],
       \ }
 
 " Hints & Quick Reference (+hints)
@@ -655,6 +657,38 @@ command! -bar CopyFileName call <SID>CopyFileName()
 nnoremap <silent> <leader>yp :CopyFullPath<CR>
 nnoremap <silent> <leader>yr :CopyRelPath<CR>
 nnoremap <silent> <leader>yn :CopyFileName<CR>
+
+" URL Opener & Terminal Reader (Zero Mouse)
+function! s:OpenUrlUnderCursor() abort
+  let l:url = matchstr(getline('.'), 'https\?://[a-zA-Z0-9./?=_%&:#~-]\+')
+  if !empty(l:url)
+    call system('open ' . shellescape(l:url))
+    echo "🚀 Opened " . l:url
+  else
+    let l:cfile = expand('<cfile>')
+    if l:cfile =~ '^https\?://'
+      call system('open ' . shellescape(l:cfile))
+      echo "🚀 Opened " . l:cfile
+    else
+      echo "No URL found under cursor."
+    endif
+  endif
+endfunction
+
+function! s:ReadUrlUnderCursor() abort
+  let l:url = matchstr(getline('.'), 'https\?://[a-zA-Z0-9./?=_%&:#~-]\+')
+  if !empty(l:url)
+    execute 'split | terminal reader ' . shellescape(l:url)
+  else
+    echo "No URL found under cursor."
+  endif
+endfunction
+
+command! -bar OpenUrl call <SID>OpenUrlUnderCursor()
+command! -bar ReadUrl call <SID>ReadUrlUnderCursor()
+nnoremap <silent> gx :call <SID>OpenUrlUnderCursor()<CR>
+nnoremap <silent> <leader>ou :call <SID>OpenUrlUnderCursor()<CR>
+nnoremap <silent> <leader>or :call <SID>ReadUrlUnderCursor()<CR>
 
 " 3. Smart Code Formatter
 function! s:FormatCode() abort
@@ -1118,6 +1152,8 @@ function! s:OpenHints() abort
         \ '    <Space> r l      Re-run last command in terminal drawer (:RunLast)',
         \ '',
         \ '  ⚔️ GIT, DIFFS & MERGE CONFLICTS:',
+        \ '    fcommit / gc     Conventional commit wizard with type/scope picker',
+        \ '    gsync / gprune   Sync with remote & prune deleted [gone] branches',
         \ '    ]x / [x          Jump directly to next / previous merge conflict marker',
         \ '    <Space> g s      Interactive Git status & staging dashboard (:Git)',
         \ '    <Space> g D      Side-by-side vertical diff with any file (:DiffWith)',
@@ -1127,6 +1163,7 @@ function! s:OpenHints() abort
         \ '  ⚡ SHELL & TERMINAL (OUTSIDE VIM):',
         \ '    hud / <F1>       Terminal Cockpit HUD (search and paste all 35+ commands)',
         \ '    hint / <F2>      Interactive Shell Hints & cheat sheet explorer',
+        \ '    fjson [file]     Interactive JSON/YAML key path query & inspector',
         \ '    wip / unwip      1-second safety checkpoint commit / rollback',
         \ '    reader [url]     Distraction-free terminal article & docs reader (reads clipboard!)',
         \ '    watchrun [cmd]   Live file watcher: auto-re-executes tests on every :w save',

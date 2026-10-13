@@ -200,6 +200,9 @@ Outside Vim, your shell environment is packed with instant zero-touchpad helpers
 | :--- | :--- | :--- |
 | `hud` / `<F1>` | `hud` | Interactive search menu of all terminal tools; pastes command onto prompt. |
 | `hint` / `<F2>`| `hint`, `hint git`, `hint vim` | Interactive developer hints & recommendations explorer with live cheat sheet. |
+| `fcommit` / `gc` | `fcommit`, `gc` | Conventional commit wizard with interactive type, scope picker & auto-staging. |
+| `gsync` / `gprune` | `gsync`, `gprune` | Pulls upstream with rebase and automatically prunes deleted/gone local branches. |
+| `fjson` / `fyaml` | `fjson data.json`, `fyaml config.yml` | Interactive JSON/YAML key path explorer, jq preview & clipboard value copier. |
 | `fman <cmd>` | `fman tar`, `fman curl`, `fman git` | Fuzzy search man page command flags & descriptions; copies flag to prompt. |
 | `reader [url]` | `reader https://docs...`, `reader` | Terminal web reader & markdown article viewer; reads clipboard URL. |
 | `fps` / `fkill` | `fps`, `fkill` | Interactive process & RAM assassin; live CPU% table & instant kill. |

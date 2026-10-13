@@ -23,6 +23,49 @@ The script will automatically:
 
 ---
 
+## ⚡ 0. The Zero-Touchpad Terminal Cockpit (Home Base)
+
+The entire environment is configured so that you **never have to touch your mouse or trackpad**. All windows, panes, URLs, processes, notes, git workflows, and AI coding agents are controlled 100% from the keyboard.
+
+```text
+╭─────────────────────────────────────────────────────────────────────────────╮
+│  ⚡ TERMINAL BASE OF OPERATIONS                 macOS Darwin • Apple Silicon  │
+│  Wednesday, Oct 14 • 02:00 AM           Uptime: 12 days • AC Power          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  📊 SYSTEM VITALS: Memory Usage: 38% of 16GB    Root Disk: 45% used         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  🌐 ACTIVE LISTENING PORTS & DEV SERVERS: ● :3000 (node)  ● :8000 (python)  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  📁 GIT REPOSITORIES: dotfiles on main [✔ clean]                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ⚡ QUICK LAUNCH ACTION MENU (Press single key):                             │
+│  [1] Project Sessionizer (Neovim)   [2] Lazygit (Git UI)                    │
+│  [3] Lazydocker (Containers)        [4] Btop (System Monitor)               │
+│  [5] Yazi (File Explorer)           [6] AI Agent CLI (AGY)                  │
+│  [k] Kill Listening Port            [p] Fuzzy Git Project Switcher          │
+╰─────────────────────────────────────────────────────────────────────────────╯
+```
+
+### 🎮 Central Base Keybindings & Popups:
+| Shortcut | Context | Action |
+| :--- | :--- | :--- |
+| `dash` / `base` / `home` | Shell | Launch interactive Terminal Base of Operations Dashboard |
+| <kbd>Cmd</kbd> + <kbd>Option</kbd> + <kbd>D</kbd> | WezTerm | Instant Terminal Dashboard in a new tab |
+| <kbd>Prefix</kbd> + <kbd>D</kbd> | Tmux | Instant floating Terminal Dashboard popup |
+| <kbd>Prefix</kbd> + <kbd>u</kbd> | Tmux | **Zero-Mouse URL Picker**: Grab links from screen, open or copy |
+| `furl` / `links` | Shell | Fuzzy select URLs from screen/git/clipboard to open or read |
+| `reader [url]` | Shell | Read web articles & docs formatted cleanly in terminal (Zero GUI) |
+| <kbd>Prefix</kbd> + <kbd>n</kbd> | Tmux | Instant floating Neovim scratchpad notes |
+| `scratch [msg]` / `fnote`| Shell | Quick persistent markdown notes & fuzzy note browser |
+| <kbd>Prefix</kbd> + <kbd>a</kbd> | Tmux | Floating Antigravity AI Agent (`agy`) popup |
+| <kbd>Prefix</kbd> + <kbd>g</kbd> | Tmux | Floating Lazygit Git UI popup |
+| <kbd>Prefix</kbd> + <kbd>y</kbd> | Tmux | Floating Yazi File Manager popup |
+| <kbd>Prefix</kbd> + <kbd>b</kbd> | Tmux | Floating Btop Real-time System Monitor popup |
+| <kbd>Ctrl</kbd> + <kbd>F</kbd> / `p` | Tmux/Shell| Instant FZF Project Sessionizer (spawns 3-pane layout) |
+| <kbd>Prefix</kbd> + <kbd>?</kbd> | Tmux | Floating Cockpit Cheatsheet HUD |
+
+---
+
 ## 🖥️ 1. WezTerm Terminal Emulator (`wezterm.lua`)
 
 A GPU-accelerated terminal emulator configured for Apple Silicon and modern high-DPI displays.
@@ -158,7 +201,21 @@ Connected rounded-tree prompt that displays path, git status, live timestamp, an
 * **`wiki <query>`** — Search Wikipedia directly in the terminal.
 * **`readweb <url>` / `catweb <url>`** — Dump any web page or article as clean, readable text directly in terminal via `w3m -dump`.
 
-### 🧰 Developer Helper Functions
+### 🧰 Developer Superpowers & Zero-Touchpad Workflow
+* **`dash` / `base` / `home`** — Interactive terminal dashboard showing RAM %, disk, active listening ports, git status, and single-key actions.
+* **`furl` / `links`** — Fuzzy URL grabber: extracts links from current screen, history, and clipboard. Press <kbd>Enter</kbd> to open in browser, <kbd>Ctrl-R</kbd> to read in terminal, or <kbd>Ctrl-Y</kbd> to copy.
+* **`reader <url>`** — Zero-browser web reader: strips ads/scripts and formats articles or documentation cleanly as markdown directly inside your terminal pager.
+* **`fps` / `fkill`** — Interactive CPU% and RAM process assassin: search running processes, press <kbd>Enter</kbd> to gracefully terminate (`SIGTERM`), <kbd>Ctrl-9</kbd> to force kill (`SIGKILL`), or <kbd>Ctrl-Y</kbd> to copy PID.
+* **`newproj <name> [type]`** — Zero-friction project scaffolder: creates a new project (`ts`, `py`, `go`, `rust`), initializes Git with `.gitignore`, makes an initial commit, bookmarks it, and opens it directly in Neovim.
+* **`frebase` / `fsq [N|branch]`** — Interactive Git rebase & commit squasher with Delta side-by-side diff previews.
+* **`scratch [msg]` / `fnote`** — Fast markdown notes engine: append thoughts in 1 second or fuzzy search and edit notes in Neovim.
+* **`gpush-ai`** — Antigravity-powered AI Git commit and push: analyzes staged diff, generates conventional commit messages, and pushes to remote.
+* **`pm <cmd>`** — Polyglot package manager wrapper: auto-detects `pnpm`, `npm`, `yarn`, `bun`, `poetry`, `uv`, `cargo`, `go`.
+* **`watchrun [cmd]`** — Zero-touchpad test runner: watches project files and auto-reruns your test suite on every file save.
+* **`envsafe`** — Masked `.env` previewer: safely display environment files without exposing passwords or API keys during screenshares.
+* **`dotsync`** — One-keystroke dotfiles sync: automatically stages, commits, and pushes your dotfiles to GitHub.
+* **`fconflicts`** — Interactive Git merge conflict resolver opening conflicting files directly in Neovim.
+* **`fwt` / `fwt-add`** — Interactive Git worktree switcher for working on multiple branches in parallel.
 * **`kp`** — Interactive fuzzy process killer (<kbd>Tab</kbd> to multi-select, <kbd>Enter</kbd> to kill stuck port/server).
 * **`fco`** — Interactive git branch switcher.
 * **`fif <query>`** — Search text across entire codebase with live syntax preview and editor line jump.
@@ -174,7 +231,7 @@ Connected rounded-tree prompt that displays path, git status, live timestamp, an
 * **`json <string|file>`** — Format and prettify JSON with interactive `jless`.
 * **`disk [path]`** — Visual disk space analyzer with `dust`.
 * **`myip`** — Show both LAN IP and public WAN IP.
-* **`help` / `zhelp`** — Interactive in-terminal cheatsheet dashboard.
+* **`hud` / `keys`** — Interactive in-terminal cheatsheet HUD (<kbd>F1</kbd> / <kbd>F2</kbd>).
 
 ---
 
@@ -185,10 +242,13 @@ dotfiles/
 ├── .gitignore
 ├── README.md                      # Comprehensive documentation & shortcuts
 ├── install.sh                     # Automated one-step setup script
+├── tmux.conf                      # Modern tmux configuration with floating popups
 ├── zshrc                          # Calibrated ~/.zshrc configuration
 ├── wezterm.lua                    # GPU-accelerated terminal emulator configuration
 ├── vimrc                          # Modern Vim 9 IDE & AI agent launchpad
 ├── bin/
+│   ├── term-dash                  # Interactive Terminal Base of Operations Dashboard
+│   ├── tmux-sessionizer           # Ergonomic 3-pane project sessionizer
 │   └── wz                         # WezTerm developer companion CLI utility
 ├── .vim/                          # Vim documentation & guides
 │   ├── GUIDE.txt                  # In-editor interactive cheatsheet (:Guide)

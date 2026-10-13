@@ -144,6 +144,9 @@
   <  or  > (visual)        Continuous indentation (keeps visual selection active)
   p (visual)               Safe paste over selection (preserves clipboard!)
   <Space> u                Visual undo branch tree (Undotree)
+  gx                       Open URL under cursor in browser (Zero Mouse)
+  <Space> o u              Open URL under cursor in browser
+  <Space> o r              Read URL under cursor in terminal Reader split
   <Space> w / q            Save file / Quit
 
 ==============================================================================
@@ -206,6 +209,12 @@
 ==============================================================================
   hud  /  <F1>             Interactive shell command HUD & shortcuts menu
   hint [topic] / <F2>      Interactive developer hints & cheatsheet explorer
+  dash / base              Terminal Base of Operations Dashboard (Vitals, Ports, Repos)
+  fcommit / gc             Conventional commit wizard with interactive type/scope
+  gsync / gprune           Sync with remote & prune deleted [gone] branches
+  fjson [file] / fyaml     Interactive JSON/YAML key path explorer & query tool
+  furl / links             Fuzzy URL selector from terminal & open or reader
+  scratch [msg] / fnote    Terminal scratchpad & notes manager
   fman <cmd>               Fuzzy search man page command flags & descriptions
   reader [url]             Terminal web reader & markdown article viewer
   fps  /  fkill            Process & RAM assassin with CPU% live inspector

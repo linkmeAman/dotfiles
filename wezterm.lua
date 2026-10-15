@@ -73,7 +73,7 @@ config.visual_bell = {
 config.use_fancy_tab_bar = false
 config.tab_bar_at_bottom = false
 config.hide_tab_bar_if_only_one_tab = false
-config.tab_max_width = 28
+config.tab_max_width = 38
 config.enable_scroll_bar = false
 config.scrollback_lines = 10000
 config.status_update_interval = 250
@@ -83,13 +83,13 @@ config.colors = {
   tab_bar = {
     background = '#16161e',
     active_tab = {
-      bg_color = '#1f2335',
+      bg_color = '#282e44',
       fg_color = '#c0caf5',
       intensity = 'Bold',
     },
     inactive_tab = {
-      bg_color = '#16161e',
-      fg_color = '#565f89',
+      bg_color = '#1b1e2e',
+      fg_color = '#787c99',
     },
     inactive_tab_hover = {
       bg_color = '#24283b',
@@ -101,7 +101,7 @@ config.colors = {
     },
     new_tab_hover = {
       bg_color = '#24283b',
-      fg_color = '#7aa2f7',
+      fg_color = '#7dcfff',
     },
   },
 }
@@ -684,6 +684,30 @@ local interactive_apps = {
 -- Per-tab state tracking for loading spinners & completion alerts
 local tab_states = {}
 
+-- Pure Lua file-based Git branch extractor (0 subprocesses, <0.01ms execution)
+local function get_git_branch(dir)
+  if not dir or dir == '' then return nil end
+  local curr = dir:gsub('^file://[^/]*', ''):gsub('[/\\]+$', '')
+  for _ = 1, 3 do
+    local head_path = curr .. '/.git/HEAD'
+    local f = io.open(head_path, 'r')
+    if f then
+      local line = f:read('*l') or ''
+      f:close()
+      local branch = line:match('ref: refs/heads/(.+)$')
+      if branch then
+        return branch
+      elseif #line >= 7 then
+        return line:sub(1, 7)
+      end
+    end
+    local parent = curr:match('^(.-)/[^/]+$')
+    if not parent or parent == '' or parent == curr then break end
+    curr = parent
+  end
+  return nil
+end
+
 local function get_pane_proc_info(pane)
   local full_name = pane.foreground_process_name or ''
   local raw_proc = ''
@@ -754,7 +778,7 @@ local function get_tab_proc_info(tab)
   return proc, title
 end
 
-local function clean_tab_title(tab, proc)
+local function clean_tab_title(tab, proc, num_tabs)
   local pane = tab.active_pane
   local raw_title = pane.title or ''
   raw_title = raw_title:match('^%s*(.-)%s*$') or ''
@@ -797,10 +821,18 @@ local function clean_tab_title(tab, proc)
     end
   end
 
+  -- Dynamic title max length: expand to utilize full space when fewer tabs are open
+  local max_len = 14
+  if num_tabs and num_tabs <= 3 then
+    max_len = 26
+  elseif num_tabs and num_tabs <= 6 then
+    max_len = 18
+  end
+
   if wezterm and wezterm.truncate_right then
-    title = wezterm.truncate_right(title, 14)
-  elseif #title > 14 then
-    title = title:sub(1, 13) .. '…'
+    title = wezterm.truncate_right(title, max_len)
+  elseif #title > max_len then
+    title = title:sub(1, max_len - 1) .. '…'
   end
 
   return title
@@ -874,13 +906,11 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max
         state.user_viewed = true
         state.viewed_at = now
       end
-      -- User has viewed the completed tab for 6 seconds; reset to idle
       if (now - (state.viewed_at or now)) >= 6 then
         state.status = 'idle'
         state.completed_proc = nil
       end
     else
-      -- If in background, stay highlighted until user activates it (or 10min safety timeout)
       if (now - state.completed_at) >= 600 then
         state.status = 'idle'
         state.completed_proc = nil
@@ -889,92 +919,148 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max
   end
 
   local index = tab.tab_index + 1
-  local bg = '#16161e'
-  local fg = '#565f89'
-  local intensity = 'Normal'
-  local text = ''
+  local num_tabs = #tabs
+
+  -- Extract CWD and git branch for active tab context
+  local branch = nil
+  if tab.is_active and tab.active_pane and tab.active_pane.current_working_dir then
+    local cwd_val = tab.active_pane.current_working_dir
+    local p = type(cwd_val) == 'table' and (cwd_val.file_path or '') or tostring(cwd_val)
+    branch = get_git_branch(p)
+  end
+
+  -- Visual colors & capsule pill layout
+  local bar_bg = '#16161e'
+  local pill_bg = '#1b1e2e'
+  local index_fg = '#565f89'
+  local icon_fg = '#687091'
+  local title_fg = '#787c99'
+  local icon = ''
+  local title = clean_tab_title(tab, proc, num_tabs)
+  local is_bold = false
 
   if state.status == 'completed' then
     -- Prominent emerald highlight: Task Finished!
-    bg = '#1f382b'
-    fg = '#9ece6a'
-    intensity = 'Bold'
-    local comp_name = clean_tab_title(tab, state.completed_proc or 'Done')
-    text = string.format(' ✔ %d: %s (Done) ', index, comp_name)
+    pill_bg = '#1f382b'
+    index_fg = '#9ece6a'
+    icon_fg = '#9ece6a'
+    title_fg = '#9ece6a'
+    icon = '✔'
+    title = clean_tab_title(tab, state.completed_proc or 'Done', num_tabs) .. ' (Done)'
+    is_bold = true
   elseif state.status == 'running' then
     -- Animated spinner & loading indicator ONLY for real active background tasks
     local spinner_char = SPINNER[spinner_idx]
-    local run_name = clean_tab_title(tab, state.running_proc or proc)
-    text = string.format(' %s %d: %s ', spinner_char, index, run_name)
-    if tab.is_active then
-      bg = '#1f2335'
-      fg = '#7dcfff' -- Electric cyan for active running tab
-      intensity = 'Bold'
-    else
-      bg = '#1c2030'
-      fg = '#e0af68' -- Warm amber for background running tab
-      intensity = 'Bold'
-    end
-  elseif is_interactive then
-    -- Interactive editor, AI assistant, or TUI app with dedicated icon and clean title
-    local icon = interactive_apps[proc] or '󰇥'
-    local title = clean_tab_title(tab, proc)
-    text = string.format(' %s %d: %s ', icon, index, title)
-    if tab.is_active then
-      bg = '#24283b'
-      fg = '#7aa2f7'
-      intensity = 'Bold'
-    elseif hover then
-      bg = '#1f2335'
-      fg = '#c0caf5'
-    else
-      bg = '#16161e'
-      fg = '#89b4fa' -- Clear accent for background interactive tools
-    end
+    pill_bg = tab.is_active and '#1f2e3d' or '#1c2030'
+    index_fg = tab.is_active and '#7dcfff' or '#e0af68'
+    icon_fg = tab.is_active and '#7dcfff' or '#e0af68'
+    title_fg = tab.is_active and '#c0caf5' or '#e0af68'
+    icon = spinner_char
+    title = clean_tab_title(tab, state.running_proc or proc, num_tabs)
+    is_bold = true
+  elseif tab.is_active then
+    -- Active tab: illuminated Tokyo Night slate pill
+    pill_bg = '#282e44'
+    index_fg = '#7dcfff'
+    icon_fg = is_interactive and '#7dcfff' or '#7aa2f7'
+    title_fg = '#c0caf5'
+    icon = is_interactive and (interactive_apps[proc] or '󰇥') or (title == '~' and '' or '')
+    is_bold = true
+  elseif hover then
+    -- Hover tab: interactive preview
+    pill_bg = '#222538'
+    index_fg = '#7aa2f7'
+    icon_fg = '#7aa2f7'
+    title_fg = '#c0caf5'
+    icon = is_interactive and (interactive_apps[proc] or '󰇥') or (title == '~' and '' or '')
   else
-    -- Normal idle shell
-    local title = clean_tab_title(tab)
-    text = string.format(' %d: %s ', index, title)
-    if tab.is_active then
-      bg = '#24283b'
-      fg = '#7aa2f7'
-      intensity = 'Bold'
-    elseif hover then
-      bg = '#1f2335'
-      fg = '#c0caf5'
-    else
-      bg = '#16161e'
-      fg = '#565f89'
-    end
+    -- Inactive tab: clean muted card
+    pill_bg = '#1b1e2e'
+    index_fg = '#565f89'
+    icon_fg = is_interactive and '#565f89' or '#414868'
+    title_fg = '#787c99'
+    icon = is_interactive and (interactive_apps[proc] or '󰇥') or (title == '~' and '' or '')
   end
 
-  return {
-    { Background = { Color = bg } },
-    { Foreground = { Color = fg } },
-    { Attribute = { Intensity = intensity } },
-    { Text = text },
-  }
+  local elements = {}
+
+  -- Left rounded pill cap
+  table.insert(elements, { Background = { Color = bar_bg } })
+  table.insert(elements, { Foreground = { Color = pill_bg } })
+  table.insert(elements, { Text = '' })
+
+  -- Pill Body: Index badge
+  table.insert(elements, { Background = { Color = pill_bg } })
+  table.insert(elements, { Foreground = { Color = index_fg } })
+  table.insert(elements, { Attribute = { Intensity = 'Bold' } })
+  table.insert(elements, { Text = ' ' .. index .. ' ' })
+
+  -- Pill Body: Icon
+  if icon ~= '' then
+    table.insert(elements, { Background = { Color = pill_bg } })
+    table.insert(elements, { Foreground = { Color = icon_fg } })
+    table.insert(elements, { Text = icon .. ' ' })
+  end
+
+  -- Pill Body: Title
+  table.insert(elements, { Background = { Color = pill_bg } })
+  table.insert(elements, { Foreground = { Color = title_fg } })
+  table.insert(elements, { Attribute = { Intensity = is_bold and 'Bold' or 'Normal' } })
+  table.insert(elements, { Text = title .. ' ' })
+
+  -- Pill Body: Git Branch (when active and space permits)
+  if tab.is_active and branch and branch ~= '' and num_tabs <= 6 then
+    table.insert(elements, { Background = { Color = pill_bg } })
+    table.insert(elements, { Foreground = { Color = '#bb9af7' } })
+    table.insert(elements, { Text = ' ' .. branch .. ' ' })
+  end
+
+  -- Right rounded pill cap
+  table.insert(elements, { Background = { Color = bar_bg } })
+  table.insert(elements, { Foreground = { Color = pill_bg } })
+  table.insert(elements, { Text = '' })
+
+  -- Spacer between tabs
+  table.insert(elements, { Background = { Color = bar_bg } })
+  table.insert(elements, { Text = ' ' })
+
+  return elements
 end)
 
 wezterm.on('update-right-status', function(window, pane)
   -- Advance the spinner animation frame on every periodic tick
   spinner_idx = (spinner_idx % #SPINNER) + 1
 
+  local bar_bg = '#16161e'
   local cells = {}
 
-  -- 1. Modal key table indicator (e.g. RESIZE_PANE)
-  local mode = window:active_key_table()
-  if mode then
-    table.insert(cells, { Background = { Color = '#e0af68' } })
-    table.insert(cells, { Foreground = { Color = '#1a1b26' } })
-    table.insert(cells, { Attribute = { Intensity = 'Bold' } })
-    table.insert(cells, { Text = ' ' .. string.upper(mode) .. ' ' })
+  local function add_pill(bg_color, elements)
+    table.insert(cells, { Background = { Color = bar_bg } })
+    table.insert(cells, { Foreground = { Color = bg_color } })
+    table.insert(cells, { Text = '' })
+
+    for _, el in ipairs(elements) do
+      table.insert(cells, { Background = { Color = bg_color } })
+      if el.fg then table.insert(cells, { Foreground = { Color = el.fg } }) end
+      if el.bold ~= nil then table.insert(cells, { Attribute = { Intensity = el.bold and 'Bold' or 'Normal' } }) end
+      if el.text then table.insert(cells, { Text = el.text }) end
+    end
+
+    table.insert(cells, { Background = { Color = bar_bg } })
+    table.insert(cells, { Foreground = { Color = bg_color } })
+    table.insert(cells, { Text = ' ' })
   end
 
-  -- 2. Scan tabs for completed task notifications
-  local completed_alerts = {}
-  local now = os.time()
+  -- 1. Active Key Table Mode (e.g. RESIZE_PANE, COPY_MODE)
+  local mode = window:active_key_table()
+  if mode then
+    add_pill('#e0af68', {
+      { fg = '#1a1b26', bold = true, text = ' 󰩨 ' .. string.upper(mode) .. ' ' },
+    })
+  end
 
+  -- 2. Scan tabs for completed task notifications (toast alert)
+  local now = os.time()
   local mux_win = window:mux_window()
   if mux_win then
     local tabs = mux_win:tabs_with_info()
@@ -982,14 +1068,12 @@ wezterm.on('update-right-status', function(window, pane)
       local tid = item.tab:tab_id()
       local s = tab_states[tid]
       if s and s.status == 'completed' then
-        -- If not yet viewed or recently viewed within 6 seconds
         if not s.user_viewed or (now - (s.viewed_at or now)) < 6 then
-          table.insert(completed_alerts, {
-            index = item.index + 1,
-            proc = s.completed_proc or 'task',
+          add_pill('#1f382b', {
+            { fg = '#9ece6a', bold = true, text = string.format(' ✔ Tab %d: %s (Done) ', item.index + 1, s.completed_proc or 'task') },
           })
+          break
         end
-        -- Send desktop notification if completed in the background
         if not s.notified and not item.is_active then
           s.notified = true
           window:toast_notification(
@@ -1003,49 +1087,64 @@ wezterm.on('update-right-status', function(window, pane)
     end
   end
 
-  -- 3. High-Priority Alert Badges (transient completed task toast)
-  if #completed_alerts > 0 then
-    local alert = completed_alerts[1]
-    table.insert(cells, { Background = { Color = '#1f382b' } })
-    table.insert(cells, { Foreground = { Color = '#9ece6a' } })
-    table.insert(cells, { Attribute = { Intensity = 'Bold' } })
-    table.insert(cells, { Text = string.format(' ✔ Tab %d: %s (Done) ', alert.index, alert.proc) })
+  -- 3. Active Pane Directory & Git Branch Context Widget
+  local cwd_uri = pane:get_current_working_dir()
+  local cwd_path = ''
+  if cwd_uri then
+    cwd_path = cwd_uri.file_path or tostring(cwd_uri)
+    cwd_path = cwd_path:gsub('^file://[^/]*', ''):gsub('[/\\]+$', '')
   end
+  local folder = cwd_path:match('([^/\\]+)$') or ''
+  local user = (os.getenv('USER') or ''):lower()
+  if folder == '' or folder:lower() == user then folder = '~' end
+  local branch = get_git_branch(cwd_path)
 
-  -- 4. Rotating Command Hint (concise, updates every 12s)
+  local dir_elements = {
+    { fg = '#7dcfff', bold = true, text = '  ' .. folder .. ' ' },
+  }
+  if branch and branch ~= '' then
+    table.insert(dir_elements, { fg = '#bb9af7', bold = false, text = ' ' .. branch .. ' ' })
+  end
+  add_pill('#1f2335', dir_elements)
+
+  -- 4. Rotating Keyboard Shortcut Hint (updates every 12s)
   local hint_idx = (math.floor(now / 12) % #hints) + 1
   local hint = hints[hint_idx]
-  table.insert(cells, { Foreground = { Color = '#e0af68' } })
-  table.insert(cells, { Text = ' 💡 ' .. hint.key .. ': ' .. hint.desc .. ' ' })
+  add_pill('#24283b', {
+    { fg = '#e0af68', bold = false, text = ' 💡 ' .. hint.key .. ': ' .. hint.desc .. ' ' },
+  })
 
-  -- 5. Workspace badge (shown only when inside a named workspace)
-  local workspace = window:active_workspace()
-  if workspace and workspace ~= 'default' then
-    table.insert(cells, { Foreground = { Color = '#bb9af7' } })
-    table.insert(cells, { Text = '  ' .. workspace .. ' ' })
-  end
-
-  -- 6. Battery Indicator (for MacBooks)
+  -- 5. MacBook Battery & Power Health Indicator
   for _, b in ipairs(wezterm.battery_info()) do
     local charge = b.state_of_charge * 100
     local icon = '󰁹'
-    if charge <= 20 then
+    local fg = '#9ece6a'
+    if b.state and b.state:find('Charging') then
+      icon = '󰂄'
+      fg = '#7dcfff'
+    elseif charge <= 20 then
       icon = '󰂃'
+      fg = '#f7768e'
     elseif charge <= 40 then
       icon = '󰁼'
+      fg = '#e0af68'
     elseif charge <= 60 then
       icon = '󰁾'
+      fg = '#e0af68'
     elseif charge <= 80 then
       icon = '󰂀'
+      fg = '#9ece6a'
     end
-    table.insert(cells, { Foreground = { Color = charge <= 20 and '#f7768e' or '#9ece6a' } })
-    table.insert(cells, { Text = ' ' .. icon .. string.format(' %.0f%% ', charge) })
+    add_pill('#1f2335', {
+      { fg = fg, bold = false, text = string.format(' %s %.0f%% ', icon, charge) },
+    })
   end
 
-  -- 7. Current Time
+  -- 6. Current Time Widget
   local time = wezterm.strftime('%I:%M %p')
-  table.insert(cells, { Foreground = { Color = '#7aa2f7' } })
-  table.insert(cells, { Text = ' ' .. time .. ' ' })
+  add_pill('#24283b', {
+    { fg = '#7aa2f7', bold = true, text = '  ' .. time .. ' ' },
+  })
 
   window:set_right_status(wezterm.format(cells))
 end)

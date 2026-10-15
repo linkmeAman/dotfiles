@@ -36,8 +36,8 @@ config.harfbuzz_features = { 'calt=1', 'clig=1', 'liga=1', 'zero=1' }
 config.max_fps = 120
 config.animation_fps = 60
 
--- macOS Window styling: Integrated traffic lights, subtle blur, and sleek padding
-config.window_decorations = 'INTEGRATED_BUTTONS|RESIZE'
+-- macOS Window styling: Sleek borderless styling, subtle blur, and sleek padding
+config.window_decorations = 'RESIZE'
 config.window_background_opacity = 0.95
 config.macos_window_background_blur = 30
 config.window_padding = {
@@ -778,20 +778,48 @@ local function get_tab_proc_info(tab)
   return proc, title
 end
 
-local function clean_tab_title(tab, proc, num_tabs)
+local function clean_tab_title(tab, proc, is_active, hover, num_tabs)
   local pane = tab.active_pane
   local raw_title = pane.title or ''
   raw_title = raw_title:match('^%s*(.-)%s*$') or ''
 
   -- Extract folder name from CWD as smart context
+  local home = (os.getenv('HOME') or ''):gsub('[/\\]+$', '')
   local folder = ''
   local cwd = pane.current_working_dir
   if cwd then
     local path = type(cwd) == 'table' and (cwd.file_path or '') or tostring(cwd)
     path = path:gsub('^file://[^/]*', ''):gsub('[/\\]+$', '')
-    folder = path:match('([^/\\]+)$') or ''
+    if path == home or path == '' then
+      folder = '~'
+    else
+      folder = path:match('([^/\\]+)$') or ''
+    end
   end
 
+  -- Inactive tabs: strictly concise (e.g. "UEM", "TR", "Markx", "~", max 8 chars)
+  if not is_active and not hover then
+    local concise = ''
+    if folder ~= '' and folder ~= '~' then
+      concise = folder
+    elseif proc and proc ~= 'shell' and not shells[proc] then
+      concise = proc
+    elseif folder == '~' then
+      concise = '~'
+    else
+      concise = raw_title ~= '' and raw_title or '~'
+    end
+
+    local max_concise = (num_tabs and num_tabs > 6) and 6 or 8
+    if wezterm and wezterm.truncate_right then
+      return wezterm.truncate_right(concise, max_concise)
+    elseif #concise > max_concise then
+      return concise:sub(1, max_concise - 1) .. '…'
+    end
+    return concise
+  end
+
+  -- Active or Hovered tab: fully open title!
   local title = ''
   if raw_title:sub(1, 3) == '✳' then
     title = raw_title:sub(4):match('^%s*(.-)$') or ''
@@ -805,9 +833,8 @@ local function clean_tab_title(tab, proc, num_tabs)
   end
 
   local lower_title = title:lower()
-  local user = (os.getenv('USER') or ''):lower()
-  if title == '' or lower_title == 'zsh' or lower_title == 'bash' or lower_title == 'sh' or lower_title == '~' or lower_title == user then
-    if folder ~= '' and folder:lower() ~= user then
+  if title == '' or lower_title == 'zsh' or lower_title == 'bash' or lower_title == 'sh' or lower_title == '~' or (home ~= '' and title == home) then
+    if folder ~= '' then
       title = folder
     elseif proc and proc ~= 'shell' and not shells[proc] then
       title = proc
@@ -815,18 +842,17 @@ local function clean_tab_title(tab, proc, num_tabs)
       title = '~'
     end
   elseif lower_title == 'claude' or lower_title == 'agy' then
-    -- When tabs run Claude or AGY, show the project directory so multiple tabs are easily distinguishable!
-    if folder ~= '' and folder:lower() ~= user then
+    if folder ~= '' then
       title = folder
     end
   end
 
-  -- Dynamic title max length: expand to utilize full space when fewer tabs are open
-  local max_len = 14
-  if num_tabs and num_tabs <= 3 then
-    max_len = 26
-  elseif num_tabs and num_tabs <= 6 then
-    max_len = 18
+  -- Dynamic title max length: generous expansion for active/hovered tab
+  local max_len = 28
+  if num_tabs and num_tabs > 8 then
+    max_len = 20
+  elseif num_tabs and num_tabs > 5 then
+    max_len = 24
   end
 
   if wezterm and wezterm.truncate_right then
@@ -936,7 +962,7 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max
   local icon_fg = '#687091'
   local title_fg = '#787c99'
   local icon = ''
-  local title = clean_tab_title(tab, proc, num_tabs)
+  local title = clean_tab_title(tab, proc, tab.is_active, hover, num_tabs)
   local is_bold = false
 
   if state.status == 'completed' then
@@ -946,7 +972,7 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max
     icon_fg = '#9ece6a'
     title_fg = '#9ece6a'
     icon = '✔'
-    title = clean_tab_title(tab, state.completed_proc or 'Done', num_tabs) .. ' (Done)'
+    title = clean_tab_title(tab, state.completed_proc or 'Done', tab.is_active, hover, num_tabs) .. (tab.is_active and ' (Done)' or '')
     is_bold = true
   elseif state.status == 'running' then
     -- Animated spinner & loading indicator ONLY for real active background tasks
@@ -956,7 +982,7 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max
     icon_fg = tab.is_active and '#7dcfff' or '#e0af68'
     title_fg = tab.is_active and '#c0caf5' or '#e0af68'
     icon = spinner_char
-    title = clean_tab_title(tab, state.running_proc or proc, num_tabs)
+    title = clean_tab_title(tab, state.running_proc or proc, tab.is_active, hover, num_tabs)
     is_bold = true
   elseif tab.is_active then
     -- Active tab: illuminated Tokyo Night slate pill
@@ -1009,7 +1035,7 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config_arg, hover, max
   table.insert(elements, { Text = title .. ' ' })
 
   -- Pill Body: Git Branch (when active and space permits)
-  if tab.is_active and branch and branch ~= '' and num_tabs <= 6 then
+  if tab.is_active and branch and branch ~= '' and num_tabs <= 8 then
     table.insert(elements, { Background = { Color = pill_bg } })
     table.insert(elements, { Foreground = { Color = '#bb9af7' } })
     table.insert(elements, { Text = ' ' .. branch .. ' ' })
@@ -1032,6 +1058,24 @@ wezterm.on('update-right-status', function(window, pane)
   spinner_idx = (spinner_idx % #SPINNER) + 1
 
   local bar_bg = '#16161e'
+
+  -- 0. Left Status: Sleek brand pill / workspace anchor at the far left
+  local workspace = window:active_workspace()
+  local ws_text = (workspace and workspace ~= 'default') and (' ' .. workspace) or '󰌽 WEZTERM'
+  local left_cells = {
+    { Background = { Color = bar_bg } },
+    { Foreground = { Color = '#1b1e2e' } },
+    { Text = ' ' },
+    { Background = { Color = '#1b1e2e' } },
+    { Foreground = { Color = '#7aa2f7' } },
+    { Attribute = { Intensity = 'Bold' } },
+    { Text = ' ' .. ws_text .. ' ' },
+    { Background = { Color = bar_bg } },
+    { Foreground = { Color = '#1b1e2e' } },
+    { Text = ' ' },
+  }
+  window:set_left_status(wezterm.format(left_cells))
+
   local cells = {}
 
   local function add_pill(bg_color, elements)
@@ -1094,9 +1138,13 @@ wezterm.on('update-right-status', function(window, pane)
     cwd_path = cwd_uri.file_path or tostring(cwd_uri)
     cwd_path = cwd_path:gsub('^file://[^/]*', ''):gsub('[/\\]+$', '')
   end
-  local folder = cwd_path:match('([^/\\]+)$') or ''
-  local user = (os.getenv('USER') or ''):lower()
-  if folder == '' or folder:lower() == user then folder = '~' end
+  local home = (os.getenv('HOME') or ''):gsub('[/\\]+$', '')
+  local folder = ''
+  if cwd_path == home or cwd_path == '' then
+    folder = '~'
+  else
+    folder = cwd_path:match('([^/\\]+)$') or '~'
+  end
   local branch = get_git_branch(cwd_path)
 
   local dir_elements = {
